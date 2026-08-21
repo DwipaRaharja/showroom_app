@@ -17,9 +17,18 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        if (User::count() === 0) {
+            User::factory()->create([
+                'name' => 'Admin Showroom',
+                'email' => 'admin@example.com',
+                'password' => bcrypt('password'),
+            ]);
+        }
+
+        $this->call([
+            BrandSeeder::class,
+            CustomerSeeder::class,
+            CarSeeder::class,
         ]);
     }
 }
