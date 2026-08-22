@@ -42,6 +42,52 @@ export type Payment = {
     created_at?: string;
 };
 
+export type HandoverStatus = 'pending' | 'vehicle_delivered' | 'completed';
+export type RecipientRelation =
+    | 'buyer_self'
+    | 'family'
+    | 'driver'
+    | 'leasing_officer'
+    | 'other';
+
+export type HandoverChecklist = {
+    key_count?: number;
+    has_stnk?: boolean;
+    has_bpkb?: boolean;
+    has_faktur?: boolean;
+    has_blanko?: boolean;
+    has_manual_book?: boolean;
+    has_service_book?: boolean;
+    has_toolkit?: boolean;
+    has_spare_tire?: boolean;
+    has_jack?: boolean;
+    fuel_level?: string;
+    cleanliness?: string;
+};
+
+export type VehicleHandover = {
+    id: number;
+    handover_number: string;
+    sale_id: number;
+    car_id: number;
+    recipient_name: string;
+    recipient_phone: string | null;
+    recipient_id_card: string | null;
+    recipient_relation: RecipientRelation;
+    officer_name: string;
+    handover_location: string;
+    handover_address: string | null;
+    vehicle_delivered_at: string | null;
+    bpkb_delivered_at: string | null;
+    bpkb_recipient_type: 'customer' | 'finance_company' | null;
+    status: HandoverStatus;
+    checklist: HandoverChecklist | null;
+    notes: string | null;
+    proof_file: string | null;
+    created_at?: string;
+    updated_at?: string;
+};
+
 export type Sale = {
     id: number;
     invoice_number: string;
@@ -64,12 +110,15 @@ export type Sale = {
     created_at: string;
     updated_at: string;
     payments?: Payment[];
+    handover?: VehicleHandover | null;
     total_paid?: number;
     remaining_bill?: number;
     total_bonus_paid?: number;
     is_settled?: boolean;
     has_down_payment?: boolean;
     can_accept_payment?: boolean;
+    can_deliver_vehicle?: boolean;
+    can_deliver_bpkb?: boolean;
 };
 
 export type SalesSummary = {
@@ -79,3 +128,4 @@ export type SalesSummary = {
     total_bonus_collected: number;
     pending_disbursements_count: number;
 };
+

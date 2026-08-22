@@ -3,11 +3,14 @@ import {
     ArrowLeftIcon,
     BankIcon,
     CarProfileIcon,
+    CheckCircleIcon,
     CopyIcon,
     DotsThreeVerticalIcon,
     HandCoinsIcon,
+    KeyIcon,
     PlusIcon,
     PrinterIcon,
+    ShieldCheckIcon,
     TrashIcon,
     UserIcon,
     WarningIcon,
@@ -16,6 +19,7 @@ import {
 import { useState } from 'react';
 import { toast } from 'sonner';
 import PaymentController from '@/actions/App/Http/Controllers/PaymentController';
+import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,6 +53,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { HandoverDialog } from '@/pages/sales/handover-dialog';
 import { PaymentDialog } from '@/pages/sales/payment-dialog';
 import { getPaymentTypeBadge } from '@/pages/sales/table-config';
 import type { Payment, Sale } from '@/pages/sales/types';
@@ -98,6 +103,7 @@ function getPaymentCategoryLabel(category: string) {
 
 export default function SalesShow({ sale }: Props) {
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+    const [isHandoverOpen, setIsHandoverOpen] = useState(false);
     const [deletingPayment, setDeletingPayment] = useState<Payment | null>(
         null,
     );
@@ -129,6 +135,9 @@ export default function SalesShow({ sale }: Props) {
             .reduce((acc, p) => acc + p.amount, 0);
     const bonusRemaining = Math.max(0, sale.leasing_bonus - totalBonusPaid);
     const isSettled = remainingBill <= 0;
+    const canDeliverVehicle =
+        sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
+    const canDeliverBpkb = sale.can_deliver_bpkb ?? isSettled;
     const canAcceptPayment =
         sale.can_accept_payment ??
         (remainingBill > 0 ||
@@ -190,6 +199,17 @@ export default function SalesShow({ sale }: Props) {
                                 Catat Pembayaran Masuk
                             </Button>
                         )}
+
+                        <Button
+                            variant="outline"
+                            asChild
+                            className="print:hidden"
+                        >
+                            <Link href={VehicleHandoverController.printBast.url(sale.id)}>
+                                <PrinterIcon className="size-4" />
+                                Cetak BAST
+                            </Link>
+                        </Button>
 
                         <Button
                             variant="outline"
@@ -660,9 +680,185 @@ export default function SalesShow({ sale }: Props) {
                                 </CardContent>
                             </Card>
                         )}
+                        {/* Vehicle Handover & BAST Card */}
+                        <Card className="border-primary/20 bg-primary/[0.02] shadow-xs">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                            <KeyIcon
+                                                className="size-4"
+                                                weight="bold"
+                                            />
+                                        </div>
+                                        <CardTitle className="text-sm">
+                                            Serah Terima Unit & BAST
+                                        </CardTitle>
+                                    </div>
+                                    {sale.handover && (
+                                        <span className="font-mono text-[11px] font-semibold text-muted-foreground">
+                                            {sale.handover.handover_number}
+                                        </span>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-xs">
+                                {/* Status Unit */}
+                                <div className="space-y-1 rounded-lg border bg-background p-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-medium text-muted-foreground">
+                                            Fisik Unit & STNK:
+                                        </span>
+                                        {sale.handover?.vehicle_delivered_at ? (
+                                            <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                                                <CheckCircleIcon
+                                                    className="size-3.5"
+                                                    weight="fill"
+                                                />
+                                                Sudah Diserahkan
+                                            </span>
+                                        ) : canDeliverVehicle ? (
+                                            <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                                                Siap Diserahkan
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 font-semibold text-red-500">
+                                                Terkunci (Sisa &gt; 10jt)
+                                            </span>
+                                        )}
+                                    </div>
+                                    {sale.handover?.vehicle_delivered_at ? (
+                                        <div className="text-[11px] text-muted-foreground">
+                                            Diserahkan pada{' '}
+                                            {dateFormatter.format(
+                                                new Date(
+                                                    sale.handover.vehicle_delivered_at,
+                                                ),
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-[11px] text-muted-foreground">
+                                            {canDeliverVehicle
+                                                ? 'Sisa piutang ≤ Rp 10 Juta, unit boleh dibawa pulang.'
+                                                : 'Sisa piutang > Rp 10 Juta, unit belum dapat diserahkan.'}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Status BPKB */}
+                                <div className="space-y-1 rounded-lg border bg-background p-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-medium text-muted-foreground">
+                                            Dokumen BPKB Asli:
+                                        </span>
+                                        {sale.handover?.bpkb_delivered_at ? (
+                                            <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                                                <ShieldCheckIcon
+                                                    className="size-3.5"
+                                                    weight="fill"
+                                                />
+                                                Sudah Diserahkan
+                                            </span>
+                                        ) : isSettled ? (
+                                            <span className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400">
+                                                Siap Diserahkan (Lunas)
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+                                                Ditahan di Showroom
+                                            </span>
+                                        )}
+                                    </div>
+                                    {sale.handover?.bpkb_delivered_at ? (
+                                        <div className="text-[11px] text-muted-foreground">
+                                            Diserahkan ke{' '}
+                                            {sale.handover
+                                                .bpkb_recipient_type ===
+                                            'finance_company'
+                                                ? 'Lembaga Leasing'
+                                                : 'Customer'}
+                                        </div>
+                                    ) : (
+                                        <div className="text-[11px] text-muted-foreground">
+                                            BPKB baru dapat diserahkan setelah
+                                            pembayaran lunas 100%.
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Recipient info */}
+                                {sale.handover && (
+                                    <div className="space-y-1 border-t pt-2 text-[11px] text-muted-foreground">
+                                        <div>
+                                            Penerima:{' '}
+                                            <strong className="text-foreground">
+                                                {sale.handover.recipient_name}
+                                            </strong>{' '}
+                                            (
+                                            {sale.handover
+                                                .recipient_relation ===
+                                            'buyer_self'
+                                                ? 'Pembeli Sendiri'
+                                                : sale.handover
+                                                      .recipient_relation}
+                                            )
+                                        </div>
+                                        <div>
+                                            Lokasi:{' '}
+                                            <span className="text-foreground">
+                                                {
+                                                    sale.handover
+                                                        .handover_location
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="flex items-center gap-2 pt-1">
+                                    <Button
+                                        variant={
+                                            sale.handover
+                                                ? 'outline'
+                                                : 'default'
+                                        }
+                                        size="sm"
+                                        className="flex-1 text-xs"
+                                        onClick={() => setIsHandoverOpen(true)}
+                                    >
+                                        {sale.handover
+                                            ? 'Perbarui BAST'
+                                            : 'Catat Serah Terima (BAST)'}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        asChild
+                                        className="text-xs"
+                                    >
+                                        <Link
+                                            href={VehicleHandoverController.printBast.url(
+                                                sale.id,
+                                            )}
+                                        >
+                                            <PrinterIcon className="size-3.5" />
+                                            Cetak BAST
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </div>
+
+            {/* Handover Dialog */}
+            <HandoverDialog
+                open={isHandoverOpen}
+                sale={sale}
+                onOpenChange={setIsHandoverOpen}
+            />
 
             {/* Payment Dialog */}
             <PaymentDialog

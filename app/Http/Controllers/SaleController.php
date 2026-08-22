@@ -148,6 +148,8 @@ class SaleController extends Controller
             'customer',
             'financeCompany',
             'payments' => fn ($q) => $q->latest('payment_date')->latest('id'),
+            'documentProcess:id,sale_id,process_number,status',
+            'handover',
         ]);
 
         return Inertia::render('sales/show', [

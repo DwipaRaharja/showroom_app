@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -48,6 +49,8 @@ class Sale extends Model
         'is_settled',
         'has_down_payment',
         'can_accept_payment',
+        'can_deliver_vehicle',
+        'can_deliver_bpkb',
     ];
 
     /**
@@ -210,6 +213,30 @@ class Sale extends Model
     }
 
     /**
+     * Check whether the vehicle unit + STNK can be handed over (remaining bill <= 10 million or settled).
+     *
+     * @return Attribute<bool, never>
+     */
+    protected function canDeliverVehicle(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->status !== 'cancelled' && $this->remaining_bill <= 10_000_000
+        );
+    }
+
+    /**
+     * Check whether BPKB & original legal documents can be handed over (strictly 100% settled).
+     *
+     * @return Attribute<bool, never>
+     */
+    protected function canDeliverBpkb(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->status !== 'cancelled' && $this->remaining_bill <= 0
+        );
+    }
+
+    /**
      * Recalculate and update the sale's and car's status based on payments.
      */
     public function refreshSettlementStatus(): void
@@ -267,5 +294,21 @@ class Sale extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /** @return HasOne<DocumentProcess, $this> */
+    public function documentProcess(): HasOne
+    {
+        return $this->hasOne(DocumentProcess::class);
+    }
+
+    /**
+     * Get the vehicle handover (BAST) record.
+     *
+     * @return HasOne<VehicleHandover, $this>
+     */
+    public function handover(): HasOne
+    {
+        return $this->hasOne(VehicleHandover::class);
     }
 }
