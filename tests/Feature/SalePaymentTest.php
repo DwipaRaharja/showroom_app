@@ -1,0 +1,187 @@
+<?php
+
+use App\Models\Car;
+use App\Models\Customer;
+use App\Models\Payment;
+use App\Models\Sale;
+use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
+
+function createTempoSale(array $attributes = []): Sale
+{
+    $car = Car::factory()->create(['status' => 'available']);
+
+    $sale = Sale::query()->create(array_merge([
+        'car_id' => $car->id,
+        'customer_id' => Customer::factory()->create()->id,
+        'payment_type' => 'cash_tempo',
+        'deal_price' => 100_000_000,
+        'down_payment' => 0,
+        'finance_amount' => 0,
+        'leasing_bonus' => 0,
+        'due_date' => '2026-09-22',
+        'status' => 'pending',
+    ], $attributes));
+
+    $sale->refreshSettlementStatus();
+
+    return $sale->fresh(['car', 'payments']);
+}
+
+function paymentPayload(array $attributes = []): array
+{
+    return array_merge([
+        'payment_date' => '2026-08-22',
+        'payer_type' => 'customer',
+        'payment_category' => 'installment',
+        'amount' => 10_000_000,
+        'payment_method' => 'transfer',
+        'destination_account' => 'BCA Showroom',
+    ], $attributes);
+}
+
+test('unpaid tempo sale books the car and fully paid sale marks it as sold', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    expect($sale->status)->toBe('pending')
+        ->and($sale->car->status)->toBe('booked');
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), paymentPayload([
+            'payment_category' => 'down_payment',
+            'amount' => 20_000_000,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($sale->fresh()->status)->toBe('partial')
+        ->and($sale->car->fresh()->status)->toBe('booked');
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), paymentPayload([
+            'payment_category' => 'settlement',
+            'amount' => 80_000_000,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $sale->refresh();
+
+    expect($sale->status)->toBe('completed')
+        ->and($sale->car->fresh()->status)->toBe('sold')
+        ->and($sale->remaining_bill)->toBe(0)
+        ->and($sale->can_accept_payment)->toBeFalse();
+
+    $this->actingAs($user)
+        ->get(route('sales.show', $sale))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sale.status', 'completed')
+            ->where('sale.car.status', 'sold')
+            ->where('sale.can_accept_payment', false)
+        );
+});
+
+test('tempo sale only accepts one down payment', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    $payload = paymentPayload([
+        'payment_category' => 'down_payment',
+        'amount' => 20_000_000,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), $payload)
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), $payload)
+        ->assertSessionHasErrors([
+            'payment_category' => 'Pembayaran DP / booking sudah pernah dicatat untuk penjualan ini.',
+        ]);
+
+    expect($sale->payments()->where('payment_category', 'down_payment')->count())
+        ->toBe(1)
+        ->and($sale->fresh(['payments'])->has_down_payment)->toBeTrue();
+});
+
+test('tempo sale requires down payment before an installment', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), paymentPayload([
+            'payment_category' => 'installment',
+            'amount' => 10_000_000,
+        ]))
+        ->assertSessionHasErrors([
+            'payment_category' => 'Catat pembayaran DP / booking terlebih dahulu sebelum menambahkan angsuran.',
+        ]);
+
+    expect($sale->payments()->count())->toBe(0)
+        ->and($sale->fresh()->status)->toBe('pending')
+        ->and($sale->car->fresh()->status)->toBe('booked');
+});
+
+test('fully paid sale rejects another payment', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), paymentPayload([
+            'payment_category' => 'settlement',
+            'amount' => 100_000_000,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), paymentPayload([
+            'amount' => 1_000_000,
+        ]))
+        ->assertSessionHasErrors([
+            'amount' => 'Penjualan ini sudah lunas dan tidak dapat menerima pembayaran lagi.',
+        ]);
+
+    expect($sale->payments()->count())->toBe(1);
+});
+
+test('payment cannot exceed the remaining bill', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), paymentPayload([
+            'amount' => 100_000_001,
+        ]))
+        ->assertSessionHasErrors([
+            'amount' => 'Nominal pembayaran tidak boleh melebihi sisa tagihan sebesar Rp 100.000.000.',
+        ]);
+
+    expect($sale->payments()->count())->toBe(0)
+        ->and($sale->fresh()->status)->toBe('pending')
+        ->and($sale->car->fresh()->status)->toBe('booked');
+});
+
+test('deleting a settlement returns the sale and car to unpaid status', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), paymentPayload([
+            'payment_category' => 'settlement',
+            'amount' => 100_000_000,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $payment = Payment::query()->whereBelongsTo($sale)->sole();
+
+    expect($sale->fresh()->status)->toBe('completed')
+        ->and($sale->car->fresh()->status)->toBe('sold');
+
+    $this->actingAs($user)
+        ->delete(route('payments.destroy', $payment))
+        ->assertSessionHasNoErrors();
+
+    expect($sale->fresh()->status)->toBe('pending')
+        ->and($sale->car->fresh()->status)->toBe('booked');
+});
