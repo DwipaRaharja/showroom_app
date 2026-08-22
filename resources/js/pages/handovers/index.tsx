@@ -1,16 +1,16 @@
 import { Head } from '@inertiajs/react';
 import {
-    CarProfileIcon,
     CheckCircleIcon,
     KeyIcon,
     LockIcon,
     ShieldCheckIcon,
 } from '@phosphor-icons/react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { HandoverDataTable } from '@/pages/handovers/data-table';
 import { HandoverDialog } from '@/pages/sales/handover-dialog';
 import type { Sale } from '@/pages/sales/types';
+import { index as handoversIndex } from '@/routes/handovers';
 
 type Props = {
     sales: Sale[];
@@ -27,31 +27,28 @@ export default function HandoversIndex({ sales, summary }: Props) {
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    function handleManageHandover(sale: Sale) {
+    const handleManageHandover = useCallback((sale: Sale) => {
         setSelectedSale(sale);
         setIsDialogOpen(true);
-    }
+    }, []);
 
     return (
         <>
-            <Head title="Penyerahan Unit Kendaraan & BAST" />
+            <Head title="Penyerahan Unit" />
 
             <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                {/* Header */}
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight text-foreground">
-                            Penyerahan Unit & BAST
-                        </h1>
-                        <p className="text-xs text-muted-foreground">
-                            Monitoring serah terima fisik kendaraan, kelengkapan surat, dan status penyerahan BPKB.
-                        </p>
-                    </div>
+                <div>
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                        Penyerahan Unit
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        Pantau penyerahan unit dan BPKB untuk{' '}
+                        {summary.total_sales} transaksi penjualan aktif.
+                    </p>
                 </div>
 
-                {/* 4 Summary KPI Cards */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <Card className="flex items-center gap-3 p-4 shadow-xs">
+                    <Card className="flex flex-row items-center gap-3 p-4 shadow-xs">
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
                             <KeyIcon className="size-5" weight="bold" />
                         </div>
@@ -60,12 +57,12 @@ export default function HandoversIndex({ sales, summary }: Props) {
                                 {summary.ready_to_deliver}
                             </div>
                             <div className="text-xs font-medium text-muted-foreground">
-                                Siap Serah Unit (≤ 10jt)
+                                Siap diserahkan
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="flex items-center gap-3 p-4 shadow-xs">
+                    <Card className="flex flex-row items-center gap-3 p-4 shadow-xs">
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
                             <CheckCircleIcon className="size-5" weight="bold" />
                         </div>
@@ -74,12 +71,12 @@ export default function HandoversIndex({ sales, summary }: Props) {
                                 {summary.vehicle_delivered}
                             </div>
                             <div className="text-xs font-medium text-muted-foreground">
-                                Unit Diserahkan (BPKB Tahan)
+                                Menunggu BPKB
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="flex items-center gap-3 p-4 shadow-xs">
+                    <Card className="flex flex-row items-center gap-3 p-4 shadow-xs">
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
                             <ShieldCheckIcon className="size-5" weight="bold" />
                         </div>
@@ -88,12 +85,12 @@ export default function HandoversIndex({ sales, summary }: Props) {
                                 {summary.fully_completed}
                             </div>
                             <div className="text-xs font-medium text-muted-foreground">
-                                Selesai Lengkap (Lunas)
+                                Selesai lengkap
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="flex items-center gap-3 p-4 shadow-xs">
+                    <Card className="flex flex-row items-center gap-3 p-4 shadow-xs">
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-600">
                             <LockIcon className="size-5" weight="bold" />
                         </div>
@@ -102,27 +99,29 @@ export default function HandoversIndex({ sales, summary }: Props) {
                                 {summary.locked}
                             </div>
                             <div className="text-xs font-medium text-muted-foreground">
-                                Belum Boleh Serah (&gt; 10jt)
+                                Menunggu pembayaran
                             </div>
                         </div>
                     </Card>
                 </div>
 
-                {/* Data Table */}
                 <HandoverDataTable
                     sales={sales}
                     onManageHandover={handleManageHandover}
                 />
             </div>
 
-            {/* Handover Dialog */}
             {selectedSale && (
                 <HandoverDialog
+                    key={`${selectedSale.id}-${selectedSale.handover?.updated_at ?? 'new'}`}
                     open={isDialogOpen}
                     sale={selectedSale}
                     onOpenChange={(open) => {
                         setIsDialogOpen(open);
-                        if (!open) setSelectedSale(null);
+
+                        if (!open) {
+                            setSelectedSale(null);
+                        }
                     }}
                 />
             )}
@@ -133,8 +132,8 @@ export default function HandoversIndex({ sales, summary }: Props) {
 HandoversIndex.layout = {
     breadcrumbs: [
         {
-            title: 'Penyerahan Unit & BAST',
-            href: '#',
+            title: 'Penyerahan Unit',
+            href: handoversIndex.url(),
         },
     ],
 };
