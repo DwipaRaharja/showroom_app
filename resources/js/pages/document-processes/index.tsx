@@ -5,7 +5,7 @@ import {
     FilesIcon,
     WarningCircleIcon,
 } from '@phosphor-icons/react';
-import { Card } from '@/components/ui/card';
+import { StatCard } from '@/components/stat-card';
 import { DocumentProcessDataTable } from '@/pages/document-processes/data-table';
 import type {
     DocumentProcess,
@@ -19,31 +19,6 @@ type Props = {
 };
 
 export default function DocumentProcessesIndex({ processes, summary }: Props) {
-    const cards = [
-        { label: 'Total Proses', value: summary.total, icon: FilesIcon },
-        {
-            label: 'Menunggu Dokumen',
-            value: summary.waiting,
-            icon: ClockCountdownIcon,
-        },
-        {
-            label: 'Sedang Berjalan',
-            value: summary.in_progress,
-            icon: FilesIcon,
-        },
-        {
-            label: 'Selesai / Diserahkan',
-            value: summary.completed,
-            icon: CheckCircleIcon,
-        },
-        {
-            label: 'Terlambat',
-            value: summary.overdue,
-            icon: WarningCircleIcon,
-            danger: true,
-        },
-    ];
-
     return (
         <>
             <Head title="Proses Berkas" />
@@ -59,27 +34,36 @@ export default function DocumentProcessesIndex({ processes, summary }: Props) {
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                    {cards.map((card) => (
-                        <Card key={card.label} className="gap-2 p-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium text-muted-foreground">
-                                    {card.label}
-                                </span>
-                                <card.icon
-                                    className={
-                                        card.danger
-                                            ? 'text-red-500'
-                                            : 'text-primary'
-                                    }
-                                />
-                            </div>
-                            <div
-                                className={`text-2xl font-bold ${card.danger ? 'text-red-500' : ''}`}
-                            >
-                                {card.value}
-                            </div>
-                        </Card>
-                    ))}
+                    <StatCard
+                        title="Total Proses"
+                        value={summary.total}
+                        icon={FilesIcon}
+                        variant="default"
+                    />
+                    <StatCard
+                        title="Menunggu Dokumen"
+                        value={summary.waiting}
+                        icon={ClockCountdownIcon}
+                        variant="warning"
+                    />
+                    <StatCard
+                        title="Sedang Berjalan"
+                        value={summary.in_progress}
+                        icon={FilesIcon}
+                        variant="info"
+                    />
+                    <StatCard
+                        title="Selesai / Diserahkan"
+                        value={summary.completed}
+                        icon={CheckCircleIcon}
+                        variant="success"
+                    />
+                    <StatCard
+                        title="Terlambat"
+                        value={summary.overdue}
+                        icon={WarningCircleIcon}
+                        variant="danger"
+                    />
                 </div>
 
                 <DocumentProcessDataTable data={processes} />

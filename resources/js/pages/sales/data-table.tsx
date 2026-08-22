@@ -27,6 +27,7 @@ import type {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import SaleController from '@/actions/App/Http/Controllers/SaleController';
+import { StatCard } from '@/components/stat-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -163,61 +164,30 @@ export function SaleDataTable({ data, summary }: Props) {
         <div className="space-y-6">
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="p-4 shadow-xs">
-                    <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                            <CoinsIcon className="size-5" weight="bold" />
-                        </div>
-                        <div>
-                            <div className="text-xs font-medium text-muted-foreground">Total Omzet Penjualan</div>
-                            <div className="text-lg font-bold text-foreground mt-0.5">
-                                {currencyFormatter.format(summary.total_turnover)}
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-4 shadow-xs">
-                    <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-500">
-                            <HandCoinsIcon className="size-5" weight="bold" />
-                        </div>
-                        <div>
-                            <div className="text-xs font-medium text-muted-foreground">Total Kas Diterima</div>
-                            <div className="text-lg font-bold text-emerald-600 dark:text-emerald-500 mt-0.5">
-                                {currencyFormatter.format(summary.total_collected)}
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-4 shadow-xs">
-                    <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-500">
-                            <HourglassMediumIcon className="size-5" weight="bold" />
-                        </div>
-                        <div>
-                            <div className="text-xs font-medium text-muted-foreground">Sisa Piutang / Belum Cair</div>
-                            <div className="text-lg font-bold text-amber-600 dark:text-amber-500 mt-0.5">
-                                {currencyFormatter.format(summary.total_receivables)}
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-4 shadow-xs">
-                    <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-500">
-                            <CreditCardIcon className="size-5" weight="bold" />
-                        </div>
-                        <div>
-                            <div className="text-xs font-medium text-muted-foreground">Bonus Leasing Diterima</div>
-                            <div className="text-lg font-bold text-blue-600 dark:text-blue-500 mt-0.5">
-                                {currencyFormatter.format(summary.total_bonus_collected)}
-                            </div>
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    title="Total Omzet Penjualan"
+                    value={currencyFormatter.format(summary.total_turnover)}
+                    icon={CoinsIcon}
+                    variant="default"
+                />
+                <StatCard
+                    title="Total Kas Diterima"
+                    value={currencyFormatter.format(summary.total_collected)}
+                    icon={HandCoinsIcon}
+                    variant="success"
+                />
+                <StatCard
+                    title="Sisa Piutang / Belum Cair"
+                    value={currencyFormatter.format(summary.total_receivables)}
+                    icon={HourglassMediumIcon}
+                    variant="warning"
+                />
+                <StatCard
+                    title="Bonus Leasing Diterima"
+                    value={currencyFormatter.format(summary.total_bonus_collected)}
+                    icon={CreditCardIcon}
+                    variant="info"
+                />
             </div>
 
             {/* Main Table Card */}

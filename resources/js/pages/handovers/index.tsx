@@ -6,7 +6,7 @@ import {
     ShieldCheckIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { StatCard } from '@/components/stat-card';
 import { HandoverDataTable } from '@/pages/handovers/data-table';
 import { HandoverDialog } from '@/pages/sales/handover-dialog';
 import type { Sale } from '@/pages/sales/types';
@@ -48,61 +48,34 @@ export default function HandoversIndex({ sales, summary }: Props) {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <Card className="flex flex-row items-center gap-3 p-4 shadow-xs">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
-                            <KeyIcon className="size-5" weight="bold" />
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-foreground">
-                                {summary.ready_to_deliver}
-                            </div>
-                            <div className="text-xs font-medium text-muted-foreground">
-                                Siap diserahkan
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card className="flex flex-row items-center gap-3 p-4 shadow-xs">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
-                            <CheckCircleIcon className="size-5" weight="bold" />
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-foreground">
-                                {summary.vehicle_delivered}
-                            </div>
-                            <div className="text-xs font-medium text-muted-foreground">
-                                Menunggu BPKB
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card className="flex flex-row items-center gap-3 p-4 shadow-xs">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
-                            <ShieldCheckIcon className="size-5" weight="bold" />
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-foreground">
-                                {summary.fully_completed}
-                            </div>
-                            <div className="text-xs font-medium text-muted-foreground">
-                                Selesai lengkap
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card className="flex flex-row items-center gap-3 p-4 shadow-xs">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-600">
-                            <LockIcon className="size-5" weight="bold" />
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-foreground">
-                                {summary.locked}
-                            </div>
-                            <div className="text-xs font-medium text-muted-foreground">
-                                Menunggu pembayaran
-                            </div>
-                        </div>
-                    </Card>
+                    <StatCard
+                        title="Siap Serah Unit (≤ 10jt)"
+                        value={summary.ready_to_deliver}
+                        icon={KeyIcon}
+                        variant="success"
+                        description="Siap diserahkan"
+                    />
+                    <StatCard
+                        title="Unit Diserahkan (BPKB Tahan)"
+                        value={summary.vehicle_delivered}
+                        icon={CheckCircleIcon}
+                        variant="warning"
+                        description="Menunggu BPKB"
+                    />
+                    <StatCard
+                        title="Selesai Lengkap (Lunas)"
+                        value={summary.fully_completed}
+                        icon={ShieldCheckIcon}
+                        variant="info"
+                        description="Selesai lengkap"
+                    />
+                    <StatCard
+                        title="Belum Boleh Serah (> 10jt)"
+                        value={summary.locked}
+                        icon={LockIcon}
+                        variant="danger"
+                        description="Menunggu pembayaran"
+                    />
                 </div>
 
                 <HandoverDataTable
