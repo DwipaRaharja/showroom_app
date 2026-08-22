@@ -1,0 +1,140 @@
+<?php
+
+namespace App\Models;
+
+use Database\Factories\CarFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Car extends Model
+{
+    /** @use HasFactory<CarFactory> */
+    use HasFactory, SoftDeletes;
+
+    public const STATUS_LABELS = [
+        'available' => 'Tersedia',
+        'booked' => 'Dibooking',
+        'sold' => 'Terjual',
+        'maintenance' => 'Perbaikan',
+    ];
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Car $car): void {
+            if (! $car->isForceDeleting()) {
+                return;
+            }
+
+            $car->documents()->get()->each->delete();
+        });
+    }
+
+    protected $fillable = [
+        'brand_id',
+        'name',
+        'license_plate',
+        'chassis_number',
+        'engine_number',
+        'year',
+        'color',
+        'transmission',
+        'fuel_type',
+        'mileage',
+        'purchase_price',
+        'selling_price',
+        'status',
+        'description',
+        'image',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'year' => 'integer',
+            'mileage' => 'integer',
+            'purchase_price' => 'integer',
+            'selling_price' => 'integer',
+        ];
+    }
+
+    /**
+     * Get the brand that owns the car.
+     *
+     * @return BelongsTo<Brand, $this>
+     */
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    /**
+     * Get the purchase transaction for the car.
+     *
+     * @return HasOne<Purchase, $this>
+     */
+    public function purchase(): HasOne
+    {
+        return $this->hasOne(Purchase::class);
+    }
+
+    /**
+     * Scope a query to only include cars available for a new purchase or the current purchase.
+     *
+     * @param  Builder<Car>  $query
+     * @return Builder<Car>
+     */
+    public function scopeAvailableForPurchase(Builder $query, ?int $purchaseCarId = null): Builder
+    {
+        return $query->whereDoesntHave('purchase')
+            ->when($purchaseCarId, function ($query, $id) {
+                $query->orWhere('id', $id);
+            });
+    }
+
+    /**
+     * Get the sale transaction for the car.
+     *
+     * @return HasOne<Sale, $this>
+     */
+    public function sale(): HasOne
+    {
+        return $this->hasOne(Sale::class);
+    }
+
+    /**
+     * Scope a query to only include cars available for a new sale or the current sale.
+     *
+     * @param  Builder<Car>  $query
+     * @return Builder<Car>
+     */
+    public function scopeAvailableForSale(Builder $query, ?int $saleCarId = null): Builder
+    {
+        return $query->where(function ($q) use ($saleCarId) {
+            $q->whereIn('status', ['available', 'booked'])
+                ->whereDoesntHave('sale');
+            if ($saleCarId) {
+                $q->orWhere('id', $saleCarId);
+            }
+        });
+    }
+
+    /**
+     * Get the vehicle documents registered for the car.
+     *
+     * @return HasMany<VehicleDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(VehicleDocument::class)->orderBy('document_type');
+    }
+}
