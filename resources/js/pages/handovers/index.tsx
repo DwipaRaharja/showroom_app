@@ -47,34 +47,30 @@ export default function HandoversIndex({ sales, summary }: Props) {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard
                         title="Siap Serah Unit (≤ 10jt)"
                         value={summary.ready_to_deliver}
                         icon={KeyIcon}
                         variant="success"
-                        description="Siap diserahkan"
                     />
                     <StatCard
                         title="Unit Diserahkan (BPKB Tahan)"
                         value={summary.vehicle_delivered}
                         icon={CheckCircleIcon}
                         variant="warning"
-                        description="Menunggu BPKB"
                     />
                     <StatCard
                         title="Selesai Lengkap (Lunas)"
                         value={summary.fully_completed}
                         icon={ShieldCheckIcon}
                         variant="info"
-                        description="Selesai lengkap"
                     />
                     <StatCard
                         title="Belum Boleh Serah (> 10jt)"
                         value={summary.locked}
                         icon={LockIcon}
                         variant="danger"
-                        description="Menunggu pembayaran"
                     />
                 </div>
 
