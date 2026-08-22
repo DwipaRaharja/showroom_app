@@ -30,11 +30,26 @@ class VehicleDocument extends Model
 
     protected static function booted(): void
     {
+        static::saved(function (VehicleDocument $document): void {
+            $document->syncActiveDocumentProcess();
+        });
+
         static::deleted(function (VehicleDocument $document): void {
             if ($document->file_path !== null) {
                 Storage::disk('local')->delete($document->file_path);
             }
+
+            $document->syncActiveDocumentProcess();
         });
+    }
+
+    private function syncActiveDocumentProcess(): void
+    {
+        $process = $this->car?->sale?->documentProcess;
+
+        if ($process && $process->status !== 'cancelled') {
+            $process->syncItemsFromVehicleDocuments();
+        }
     }
 
     /**
