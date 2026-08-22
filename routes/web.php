@@ -91,6 +91,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('payments.store');
     Route::delete('payments/{payment}', [PaymentController::class, 'destroy'])
         ->name('payments.destroy');
+    Route::get('handovers', [VehicleHandoverController::class, 'index'])
+        ->name('handovers.index');
     Route::post('handovers', [VehicleHandoverController::class, 'store'])
         ->name('handovers.store');
     Route::get('sales/{sale}/bast', [VehicleHandoverController::class, 'printBast'])

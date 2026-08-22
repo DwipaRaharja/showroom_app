@@ -14,6 +14,37 @@ use Inertia\Response;
 class VehicleHandoverController extends Controller
 {
     /**
+     * Display a listing of sales and their vehicle handover / BAST statuses.
+     */
+    public function index(): Response
+    {
+        $sales = Sale::query()
+            ->with([
+                'car' => fn ($q) => $q->with('brand:id,name'),
+                'customer',
+                'financeCompany',
+                'payments',
+                'handover',
+            ])
+            ->where('status', '!=', 'cancelled')
+            ->latest('id')
+            ->get();
+
+        $summary = [
+            'total_sales' => $sales->count(),
+            'ready_to_deliver' => $sales->filter(fn (Sale $s) => $s->can_deliver_vehicle && ! $s->handover?->vehicle_delivered_at)->count(),
+            'vehicle_delivered' => $sales->filter(fn (Sale $s) => $s->handover?->vehicle_delivered_at && ! $s->handover?->bpkb_delivered_at)->count(),
+            'fully_completed' => $sales->filter(fn (Sale $s) => $s->handover?->bpkb_delivered_at)->count(),
+            'locked' => $sales->filter(fn (Sale $s) => ! $s->can_deliver_vehicle)->count(),
+        ];
+
+        return Inertia::render('handovers/index', [
+            'sales' => $sales,
+            'summary' => $summary,
+        ]);
+    }
+
+    /**
      * Store or update a vehicle handover (BAST) record.
      */
     public function store(StoreHandoverRequest $request): RedirectResponse

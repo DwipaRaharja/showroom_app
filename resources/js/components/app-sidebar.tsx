@@ -4,10 +4,12 @@ import {
     CoinsIcon,
     FilesIcon,
     HandCoinsIcon,
+    KeyIcon,
     SquaresFourIcon,
     TagIcon,
     UsersThreeIcon,
 } from '@phosphor-icons/react';
+import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -53,6 +55,11 @@ const mainNavGroups: NavGroup[] = [
                 title: 'Modal Mobil',
                 href: purchasesIndex.url(),
                 icon: CoinsIcon,
+            },
+            {
+                title: 'Penyerahan Unit',
+                href: VehicleHandoverController.index.url(),
+                icon: KeyIcon,
             },
             {
                 title: 'Pengurusan Dokumen',
