@@ -47,7 +47,10 @@ export const documentProcessTableFeatures = tableFeatures({
     columnFilteringFeature,
     globalFilteringFeature,
     filteredRowModel: createFilteredRowModel(),
-    filterFns: { equals: filterFn_equals, includesString: filterFn_includesString },
+    filterFns: {
+        equals: filterFn_equals,
+        includesString: filterFn_includesString,
+    },
     rowSortingFeature,
     sortedRowModel: createSortedRowModel(),
     sortFns: { text: sortFn_text },
@@ -127,7 +130,9 @@ export function createDocumentProcessColumns() {
             cell: ({ row }) => (
                 <Checkbox
                     checked={row.getIsSelected()}
-                    onCheckedChange={(value) => row.toggleSelected(value === true)}
+                    onCheckedChange={(value) =>
+                        row.toggleSelected(value === true)
+                    }
                     aria-label={`Pilih ${row.original.process_number}`}
                 />
             ),
@@ -144,6 +149,7 @@ export function createDocumentProcessColumns() {
             enableHiding: false,
             cell: ({ row }) => {
                 const index = row.getDisplayIndex();
+
                 return index === -1 ? '—' : index + 1;
             },
             sortFn: (rowA, rowB) => rowA.original.id - rowB.original.id,
@@ -221,7 +227,8 @@ export function createDocumentProcessColumns() {
                     onToggle={column.getToggleSortingHandler()}
                 />
             ),
-            cell: ({ row }) => row.original.assignee?.name ?? 'Belum ditentukan',
+            cell: ({ row }) =>
+                row.original.assignee?.name ?? 'Belum ditentukan',
             sortFn: 'text',
         }),
         columnHelper.accessor('estimated_completion_date', {
@@ -235,8 +242,11 @@ export function createDocumentProcessColumns() {
             cell: ({ row, getValue }) => {
                 const value = getValue();
                 const overdue = isProcessOverdue(value, row.original.status);
+
                 return value ? (
-                    <span className={overdue ? 'font-semibold text-red-500' : ''}>
+                    <span
+                        className={overdue ? 'font-semibold text-red-500' : ''}
+                    >
                         {dateFormatter.format(new Date(value))}
                         {overdue ? ' · Terlambat' : ''}
                     </span>
@@ -313,7 +323,11 @@ export function createDocumentProcessColumns() {
                             <DropdownMenuLabel>Aksi</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
-                                <Link href={DocumentProcessController.show(row.original.id)}>
+                                <Link
+                                    href={DocumentProcessController.show(
+                                        row.original.id,
+                                    )}
+                                >
                                     <EyeIcon />
                                     Detail proses
                                 </Link>

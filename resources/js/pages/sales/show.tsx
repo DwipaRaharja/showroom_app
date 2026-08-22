@@ -6,6 +6,7 @@ import {
     CheckCircleIcon,
     CopyIcon,
     DotsThreeVerticalIcon,
+    FilesIcon,
     HandCoinsIcon,
     KeyIcon,
     PlusIcon,
@@ -18,6 +19,7 @@ import {
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
 import PaymentController from '@/actions/App/Http/Controllers/PaymentController';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import { StatusBadge } from '@/components/status-badge';
@@ -137,7 +139,6 @@ export default function SalesShow({ sale }: Props) {
     const isSettled = remainingBill <= 0;
     const canDeliverVehicle =
         sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
-    const canDeliverBpkb = sale.can_deliver_bpkb ?? isSettled;
     const canAcceptPayment =
         sale.can_accept_payment ??
         (remainingBill > 0 ||
@@ -200,12 +201,37 @@ export default function SalesShow({ sale }: Props) {
                             </Button>
                         )}
 
+                        {sale.status !== 'cancelled' && (
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={
+                                        sale.document_process
+                                            ? DocumentProcessController.show(
+                                                  sale.document_process.id,
+                                              )
+                                            : DocumentProcessController.create(
+                                                  sale.id,
+                                              )
+                                    }
+                                >
+                                    <FilesIcon className="size-4" />
+                                    {sale.document_process
+                                        ? 'Kelola Proses Berkas'
+                                        : 'Mulai Proses Berkas'}
+                                </Link>
+                            </Button>
+                        )}
+
                         <Button
                             variant="outline"
                             asChild
                             className="print:hidden"
                         >
-                            <Link href={VehicleHandoverController.printBast.url(sale.id)}>
+                            <Link
+                                href={VehicleHandoverController.printBast.url(
+                                    sale.id,
+                                )}
+                            >
                                 <PrinterIcon className="size-4" />
                                 Cetak BAST
                             </Link>
@@ -732,7 +758,8 @@ export default function SalesShow({ sale }: Props) {
                                             Diserahkan pada{' '}
                                             {dateFormatter.format(
                                                 new Date(
-                                                    sale.handover.vehicle_delivered_at,
+                                                    sale.handover
+                                                        .vehicle_delivered_at,
                                                 ),
                                             )}
                                         </div>

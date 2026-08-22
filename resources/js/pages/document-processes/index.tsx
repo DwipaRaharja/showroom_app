@@ -67,7 +67,9 @@ export default function DocumentProcessesIndex({ processes, summary }: Props) {
                                 </span>
                                 <card.icon
                                     className={
-                                        card.danger ? 'text-red-500' : 'text-primary'
+                                        card.danger
+                                            ? 'text-red-500'
+                                            : 'text-primary'
                                     }
                                 />
                             </div>

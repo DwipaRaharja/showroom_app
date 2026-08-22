@@ -1,11 +1,7 @@
 import type { VehicleDocument } from '@/pages/cars/types';
 
 export type DocumentProcessType =
-    | 'handover'
-    | 'name_transfer'
-    | 'mutation'
-    | 'renewal'
-    | 'other';
+    'handover' | 'name_transfer' | 'mutation' | 'renewal' | 'other';
 
 export type DocumentProcessStatus =
     | 'waiting_documents'
@@ -17,12 +13,7 @@ export type DocumentProcessStatus =
     | 'cancelled';
 
 export type DocumentProcessItemStatus =
-    | 'waiting'
-    | 'ready'
-    | 'processing'
-    | 'completed'
-    | 'handed_over'
-    | 'issue';
+    'waiting' | 'ready' | 'processing' | 'completed' | 'handed_over' | 'issue';
 
 export type RecipientType = 'customer' | 'finance_company' | 'other';
 

@@ -51,7 +51,10 @@ export const recipientTypeOptions: {
 ];
 
 export function getProcessTypeLabel(type: DocumentProcessType): string {
-    return processTypeOptions.find((option) => option.value === type)?.label ?? type;
+    return (
+        processTypeOptions.find((option) => option.value === type)?.label ??
+        type
+    );
 }
 
 export function getProcessStatusLabel(status: DocumentProcessStatus): string {
@@ -62,13 +65,21 @@ export function getProcessStatusLabel(status: DocumentProcessStatus): string {
 }
 
 export function getItemStatusLabel(status: DocumentProcessItemStatus): string {
-    return itemStatusOptions.find((option) => option.value === status)?.label ?? status;
+    return (
+        itemStatusOptions.find((option) => option.value === status)?.label ??
+        status
+    );
 }
 
 export function getRecipientTypeLabel(type: RecipientType | null): string {
-    if (!type) return '—';
+    if (!type) {
+return '—';
+}
 
-    return recipientTypeOptions.find((option) => option.value === type)?.label ?? type;
+    return (
+        recipientTypeOptions.find((option) => option.value === type)?.label ??
+        type
+    );
 }
 
 export function isProcessOverdue(

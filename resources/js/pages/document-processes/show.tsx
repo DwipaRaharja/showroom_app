@@ -91,9 +91,12 @@ function toDateInput(value: string | null): string {
 }
 
 function toDateTimeInput(value: string | null): string {
-    if (value) return value.slice(0, 16);
+    if (value) {
+return value.slice(0, 16);
+}
 
     const now = new Date();
+
     return new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
         .toISOString()
         .slice(0, 16);
@@ -133,7 +136,11 @@ function ProcessEditDialog({
                 >
                     {({ processing, errors }) => (
                         <>
-                            <input type="hidden" name="process_type" value={processType} />
+                            <input
+                                type="hidden"
+                                name="process_type"
+                                value={processType}
+                            />
                             <input
                                 type="hidden"
                                 name="assigned_to"
@@ -145,28 +152,47 @@ function ProcessEditDialog({
                                     <Select
                                         value={processType}
                                         onValueChange={(value) =>
-                                            setProcessType(value as DocumentProcessType)
+                                            setProcessType(
+                                                value as DocumentProcessType,
+                                            )
                                         }
                                     >
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            {processTypeOptions.map((option) => (
-                                                <SelectItem key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </SelectItem>
-                                            ))}
+                                            {processTypeOptions.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.process_type} />
                                 </div>
                                 <div className="grid gap-2 sm:col-span-2">
                                     <Label>Petugas</Label>
-                                    <Select value={assignee} onValueChange={setAssignee}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <Select
+                                        value={assignee}
+                                        onValueChange={setAssignee}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="none">Belum ditentukan</SelectItem>
+                                            <SelectItem value="none">
+                                                Belum ditentukan
+                                            </SelectItem>
                                             {users.map((user) => (
-                                                <SelectItem key={user.id} value={String(user.id)}>
+                                                <SelectItem
+                                                    key={user.id}
+                                                    value={String(user.id)}
+                                                >
                                                     {user.name}
                                                 </SelectItem>
                                             ))}
@@ -175,18 +201,24 @@ function ProcessEditDialog({
                                     <InputError message={errors.assigned_to} />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="edit-process-start">Tanggal mulai</Label>
+                                    <Label htmlFor="edit-process-start">
+                                        Tanggal mulai
+                                    </Label>
                                     <Input
                                         id="edit-process-start"
                                         name="started_at"
                                         type="date"
-                                        defaultValue={toDateInput(process.started_at)}
+                                        defaultValue={toDateInput(
+                                            process.started_at,
+                                        )}
                                         required
                                     />
                                     <InputError message={errors.started_at} />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="edit-process-estimated">Estimasi selesai</Label>
+                                    <Label htmlFor="edit-process-estimated">
+                                        Estimasi selesai
+                                    </Label>
                                     <Input
                                         id="edit-process-estimated"
                                         name="estimated_completion_date"
@@ -195,10 +227,16 @@ function ProcessEditDialog({
                                             process.estimated_completion_date,
                                         )}
                                     />
-                                    <InputError message={errors.estimated_completion_date} />
+                                    <InputError
+                                        message={
+                                            errors.estimated_completion_date
+                                        }
+                                    />
                                 </div>
                                 <div className="grid gap-2 sm:col-span-2">
-                                    <Label htmlFor="edit-process-notes">Catatan</Label>
+                                    <Label htmlFor="edit-process-notes">
+                                        Catatan
+                                    </Label>
                                     <Textarea
                                         id="edit-process-notes"
                                         name="notes"
@@ -210,10 +248,16 @@ function ProcessEditDialog({
                             </div>
                             <DialogFooter>
                                 <DialogClose asChild>
-                                    <Button type="button" variant="outline">Batal</Button>
+                                    <Button type="button" variant="outline">
+                                        Batal
+                                    </Button>
                                 </DialogClose>
                                 <Button type="submit" disabled={processing}>
-                                    {processing ? <Spinner /> : <FloppyDiskIcon />}
+                                    {processing ? (
+                                        <Spinner />
+                                    ) : (
+                                        <FloppyDiskIcon />
+                                    )}
                                     Simpan
                                 </Button>
                             </DialogFooter>
@@ -236,7 +280,9 @@ function ItemEditDialog({
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }) {
-    const [status, setStatus] = useState<DocumentProcessItemStatus>(item.status);
+    const [status, setStatus] = useState<DocumentProcessItemStatus>(
+        item.status,
+    );
     const [recipientType, setRecipientType] = useState<RecipientType | 'none'>(
         item.recipient_type ?? 'none',
     );
@@ -265,7 +311,11 @@ function ItemEditDialog({
                             <input
                                 type="hidden"
                                 name="recipient_type"
-                                value={recipientType === 'none' ? '' : recipientType}
+                                value={
+                                    recipientType === 'none'
+                                        ? ''
+                                        : recipientType
+                                }
                             />
                             <div className="grid gap-4">
                                 <div className="grid gap-2">
@@ -273,17 +323,22 @@ function ItemEditDialog({
                                     <Select
                                         value={status}
                                         onValueChange={(value) =>
-                                            setStatus(value as DocumentProcessItemStatus)
+                                            setStatus(
+                                                value as DocumentProcessItemStatus,
+                                            )
                                         }
                                     >
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
                                         <SelectContent>
                                             {itemStatusOptions.map((option) => (
                                                 <SelectItem
                                                     key={option.value}
                                                     value={option.value}
                                                     disabled={
-                                                        option.value === 'handed_over' &&
+                                                        option.value ===
+                                                            'handed_over' &&
                                                         !saleSettled
                                                     }
                                                 >
@@ -295,7 +350,8 @@ function ItemEditDialog({
                                     <InputError message={errors.status} />
                                     {!saleSettled && (
                                         <p className="text-xs text-amber-600">
-                                            Penyerahan terkunci karena penjualan belum lunas.
+                                            Penyerahan terkunci karena penjualan
+                                            belum lunas.
                                         </p>
                                     )}
                                 </div>
@@ -307,53 +363,76 @@ function ItemEditDialog({
                                             value={recipientType}
                                             onValueChange={(value) =>
                                                 setRecipientType(
-                                                    value as RecipientType | 'none',
+                                                    value as
+                                                        RecipientType | 'none',
                                                 )
                                             }
                                         >
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="none">Belum ditentukan</SelectItem>
-                                                {recipientTypeOptions.map((option) => (
-                                                    <SelectItem
-                                                        key={option.value}
-                                                        value={option.value}
-                                                    >
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
+                                                <SelectItem value="none">
+                                                    Belum ditentukan
+                                                </SelectItem>
+                                                {recipientTypeOptions.map(
+                                                    (option) => (
+                                                        <SelectItem
+                                                            key={option.value}
+                                                            value={option.value}
+                                                        >
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
                                             </SelectContent>
                                         </Select>
-                                        <InputError message={errors.recipient_type} />
+                                        <InputError
+                                            message={errors.recipient_type}
+                                        />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="item-recipient-name">Nama penerima</Label>
+                                        <Label htmlFor="item-recipient-name">
+                                            Nama penerima
+                                        </Label>
                                         <Input
                                             id="item-recipient-name"
                                             name="recipient_name"
-                                            defaultValue={item.recipient_name ?? ''}
+                                            defaultValue={
+                                                item.recipient_name ?? ''
+                                            }
                                             required={isHandover}
                                         />
-                                        <InputError message={errors.recipient_name} />
+                                        <InputError
+                                            message={errors.recipient_name}
+                                        />
                                     </div>
                                 </div>
 
                                 {isHandover && (
                                     <div className="grid gap-2">
-                                        <Label htmlFor="item-handover-at">Tanggal penyerahan</Label>
+                                        <Label htmlFor="item-handover-at">
+                                            Tanggal penyerahan
+                                        </Label>
                                         <Input
                                             id="item-handover-at"
                                             name="handed_over_at"
                                             type="datetime-local"
-                                            defaultValue={toDateTimeInput(item.handed_over_at)}
+                                            defaultValue={toDateTimeInput(
+                                                item.handed_over_at,
+                                            )}
                                             required
                                         />
-                                        <InputError message={errors.handed_over_at} />
+                                        <InputError
+                                            message={errors.handed_over_at}
+                                        />
                                     </div>
                                 )}
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="item-notes">Catatan / kendala</Label>
+                                    <Label htmlFor="item-notes">
+                                        Catatan / kendala
+                                    </Label>
                                     <Textarea
                                         id="item-notes"
                                         name="notes"
@@ -365,10 +444,16 @@ function ItemEditDialog({
                             </div>
                             <DialogFooter>
                                 <DialogClose asChild>
-                                    <Button type="button" variant="outline">Batal</Button>
+                                    <Button type="button" variant="outline">
+                                        Batal
+                                    </Button>
                                 </DialogClose>
                                 <Button type="submit" disabled={processing}>
-                                    {processing ? <Spinner /> : <FloppyDiskIcon />}
+                                    {processing ? (
+                                        <Spinner />
+                                    ) : (
+                                        <FloppyDiskIcon />
+                                    )}
                                     Simpan Checklist
                                 </Button>
                             </DialogFooter>
@@ -382,7 +467,9 @@ function ItemEditDialog({
 
 export default function DocumentProcessesShow({ process, users }: Props) {
     const [editingProcess, setEditingProcess] = useState(false);
-    const [editingItem, setEditingItem] = useState<DocumentProcessItem | null>(null);
+    const [editingItem, setEditingItem] = useState<DocumentProcessItem | null>(
+        null,
+    );
     const [confirmingCancel, setConfirmingCancel] = useState(false);
     const sale = process.sale;
     const car = sale.car;
@@ -397,7 +484,10 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-3">
                         <Button variant="outline" size="icon" asChild>
-                            <Link href={documentProcessesIndex.url()} aria-label="Kembali">
+                            <Link
+                                href={documentProcessesIndex.url()}
+                                aria-label="Kembali"
+                            >
                                 <ArrowLeftIcon />
                             </Link>
                         </Button>
@@ -408,7 +498,9 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                                 </h1>
                                 <StatusBadge
                                     status={process.status}
-                                    label={getProcessStatusLabel(process.status)}
+                                    label={getProcessStatusLabel(
+                                        process.status,
+                                    )}
                                 />
                             </div>
                             <p className="text-sm text-muted-foreground">
@@ -443,10 +535,18 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                                 </Button>
                             </>
                         ) : (
-                            <Form {...DocumentProcessController.reopen.form(process.id)}>
+                            <Form
+                                {...DocumentProcessController.reopen.form(
+                                    process.id,
+                                )}
+                            >
                                 {({ processing }) => (
                                     <Button type="submit" disabled={processing}>
-                                        {processing ? <Spinner /> : <ArrowCounterClockwiseIcon />}
+                                        {processing ? (
+                                            <Spinner />
+                                        ) : (
+                                            <ArrowCounterClockwiseIcon />
+                                        )}
                                         Buka Kembali
                                     </Button>
                                 )}
@@ -457,36 +557,50 @@ export default function DocumentProcessesShow({ process, users }: Props) {
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <Card className="gap-2 p-4">
-                        <span className="text-xs text-muted-foreground">Progres checklist</span>
-                        <div className="text-2xl font-bold">{process.progress_percentage}%</div>
+                        <span className="text-xs text-muted-foreground">
+                            Progres checklist
+                        </span>
+                        <div className="text-2xl font-bold">
+                            {process.progress_percentage}%
+                        </div>
                         <div className="h-2 rounded-full bg-muted">
                             <div
                                 className="h-full rounded-full bg-primary"
-                                style={{ width: `${process.progress_percentage}%` }}
+                                style={{
+                                    width: `${process.progress_percentage}%`,
+                                }}
                             />
                         </div>
                     </Card>
                     <Card className="gap-2 p-4">
-                        <span className="text-xs text-muted-foreground">Petugas</span>
+                        <span className="text-xs text-muted-foreground">
+                            Petugas
+                        </span>
                         <div className="flex items-center gap-2 font-semibold">
                             <UserIcon />
                             {process.assignee?.name ?? 'Belum ditentukan'}
                         </div>
                     </Card>
                     <Card className="gap-2 p-4">
-                        <span className="text-xs text-muted-foreground">Tanggal mulai</span>
+                        <span className="text-xs text-muted-foreground">
+                            Tanggal mulai
+                        </span>
                         <div className="flex items-center gap-2 font-semibold">
                             <CalendarBlankIcon />
                             {dateFormatter.format(new Date(process.started_at))}
                         </div>
                     </Card>
                     <Card className="gap-2 p-4">
-                        <span className="text-xs text-muted-foreground">Estimasi selesai</span>
+                        <span className="text-xs text-muted-foreground">
+                            Estimasi selesai
+                        </span>
                         <div className="flex items-center gap-2 font-semibold">
                             <ClockIcon />
                             {process.estimated_completion_date
                                 ? dateFormatter.format(
-                                      new Date(process.estimated_completion_date),
+                                      new Date(
+                                          process.estimated_completion_date,
+                                      ),
                                   )
                                 : 'Belum ditentukan'}
                         </div>
@@ -502,8 +616,8 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                                     Penjualan belum lunas
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                    Berkas dapat disiapkan dan diproses, tetapi belum dapat
-                                    ditandai sudah diserahkan.
+                                    Berkas dapat disiapkan dan diproses, tetapi
+                                    belum dapat ditandai sudah diserahkan.
                                 </p>
                             </div>
                         </div>
@@ -516,7 +630,8 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                             <CardHeader>
                                 <CardTitle>Checklist Dokumen</CardTitle>
                                 <CardDescription>
-                                    Status keseluruhan dihitung otomatis dari dokumen wajib.
+                                    Status keseluruhan dihitung otomatis dari
+                                    dokumen wajib.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-3">
@@ -529,7 +644,10 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                                             <div
                                                 className={`mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full ${['completed', 'handed_over'].includes(item.status) ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}
                                             >
-                                                {['completed', 'handed_over'].includes(item.status) ? (
+                                                {[
+                                                    'completed',
+                                                    'handed_over',
+                                                ].includes(item.status) ? (
                                                     <CheckCircleIcon weight="fill" />
                                                 ) : (
                                                     <FileTextIcon />
@@ -538,7 +656,9 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                                             <div className="min-w-0">
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <span className="font-semibold">
-                                                        {getDocumentTypeLabel(item.document_type)}
+                                                        {getDocumentTypeLabel(
+                                                            item.document_type,
+                                                        )}
                                                     </span>
                                                     {item.required && (
                                                         <span className="text-xs font-medium text-red-500">
@@ -547,12 +667,19 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                                                     )}
                                                     <StatusBadge
                                                         status={item.status}
-                                                        label={getItemStatusLabel(item.status)}
+                                                        label={getItemStatusLabel(
+                                                            item.status,
+                                                        )}
                                                     />
                                                 </div>
                                                 <div className="mt-1 text-xs text-muted-foreground">
-                                                    Nomor: {item.document_number_snapshot ?? '—'} ·
-                                                    Penerima: {getRecipientTypeLabel(item.recipient_type)}
+                                                    Nomor:{' '}
+                                                    {item.document_number_snapshot ??
+                                                        '—'}{' '}
+                                                    · Penerima:{' '}
+                                                    {getRecipientTypeLabel(
+                                                        item.recipient_type,
+                                                    )}
                                                     {item.recipient_name
                                                         ? ` (${item.recipient_name})`
                                                         : ''}
@@ -567,7 +694,9 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            disabled={process.status === 'cancelled'}
+                                            disabled={
+                                                process.status === 'cancelled'
+                                            }
                                             onClick={() => setEditingItem(item)}
                                         >
                                             <PencilSimpleIcon />
@@ -582,22 +711,30 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                             <CardHeader>
                                 <CardTitle>Riwayat Aktivitas</CardTitle>
                                 <CardDescription>
-                                    Jejak perubahan selama proses berkas berlangsung.
+                                    Jejak perubahan selama proses berkas
+                                    berlangsung.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
                                     {activities.map((activity) => (
-                                        <div key={activity.id} className="flex gap-3">
+                                        <div
+                                            key={activity.id}
+                                            className="flex gap-3"
+                                        >
                                             <div className="mt-1 size-2 shrink-0 rounded-full bg-primary" />
                                             <div className="min-w-0 border-b pb-4 last:border-0">
                                                 <div className="text-sm font-medium">
                                                     {activity.description}
                                                 </div>
                                                 <div className="mt-1 text-xs text-muted-foreground">
-                                                    {activity.user?.name ?? 'Sistem'} ·{' '}
+                                                    {activity.user?.name ??
+                                                        'Sistem'}{' '}
+                                                    ·{' '}
                                                     {dateTimeFormatter.format(
-                                                        new Date(activity.created_at),
+                                                        new Date(
+                                                            activity.created_at,
+                                                        ),
                                                     )}
                                                 </div>
                                             </div>
@@ -622,7 +759,8 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                                         {car?.brand?.name} {car?.name}
                                     </div>
                                     <div className="font-mono text-xs text-muted-foreground">
-                                        {car?.license_plate ?? '—'} · {car?.year ?? '—'}
+                                        {car?.license_plate ?? '—'} ·{' '}
+                                        {car?.year ?? '—'}
                                     </div>
                                 </div>
                                 <div className="border-t pt-3">
@@ -630,12 +768,15 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                                         {sale.customer?.name}
                                     </div>
                                     <div className="text-xs text-muted-foreground">
-                                        {sale.customer?.phone ?? 'Tanpa nomor telepon'}
+                                        {sale.customer?.phone ??
+                                            'Tanpa nomor telepon'}
                                     </div>
                                 </div>
                                 {sale.payment_type === 'credit' && (
                                     <div className="border-t pt-3">
-                                        <div className="text-xs text-muted-foreground">Leasing</div>
+                                        <div className="text-xs text-muted-foreground">
+                                            Leasing
+                                        </div>
                                         <div className="font-medium">
                                             {sale.finance_company?.name ?? '—'}
                                         </div>
@@ -646,7 +787,11 @@ export default function DocumentProcessesShow({ process, users }: Props) {
 
                         {process.notes && (
                             <Card>
-                                <CardHeader><CardTitle className="text-base">Catatan Proses</CardTitle></CardHeader>
+                                <CardHeader>
+                                    <CardTitle className="text-base">
+                                        Catatan Proses
+                                    </CardTitle>
+                                </CardHeader>
                                 <CardContent className="text-sm text-muted-foreground">
                                     {process.notes}
                                 </CardContent>
@@ -672,7 +817,9 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                     saleSettled={saleSettled}
                     open
                     onOpenChange={(open) => {
-                        if (!open) setEditingItem(null);
+                        if (!open) {
+setEditingItem(null);
+}
                     }}
                 />
             )}
@@ -681,8 +828,8 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                     <DialogHeader>
                         <DialogTitle>Batalkan proses berkas?</DialogTitle>
                         <DialogDescription>
-                            Checklist dan riwayat tetap tersimpan. Proses dapat dibuka
-                            kembali jika diperlukan.
+                            Checklist dan riwayat tetap tersimpan. Proses dapat
+                            dibuka kembali jika diperlukan.
                         </DialogDescription>
                     </DialogHeader>
                     <Form
@@ -692,7 +839,9 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                         {({ processing }) => (
                             <DialogFooter>
                                 <DialogClose asChild>
-                                    <Button type="button" variant="outline">Kembali</Button>
+                                    <Button type="button" variant="outline">
+                                        Kembali
+                                    </Button>
                                 </DialogClose>
                                 <Button
                                     type="submit"
@@ -700,7 +849,11 @@ export default function DocumentProcessesShow({ process, users }: Props) {
                                     className="bg-red-500 hover:bg-red-500/90"
                                     disabled={processing}
                                 >
-                                    {processing ? <Spinner /> : <ProhibitIcon />}
+                                    {processing ? (
+                                        <Spinner />
+                                    ) : (
+                                        <ProhibitIcon />
+                                    )}
                                     Batalkan Proses
                                 </Button>
                             </DialogFooter>

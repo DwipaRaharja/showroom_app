@@ -105,11 +105,9 @@ export function DocumentProcessDataTable({ data }: Props) {
     });
 
     const statusFilter = table.getColumn('status')?.getFilterValue() as
-        | DocumentProcessStatus
-        | undefined;
+        DocumentProcessStatus | undefined;
     const typeFilter = table.getColumn('process_type')?.getFilterValue() as
-        | DocumentProcessType
-        | undefined;
+        DocumentProcessType | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
     const selectedCount = table.getSelectedRowIds().length;
     const { pageIndex, pageSize } = pagination;
@@ -117,7 +115,9 @@ export function DocumentProcessDataTable({ data }: Props) {
     const firstRow = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
     const lastRow = Math.min((pageIndex + 1) * pageSize, filteredCount);
     const hasFilters =
-        globalFilter.length > 0 || statusFilter !== undefined || typeFilter !== undefined;
+        globalFilter.length > 0 ||
+        statusFilter !== undefined ||
+        typeFilter !== undefined;
 
     function resetFilters() {
         setGlobalFilter('');
@@ -132,7 +132,8 @@ export function DocumentProcessDataTable({ data }: Props) {
                     <div>
                         <CardTitle>Antrean Proses Berkas</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            {filteredCount} dari {data.length} proses ditampilkan
+                            {filteredCount} dari {data.length} proses
+                            ditampilkan
                         </p>
                     </div>
                     {selectedCount > 0 && (
@@ -147,7 +148,9 @@ export function DocumentProcessDataTable({ data }: Props) {
                         <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={globalFilter}
-                            onChange={(event) => table.setGlobalFilter(event.target.value)}
+                            onChange={(event) =>
+                                table.setGlobalFilter(event.target.value)
+                            }
                             placeholder="Cari nomor, invoice, mobil, customer..."
                             className="pl-9"
                             aria-label="Cari proses berkas"
@@ -160,16 +163,23 @@ export function DocumentProcessDataTable({ data }: Props) {
                             onValueChange={(value) =>
                                 table
                                     .getColumn('status')
-                                    ?.setFilterValue(value === 'all' ? undefined : value)
+                                    ?.setFilterValue(
+                                        value === 'all' ? undefined : value,
+                                    )
                             }
                         >
                             <SelectTrigger className="w-48">
                                 <SelectValue placeholder="Semua status" />
                             </SelectTrigger>
                             <SelectContent align="end">
-                                <SelectItem value="all">Semua status</SelectItem>
+                                <SelectItem value="all">
+                                    Semua status
+                                </SelectItem>
                                 {processStatusOptions.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
+                                    <SelectItem
+                                        key={option.value}
+                                        value={option.value}
+                                    >
                                         {option.label}
                                     </SelectItem>
                                 ))}
@@ -181,7 +191,9 @@ export function DocumentProcessDataTable({ data }: Props) {
                             onValueChange={(value) =>
                                 table
                                     .getColumn('process_type')
-                                    ?.setFilterValue(value === 'all' ? undefined : value)
+                                    ?.setFilterValue(
+                                        value === 'all' ? undefined : value,
+                                    )
                             }
                         >
                             <SelectTrigger className="w-48">
@@ -190,7 +202,10 @@ export function DocumentProcessDataTable({ data }: Props) {
                             <SelectContent align="end">
                                 <SelectItem value="all">Semua jenis</SelectItem>
                                 {processTypeOptions.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
+                                    <SelectItem
+                                        key={option.value}
+                                        value={option.value}
+                                    >
                                         {option.label}
                                     </SelectItem>
                                 ))}
@@ -205,7 +220,9 @@ export function DocumentProcessDataTable({ data }: Props) {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
-                                <DropdownMenuLabel>Tampilkan kolom</DropdownMenuLabel>
+                                <DropdownMenuLabel>
+                                    Tampilkan kolom
+                                </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {table
                                     .getAllLeafColumns()
@@ -215,10 +232,14 @@ export function DocumentProcessDataTable({ data }: Props) {
                                             key={column.id}
                                             checked={column.getIsVisible()}
                                             onCheckedChange={(value) =>
-                                                column.toggleVisibility(value === true)
+                                                column.toggleVisibility(
+                                                    value === true,
+                                                )
                                             }
                                         >
-                                            {documentProcessColumnLabels[column.id] ?? column.id}
+                                            {documentProcessColumnLabels[
+                                                column.id
+                                            ] ?? column.id}
                                         </DropdownMenuCheckboxItem>
                                     ))}
                             </DropdownMenuContent>
@@ -243,7 +264,9 @@ export function DocumentProcessDataTable({ data }: Props) {
                                     {group.headers.map((header) => (
                                         <TableHead key={header.id}>
                                             {header.isPlaceholder ? null : (
-                                                <table.FlexRender header={header} />
+                                                <table.FlexRender
+                                                    header={header}
+                                                />
                                             )}
                                         </TableHead>
                                     ))}
@@ -255,7 +278,11 @@ export function DocumentProcessDataTable({ data }: Props) {
                                 table.getRowModel().rows.map((row) => (
                                     <TableRow
                                         key={row.id}
-                                        data-state={row.getIsSelected() ? 'selected' : undefined}
+                                        data-state={
+                                            row.getIsSelected()
+                                                ? 'selected'
+                                                : undefined
+                                        }
                                     >
                                         {row.getVisibleCells().map((cell) => (
                                             <TableCell key={cell.id}>
@@ -267,14 +294,17 @@ export function DocumentProcessDataTable({ data }: Props) {
                             ) : (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={table.getVisibleLeafColumns().length}
+                                        colSpan={
+                                            table.getVisibleLeafColumns().length
+                                        }
                                         className="h-32 text-center"
                                     >
                                         <p className="font-medium">
                                             Proses berkas tidak ditemukan
                                         </p>
                                         <p className="text-sm text-muted-foreground">
-                                            Mulai proses dari halaman detail penjualan.
+                                            Mulai proses dari halaman detail
+                                            penjualan.
                                         </p>
                                     </TableCell>
                                 </TableRow>
@@ -285,21 +315,27 @@ export function DocumentProcessDataTable({ data }: Props) {
 
                 <div className="flex flex-col gap-3 border-t px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
                     <p className="text-sm text-muted-foreground">
-                        Menampilkan {firstRow}–{lastRow} dari {filteredCount} data
+                        Menampilkan {firstRow}–{lastRow} dari {filteredCount}{' '}
+                        data
                     </p>
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-2">
                             <span className="text-sm">Baris per halaman</span>
                             <Select
                                 value={String(pageSize)}
-                                onValueChange={(value) => table.setPageSize(Number(value))}
+                                onValueChange={(value) =>
+                                    table.setPageSize(Number(value))
+                                }
                             >
                                 <SelectTrigger size="sm" className="w-18">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent align="end" className="min-w-18">
                                     {[10, 20, 50].map((size) => (
-                                        <SelectItem key={size} value={String(size)}>
+                                        <SelectItem
+                                            key={size}
+                                            value={String(size)}
+                                        >
                                             {size}
                                         </SelectItem>
                                     ))}

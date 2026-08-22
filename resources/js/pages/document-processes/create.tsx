@@ -9,6 +9,7 @@ import {
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -18,7 +19,6 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import InputError from '@/components/input-error';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -29,13 +29,13 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { getCarDocumentState } from '@/pages/cars/vehicle-document-utils';
 import type {
     DocumentProcessSale,
     DocumentProcessType,
     UserOption,
 } from '@/pages/document-processes/types';
 import { processTypeOptions } from '@/pages/document-processes/utils';
-import { getCarDocumentState } from '@/pages/cars/vehicle-document-utils';
 import { index as documentProcessesIndex } from '@/routes/document-processes';
 
 type Props = {
@@ -45,6 +45,7 @@ type Props = {
 
 function todayString() {
     const now = new Date();
+
     return new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
         .toISOString()
         .slice(0, 10);
@@ -75,7 +76,8 @@ export default function DocumentProcessesCreate({ sale, users }: Props) {
                             Mulai Proses Berkas
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Siapkan checklist dokumen untuk {sale.invoice_number}.
+                            Siapkan checklist dokumen untuk{' '}
+                            {sale.invoice_number}.
                         </p>
                     </div>
                 </div>
@@ -142,7 +144,9 @@ export default function DocumentProcessesCreate({ sale, users }: Props) {
                         </CardHeader>
                         <CardContent>
                             <Form
-                                {...DocumentProcessController.store.form(sale.id)}
+                                {...DocumentProcessController.store.form(
+                                    sale.id,
+                                )}
                                 className="space-y-5"
                             >
                                 {({ processing, errors }) => (
@@ -155,7 +159,11 @@ export default function DocumentProcessesCreate({ sale, users }: Props) {
                                         <input
                                             type="hidden"
                                             name="assigned_to"
-                                            value={assignee === 'none' ? '' : assignee}
+                                            value={
+                                                assignee === 'none'
+                                                    ? ''
+                                                    : assignee
+                                            }
                                         />
 
                                         <div className="grid gap-5 sm:grid-cols-2">
@@ -175,17 +183,29 @@ export default function DocumentProcessesCreate({ sale, users }: Props) {
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {processTypeOptions.map((option) => (
-                                                            <SelectItem
-                                                                key={option.value}
-                                                                value={option.value}
-                                                            >
-                                                                {option.label}
-                                                            </SelectItem>
-                                                        ))}
+                                                        {processTypeOptions.map(
+                                                            (option) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        option.value
+                                                                    }
+                                                                    value={
+                                                                        option.value
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        option.label
+                                                                    }
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
                                                     </SelectContent>
                                                 </Select>
-                                                <InputError message={errors.process_type} />
+                                                <InputError
+                                                    message={
+                                                        errors.process_type
+                                                    }
+                                                />
                                             </div>
 
                                             <div className="grid gap-2 sm:col-span-2">
@@ -207,14 +227,18 @@ export default function DocumentProcessesCreate({ sale, users }: Props) {
                                                         {users.map((user) => (
                                                             <SelectItem
                                                                 key={user.id}
-                                                                value={String(user.id)}
+                                                                value={String(
+                                                                    user.id,
+                                                                )}
                                                             >
                                                                 {user.name}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
-                                                <InputError message={errors.assigned_to} />
+                                                <InputError
+                                                    message={errors.assigned_to}
+                                                />
                                             </div>
 
                                             <div className="grid gap-2">
@@ -229,7 +253,9 @@ export default function DocumentProcessesCreate({ sale, users }: Props) {
                                                     defaultValue={todayString()}
                                                     required
                                                 />
-                                                <InputError message={errors.started_at} />
+                                                <InputError
+                                                    message={errors.started_at}
+                                                />
                                             </div>
 
                                             <div className="grid gap-2">
@@ -258,18 +284,29 @@ export default function DocumentProcessesCreate({ sale, users }: Props) {
                                                     rows={4}
                                                     placeholder="Tambahkan instruksi atau kondisi khusus proses berkas..."
                                                 />
-                                                <InputError message={errors.notes} />
+                                                <InputError
+                                                    message={errors.notes}
+                                                />
                                             </div>
                                         </div>
 
                                         <div className="flex justify-end gap-2 border-t pt-5">
                                             <Button variant="outline" asChild>
-                                                <Link href={documentProcessesIndex.url()}>
+                                                <Link
+                                                    href={documentProcessesIndex.url()}
+                                                >
                                                     Batal
                                                 </Link>
                                             </Button>
-                                            <Button type="submit" disabled={processing}>
-                                                {processing ? <Spinner /> : <FloppyDiskIcon />}
+                                            <Button
+                                                type="submit"
+                                                disabled={processing}
+                                            >
+                                                {processing ? (
+                                                    <Spinner />
+                                                ) : (
+                                                    <FloppyDiskIcon />
+                                                )}
                                                 Buat Proses Berkas
                                             </Button>
                                         </div>

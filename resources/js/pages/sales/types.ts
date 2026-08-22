@@ -44,11 +44,7 @@ export type Payment = {
 
 export type HandoverStatus = 'pending' | 'vehicle_delivered' | 'completed';
 export type RecipientRelation =
-    | 'buyer_self'
-    | 'family'
-    | 'driver'
-    | 'leasing_officer'
-    | 'other';
+    'buyer_self' | 'family' | 'driver' | 'leasing_officer' | 'other';
 
 export type HandoverChecklist = {
     key_count?: number;
@@ -119,6 +115,11 @@ export type Sale = {
     can_accept_payment?: boolean;
     can_deliver_vehicle?: boolean;
     can_deliver_bpkb?: boolean;
+    document_process?: {
+        id: number;
+        process_number: string;
+        status: string;
+    } | null;
 };
 
 export type SalesSummary = {
@@ -128,4 +129,3 @@ export type SalesSummary = {
     total_bonus_collected: number;
     pending_disbursements_count: number;
 };
-

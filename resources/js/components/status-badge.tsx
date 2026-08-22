@@ -136,6 +136,29 @@ const statusMap: Record<string, StatusConfig> = {
         className:
             'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
     },
+    waiting_documents: {
+        label: 'Menunggu kelengkapan',
+        className:
+            'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
+    },
+    waiting: {
+        label: 'Menunggu dokumen',
+        className:
+            'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
+    },
+    ready: {
+        label: 'Siap diproses',
+        className: 'bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-700',
+    },
+    handed_over: {
+        label: 'Sudah diserahkan',
+        className:
+            'bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-700',
+    },
+    issue: {
+        label: 'Bermasalah',
+        className: 'bg-red-500 text-white hover:bg-red-500 dark:bg-red-500',
+    },
 };
 
 export interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
