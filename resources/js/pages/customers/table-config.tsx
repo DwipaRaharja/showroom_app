@@ -6,6 +6,7 @@ import {
     CaretUpDownIcon,
     CopyIcon,
     DotsThreeVerticalIcon,
+    EyeIcon,
     PencilSimpleIcon,
 } from '@phosphor-icons/react';
 import {
@@ -25,6 +26,7 @@ import {
     tableFeatures,
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
+import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -118,11 +120,13 @@ function maskNik(value: string): string {
 }
 
 type CustomerColumnActions = {
+    onDetail: (customer: Customer) => void;
     onEdit: (customer: Customer) => void;
     onChangeStatus: (customer: Customer) => void;
 };
 
 export function createCustomerColumns({
+    onDetail,
     onEdit,
     onChangeStatus,
 }: CustomerColumnActions) {
@@ -206,14 +210,9 @@ export function createCustomerColumns({
                     onToggle={column.getToggleSortingHandler()}
                 />
             ),
-            cell: ({ getValue }) =>
-                getValue() ? (
-                    <Badge variant="secondary">Diarsipkan</Badge>
-                ) : (
-                    <Badge className="bg-emerald-600 hover:bg-emerald-600">
-                        Aktif
-                    </Badge>
-                ),
+            cell: ({ getValue }) => (
+                <StatusBadge status={getValue() ? 'archived' : 'active'} />
+            ),
             filterFn: 'equals',
         }),
         columnHelper.accessor('phone', {
@@ -319,6 +318,12 @@ export function createCustomerColumns({
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Aksi</DropdownMenuLabel>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onSelect={() => onDetail(row.original)}
+                            >
+                                <EyeIcon />
+                                Detail customer
+                            </DropdownMenuItem>
                             {row.original.phone && (
                                 <DropdownMenuItem
                                     onSelect={() =>

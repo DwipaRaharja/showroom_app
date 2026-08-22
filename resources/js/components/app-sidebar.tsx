@@ -1,6 +1,8 @@
 import { Link } from '@inertiajs/react';
 import {
     CarProfileIcon,
+    CoinsIcon,
+    HandCoinsIcon,
     SquaresFourIcon,
     TagIcon,
     UsersThreeIcon,
@@ -22,6 +24,8 @@ import { dashboard } from '@/routes';
 import { index as brandsIndex } from '@/routes/brands';
 import { index as carsIndex } from '@/routes/cars';
 import { index as customersIndex } from '@/routes/customers';
+import { index as purchasesIndex } from '@/routes/purchases';
+import { index as salesIndex } from '@/routes/sales';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -34,6 +38,16 @@ const mainNavItems: NavItem[] = [
         title: 'Mobil',
         href: carsIndex.url(),
         icon: CarProfileIcon,
+    },
+    {
+        title: 'Penjualan',
+        href: salesIndex.url(),
+        icon: HandCoinsIcon,
+    },
+    {
+        title: 'Modal Mobil',
+        href: purchasesIndex.url(),
+        icon: CoinsIcon,
     },
     {
         title: 'Merek',

@@ -25,6 +25,7 @@ import {
     tableFeatures,
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
+import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -215,14 +216,7 @@ export function createBrandColumns({
                     onToggle={column.getToggleSortingHandler()}
                 />
             ),
-            cell: ({ getValue }) =>
-                getValue() ? (
-                    <Badge className="bg-emerald-600 hover:bg-emerald-600">
-                        Aktif
-                    </Badge>
-                ) : (
-                    <Badge variant="secondary">Tidak aktif</Badge>
-                ),
+            cell: ({ getValue }) => <StatusBadge status={getValue()} />,
             filterFn: 'equals',
         }),
         columnHelper.accessor('created_at', {

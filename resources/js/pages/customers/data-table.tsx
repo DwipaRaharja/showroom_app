@@ -43,6 +43,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { CustomerDetailDialog } from '@/pages/customers/customer-detail-dialog';
 import { CustomerFormDialog } from '@/pages/customers/customer-form-dialog';
 import { CustomerStatusDialog } from '@/pages/customers/customer-status-dialog';
 import {
@@ -73,6 +74,7 @@ export function CustomerDataTable({ data }: Props) {
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(
         null,
     );
+    const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
     const [statusCustomer, setStatusCustomer] = useState<Customer | null>(null);
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] =
@@ -87,6 +89,7 @@ export function CustomerDataTable({ data }: Props) {
     const columns = useMemo(
         () =>
             createCustomerColumns({
+                onDetail: setDetailCustomer,
                 onEdit: setEditingCustomer,
                 onChangeStatus: setStatusCustomer,
             }),
@@ -422,6 +425,16 @@ export function CustomerDataTable({ data }: Props) {
                 </CardContent>
             </Card>
 
+            <CustomerDetailDialog
+                open={detailCustomer !== null}
+                customer={detailCustomer}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDetailCustomer(null);
+                    }
+                }}
+                onEdit={setEditingCustomer}
+            />
             <CustomerFormDialog
                 open={isCreateOpen}
                 customer={null}
