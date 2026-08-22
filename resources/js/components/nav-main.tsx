@@ -7,30 +7,51 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import type { NavItem } from '@/types';
+import type { NavGroup, NavItem } from '@/types';
 
-export function NavMain({ items = [] }: { items: NavItem[] }) {
+type NavMainProps = {
+    groups?: NavGroup[];
+    items?: NavItem[];
+};
+
+export function NavMain({ groups, items }: NavMainProps) {
     const { isCurrentUrl } = useCurrentUrl();
 
+    const normalizedGroups: NavGroup[] = groups ?? [
+        {
+            title: 'Menu',
+            items: items ?? [],
+        },
+    ];
+
     return (
-        <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
-            <SidebarMenu>
-                {items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={isCurrentUrl(item.href)}
-                            tooltip={{ children: item.title }}
-                        >
-                            <Link href={item.href} prefetch>
-                                {item.icon && <item.icon />}
-                                <span>{item.title}</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                ))}
-            </SidebarMenu>
-        </SidebarGroup>
+        <div className="space-y-2">
+            {normalizedGroups.map((group, groupIdx) => (
+                <SidebarGroup key={group.title ?? groupIdx} className="px-2 py-0">
+                    {group.title && (
+                        <SidebarGroupLabel className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                            {group.title}
+                        </SidebarGroupLabel>
+                    )}
+                    <SidebarMenu>
+                        {group.items.map((item) => (
+                            <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={isCurrentUrl(item.href)}
+                                    tooltip={{ children: item.title }}
+                                >
+                                    <Link href={item.href} prefetch>
+                                        {item.icon && <item.icon />}
+                                        <span>{item.title}</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        ))}
+                    </SidebarMenu>
+                </SidebarGroup>
+            ))}
+        </div>
     );
 }
+

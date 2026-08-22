@@ -26,38 +26,58 @@ import { index as carsIndex } from '@/routes/cars';
 import { index as customersIndex } from '@/routes/customers';
 import { index as purchasesIndex } from '@/routes/purchases';
 import { index as salesIndex } from '@/routes/sales';
-import type { NavItem } from '@/types';
+import type { NavGroup, NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const mainNavGroups: NavGroup[] = [
     {
-        title: 'Dashboard',
-        href: dashboard.url(),
-        icon: SquaresFourIcon,
+        title: 'Ringkasan',
+        items: [
+            {
+                title: 'Dashboard',
+                href: dashboard.url(),
+                icon: SquaresFourIcon,
+            },
+        ],
     },
     {
-        title: 'Mobil',
-        href: carsIndex.url(),
-        icon: CarProfileIcon,
+        title: 'Transaksi',
+        items: [
+            {
+                title: 'Penjualan',
+                href: salesIndex.url(),
+                icon: HandCoinsIcon,
+            },
+            {
+                title: 'Modal Mobil',
+                href: purchasesIndex.url(),
+                icon: CoinsIcon,
+            },
+        ],
     },
     {
-        title: 'Penjualan',
-        href: salesIndex.url(),
-        icon: HandCoinsIcon,
+        title: 'Inventaris',
+        items: [
+            {
+                title: 'Mobil',
+                href: carsIndex.url(),
+                icon: CarProfileIcon,
+            },
+            {
+                title: 'Merek',
+                href: brandsIndex.url(),
+                icon: TagIcon,
+            },
+        ],
     },
     {
-        title: 'Modal Mobil',
-        href: purchasesIndex.url(),
-        icon: CoinsIcon,
-    },
-    {
-        title: 'Merek',
-        href: brandsIndex.url(),
-        icon: TagIcon,
-    },
-    {
-        title: 'Customer',
-        href: customersIndex.url(),
-        icon: UsersThreeIcon,
+        title: 'Relasi',
+        items: [
+            {
+                title: 'Customer',
+                href: customersIndex.url(),
+                icon: UsersThreeIcon,
+            },
+        ],
     },
 ];
 
@@ -79,7 +99,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain groups={mainNavGroups} />
             </SidebarContent>
 
             <SidebarFooter>

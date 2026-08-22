@@ -13,3 +13,9 @@ export type NavItem = {
     icon?: LucideIcon | PhosphorIcon | null;
     isActive?: boolean;
 };
+
+export type NavGroup = {
+    title?: string;
+    items: NavItem[];
+};
+
