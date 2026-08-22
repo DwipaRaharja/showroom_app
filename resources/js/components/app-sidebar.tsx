@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import {
     CarProfileIcon,
     CoinsIcon,
+    FilesIcon,
     HandCoinsIcon,
     SquaresFourIcon,
     TagIcon,
@@ -24,6 +25,7 @@ import { dashboard } from '@/routes';
 import { index as brandsIndex } from '@/routes/brands';
 import { index as carsIndex } from '@/routes/cars';
 import { index as customersIndex } from '@/routes/customers';
+import { index as documentProcessesIndex } from '@/routes/document-processes';
 import { index as purchasesIndex } from '@/routes/purchases';
 import { index as salesIndex } from '@/routes/sales';
 import type { NavGroup, NavItem } from '@/types';
@@ -51,6 +53,11 @@ const mainNavGroups: NavGroup[] = [
                 title: 'Modal Mobil',
                 href: purchasesIndex.url(),
                 icon: CoinsIcon,
+            },
+            {
+                title: 'Pengurusan Dokumen',
+                href: documentProcessesIndex.url(),
+                icon: FilesIcon,
             },
         ],
     },
