@@ -72,6 +72,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('handovers.index');
     Route::post('handovers', [VehicleHandoverController::class, 'store'])
         ->name('handovers.store');
+    Route::get('handovers/{sale}', [VehicleHandoverController::class, 'show'])
+        ->name('handovers.show');
     Route::get('sales/{sale}/bast', [VehicleHandoverController::class, 'printBast'])
         ->name('sales.bast.print');
     Route::get('handovers/{handover}/proof', [VehicleHandoverController::class, 'downloadProof'])

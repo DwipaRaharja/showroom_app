@@ -112,6 +112,12 @@ export default function SalesShow({ sale }: Props) {
     const customer = sale.customer;
     const finance = sale.finance_company;
     const payments = sale.payments ?? [];
+    const handoverEvents = sale.handover?.events ?? [];
+    const latestHandoverEvent = [...handoverEvents].sort(
+        (left, right) =>
+            new Date(right.occurred_at).getTime() -
+            new Date(left.occurred_at).getTime(),
+    )[0];
 
     const totalPaid =
         sale.total_paid ??
@@ -791,29 +797,32 @@ export default function SalesShow({ sale }: Props) {
                                 </div>
 
                                 {/* Recipient info */}
-                                {sale.handover && (
+                                {sale.handover && latestHandoverEvent && (
                                     <div className="space-y-1 border-t pt-2 text-[11px] text-muted-foreground">
                                         <div>
-                                            Penerima:{' '}
+                                            Tracking terakhir:{' '}
                                             <strong className="text-foreground">
-                                                {sale.handover.recipient_name}
-                                            </strong>{' '}
-                                            (
-                                            {sale.handover
-                                                .recipient_relation ===
-                                            'buyer_self'
-                                                ? 'Pembeli Sendiri'
-                                                : sale.handover
-                                                      .recipient_relation}
-                                            )
+                                                {
+                                                    latestHandoverEvent.recipient_name
+                                                }
+                                            </strong>
+                                            {' menerima '}
+                                            {latestHandoverEvent.items
+                                                .map((item) => item.item_name)
+                                                .join(', ')}
                                         </div>
                                         <div>
                                             Lokasi:{' '}
                                             <span className="text-foreground">
                                                 {
-                                                    sale.handover
-                                                        .handover_location
+                                                    latestHandoverEvent.handover_location
                                                 }
+                                            </span>
+                                        </div>
+                                        <div>
+                                            Total riwayat:{' '}
+                                            <span className="font-medium text-foreground">
+                                                {handoverEvents.length} kejadian
                                             </span>
                                         </div>
                                     </div>

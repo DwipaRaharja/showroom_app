@@ -79,12 +79,12 @@ export type VehicleHandover = {
     handover_number: string;
     sale_id: number;
     car_id: number;
-    recipient_name: string | null;
+    recipient_name: string;
     recipient_phone: string | null;
     recipient_id_card: string | null;
-    recipient_relation: RecipientRelation | null;
-    officer_name: string | null;
-    handover_location: string | null;
+    recipient_relation: RecipientRelation;
+    officer_name: string;
+    handover_location: string;
     handover_address: string | null;
     vehicle_delivered_at: string | null;
     bpkb_delivered_at: string | null;

@@ -155,7 +155,8 @@ class SaleController extends Controller
             'customer',
             'financeCompany',
             'payments' => fn ($q) => $q->latest('payment_date')->latest('id'),
-            'handover',
+            'handover.events.items',
+            'handover.events.photos',
         ]);
 
         return Inertia::render('sales/show', [

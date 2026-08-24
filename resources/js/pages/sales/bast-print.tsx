@@ -42,10 +42,11 @@ function formatDateTime(value: string | null): string {
     return `${dateFormatter.format(date)}, pukul ${timeFormatter.format(date)} WITA`;
 }
 
-function relationLabel(
-    relation: string | null | undefined,
-): string {
-    if (!relation) return '—';
+function relationLabel(relation: string | null | undefined): string {
+    if (!relation) {
+        return '—';
+    }
+
     const labels: Record<string, string> = {
         buyer_self: 'Pembeli sendiri',
         family: 'Keluarga / pasangan',
@@ -91,7 +92,29 @@ function checklistRows(checklist: HandoverChecklist) {
 
 export default function BastPrint({ sale, handover }: Props) {
     const checklist = handover.checklist ?? {};
-    const bpkbDelivered = Boolean(handover.bpkb_delivered_at);
+    const vehicleEvent = handover.events.find((event) =>
+        event.items.some((item) => item.item_code === 'vehicle'),
+    );
+    const bpkbEvent = handover.events.find((event) =>
+        event.items.some((item) => item.item_code === 'bpkb'),
+    );
+    const vehicleOccurredAt =
+        vehicleEvent?.occurred_at ?? handover.vehicle_delivered_at;
+    const vehicleLocation =
+        vehicleEvent?.handover_location ?? handover.handover_location;
+    const vehicleAddress =
+        vehicleEvent?.handover_address ?? handover.handover_address;
+    const vehicleOfficer = vehicleEvent?.officer_name ?? handover.officer_name;
+    const vehicleRecipient =
+        vehicleEvent?.recipient_name ?? handover.recipient_name;
+    const vehicleRecipientId =
+        vehicleEvent?.recipient_id_card ?? handover.recipient_id_card;
+    const vehicleRecipientPhone =
+        vehicleEvent?.recipient_phone ?? handover.recipient_phone;
+    const vehicleRecipientRelation =
+        vehicleEvent?.recipient_relation ?? handover.recipient_relation;
+    const vehicleNotes = vehicleEvent?.notes ?? handover.notes;
+    const bpkbDelivered = Boolean(bpkbEvent);
 
     return (
         <div className="min-h-screen bg-neutral-100 px-4 py-6 text-neutral-900 print:bg-white print:p-0">
@@ -143,18 +166,16 @@ export default function BastPrint({ sale, handover }: Props) {
                         Berita Acara Serah Terima Kendaraan
                     </h1>
                     <p className="mt-2 text-xs text-neutral-600">
-                        {formatDateTime(handover.vehicle_delivered_at)}
+                        {formatDateTime(vehicleOccurredAt)}
                     </p>
                 </section>
 
                 <p className="mb-5 text-xs leading-5 text-neutral-700">
                     Pada waktu tersebut di atas, bertempat di{' '}
-                    <strong>{handover.handover_location}</strong>
-                    {handover.handover_address
-                        ? `, ${handover.handover_address}`
-                        : ''}
-                    , telah dilakukan penyerahan kendaraan dari pihak showroom
-                    kepada pihak penerima dengan rincian berikut.
+                    <strong>{vehicleLocation}</strong>
+                    {vehicleAddress ? `, ${vehicleAddress}` : ''}, telah
+                    dilakukan penyerahan kendaraan dari pihak showroom kepada
+                    pihak penerima dengan rincian berikut.
                 </p>
 
                 <section className="mb-5 grid gap-4 text-xs sm:grid-cols-2 print:grid-cols-2">
@@ -162,7 +183,7 @@ export default function BastPrint({ sale, handover }: Props) {
                         <h2 className="mb-2 border-b border-neutral-200 pb-2 text-[11px] font-bold uppercase">
                             Pihak yang menyerahkan
                         </h2>
-                        <DetailRow label="Nama" value={handover.officer_name ?? '—'} />
+                        <DetailRow label="Nama" value={vehicleOfficer ?? '—'} />
                         <DetailRow
                             label="Instansi"
                             value="Telaga Berlian Motor"
@@ -174,19 +195,19 @@ export default function BastPrint({ sale, handover }: Props) {
                         </h2>
                         <DetailRow
                             label="Nama"
-                            value={handover.recipient_name ?? '—'}
+                            value={vehicleRecipient ?? '—'}
                         />
                         <DetailRow
                             label="NIK"
-                            value={handover.recipient_id_card ?? '—'}
+                            value={vehicleRecipientId ?? '—'}
                         />
                         <DetailRow
                             label="No. HP"
-                            value={handover.recipient_phone ?? '—'}
+                            value={vehicleRecipientPhone ?? '—'}
                         />
                         <DetailRow
                             label="Hubungan"
-                            value={relationLabel(handover.recipient_relation)}
+                            value={relationLabel(vehicleRecipientRelation)}
                         />
                     </div>
                 </section>
@@ -286,13 +307,8 @@ export default function BastPrint({ sale, handover }: Props) {
                                 Status BPKB & Faktur Asli
                             </h2>
                             <p className="mt-1 text-neutral-600">
-                                {bpkbDelivered && handover.bpkb_delivered_at
-                                    ? `Diserahkan pada ${formatDateTime(handover.bpkb_delivered_at)} kepada ${
-                                          handover.bpkb_recipient_type ===
-                                          'finance_company'
-                                              ? 'perusahaan pembiayaan'
-                                              : 'customer'
-                                      }.`
+                                {bpkbEvent
+                                    ? `Diserahkan pada ${formatDateTime(bpkbEvent.occurred_at)} kepada ${bpkbEvent.recipient_name} (${relationLabel(bpkbEvent.recipient_relation)}).`
                                     : 'Belum diserahkan dan tetap disimpan oleh showroom sampai proses penyerahan BPKB dicatat.'}
                             </p>
                         </div>
@@ -310,11 +326,11 @@ export default function BastPrint({ sale, handover }: Props) {
                     </div>
                 </section>
 
-                {handover.notes && (
+                {vehicleNotes && (
                     <section className="mb-5 break-inside-avoid rounded-lg border border-neutral-200 p-3.5 text-xs">
                         <h2 className="font-bold">Catatan</h2>
                         <p className="mt-1 whitespace-pre-wrap text-neutral-600">
-                            {handover.notes}
+                            {vehicleNotes}
                         </p>
                     </section>
                 )}
@@ -343,7 +359,7 @@ export default function BastPrint({ sale, handover }: Props) {
                             Yang menyerahkan,
                         </p>
                         <p className="font-bold underline underline-offset-4">
-                            {handover.officer_name}
+                            {vehicleOfficer}
                         </p>
                         <p className="mt-1 text-[10px] text-neutral-500">
                             Telaga Berlian Motor
@@ -352,10 +368,10 @@ export default function BastPrint({ sale, handover }: Props) {
                     <div>
                         <p className="mb-16 text-neutral-600">Yang menerima,</p>
                         <p className="font-bold underline underline-offset-4">
-                            {handover.recipient_name}
+                            {vehicleRecipient}
                         </p>
                         <p className="mt-1 text-[10px] text-neutral-500">
-                            {relationLabel(handover.recipient_relation)}
+                            {relationLabel(vehicleRecipientRelation)}
                         </p>
                     </div>
                 </section>

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -124,131 +123,100 @@ class VehicleHandover extends Model
         return $events->sortByDesc('occurred_at')->first();
     }
 
-    /** @return Attribute<mixed, never> */
-    protected function vehicleDeliveredAt(): Attribute
+    public function getVehicleDeliveredAtAttribute(): mixed
     {
-        return Attribute::get(
-            fn () => $this->eventForItem('vehicle')?->occurred_at,
-        );
+        return $this->eventForItem('vehicle')?->occurred_at;
     }
 
-    /** @return Attribute<mixed, never> */
-    protected function bpkbDeliveredAt(): Attribute
+    public function getBpkbDeliveredAtAttribute(): mixed
     {
-        return Attribute::get(
-            fn () => $this->eventForItem('bpkb')?->occurred_at,
-        );
+        return $this->eventForItem('bpkb')?->occurred_at;
     }
 
-    /** @return Attribute<string|null, never> */
-    protected function recipientName(): Attribute
+    public function getRecipientNameAttribute(): ?string
     {
-        return Attribute::get(
-            fn (): ?string => $this->latestTrackingEvent()?->recipient_name,
-        );
+        return $this->latestTrackingEvent()?->recipient_name;
     }
 
-    /** @return Attribute<string|null, never> */
-    protected function recipientPhone(): Attribute
+    public function getRecipientPhoneAttribute(): ?string
     {
-        return Attribute::get(
-            fn (): ?string => $this->latestTrackingEvent()?->recipient_phone,
-        );
+        return $this->latestTrackingEvent()?->recipient_phone;
     }
 
-    /** @return Attribute<string|null, never> */
-    protected function recipientIdCard(): Attribute
+    public function getRecipientIdCardAttribute(): ?string
     {
-        return Attribute::get(
-            fn (): ?string => $this->latestTrackingEvent()?->recipient_id_card,
-        );
+        return $this->latestTrackingEvent()?->recipient_id_card;
     }
 
-    /** @return Attribute<string|null, never> */
-    protected function recipientRelation(): Attribute
+    public function getRecipientRelationAttribute(): ?string
     {
-        return Attribute::get(
-            fn (): ?string => $this->latestTrackingEvent()?->recipient_relation,
-        );
+        return $this->latestTrackingEvent()?->recipient_relation;
     }
 
-    /** @return Attribute<string|null, never> */
-    protected function officerName(): Attribute
+    public function getOfficerNameAttribute(): ?string
     {
-        return Attribute::get(
-            fn (): ?string => $this->latestTrackingEvent()?->officer_name,
-        );
+        return $this->latestTrackingEvent()?->officer_name;
     }
 
-    /** @return Attribute<string|null, never> */
-    protected function handoverLocation(): Attribute
+    public function getHandoverLocationAttribute(): ?string
     {
-        return Attribute::get(
-            fn (): ?string => $this->latestTrackingEvent()?->handover_location,
-        );
+        return $this->latestTrackingEvent()?->handover_location;
     }
 
-    /** @return Attribute<string|null, never> */
-    protected function handoverAddress(): Attribute
+    public function getHandoverAddressAttribute(): ?string
     {
-        return Attribute::get(
-            fn (): ?string => $this->latestTrackingEvent()?->handover_address,
-        );
+        return $this->latestTrackingEvent()?->handover_address;
     }
 
-    /** @return Attribute<string|null, never> */
-    protected function bpkbRecipientType(): Attribute
+    public function getBpkbRecipientTypeAttribute(): ?string
     {
-        return Attribute::get(function (): ?string {
-            $event = $this->eventForItem('bpkb');
+        $event = $this->eventForItem('bpkb');
 
-            if ($event === null) {
-                return null;
-            }
+        if ($event === null) {
+            return null;
+        }
 
-            return $event->recipient_relation === 'leasing_officer'
-                ? 'finance_company'
-                : 'customer';
-        });
+        return $event->recipient_relation === 'leasing_officer'
+            ? 'finance_company'
+            : 'customer';
     }
 
-    /** @return Attribute<array<string, mixed>|null, never> */
-    protected function checklist(): Attribute
+    /** @return array<string, mixed>|null */
+    public function getChecklistAttribute(): ?array
     {
-        return Attribute::get(function (): ?array {
-            $event = $this->eventForItem('vehicle');
+        $event = $this->eventForItem('vehicle');
 
-            if ($event === null) {
-                return null;
-            }
+        if ($event === null) {
+            return null;
+        }
 
-            $items = $event->items->keyBy('item_code');
-            $condition = $event->vehicle_condition ?? [];
+        $items = $event->items->keyBy('item_code');
+        $conditionValue = $event->getAttribute('vehicle_condition');
+        $condition = is_array($conditionValue) ? $conditionValue : [];
+        $keys = $items->get('keys');
 
-            return [
-                'key_count' => (int) ($items->get('keys')?->quantity ?? 0),
-                'has_stnk' => $items->has('stnk'),
-                'has_bpkb' => $this->hasDeliveredItem('bpkb'),
-                'has_faktur' => $this->hasDeliveredItem('invoice'),
-                'has_manual_book' => $items->has('manual_book'),
-                'has_service_book' => $items->has('service_book'),
-                'has_toolkit' => $items->has('toolkit'),
-                'has_spare_tire' => $items->has('spare_tire'),
-                'fuel_level' => $condition['fuel_level'] ?? null,
-                'cleanliness' => $condition['cleanliness'] ?? null,
-            ];
-        });
+        return [
+            'key_count' => $keys instanceof VehicleHandoverItem
+                ? $keys->quantity
+                : 0,
+            'has_stnk' => $items->has('stnk'),
+            'has_bpkb' => $this->hasDeliveredItem('bpkb'),
+            'has_faktur' => $this->hasDeliveredItem('invoice'),
+            'has_manual_book' => $items->has('manual_book'),
+            'has_service_book' => $items->has('service_book'),
+            'has_toolkit' => $items->has('toolkit'),
+            'has_spare_tire' => $items->has('spare_tire'),
+            'fuel_level' => $condition['fuel_level'] ?? null,
+            'cleanliness' => $condition['cleanliness'] ?? null,
+        ];
     }
 
-    /** @return Attribute<string|null, never> */
-    protected function proofFile(): Attribute
+    public function getProofFileAttribute(): ?string
     {
-        return Attribute::get(function (): ?string {
-            $event = $this->eventForItem('vehicle')
-                ?? $this->latestTrackingEvent();
+        $event = $this->eventForItem('vehicle')
+            ?? $this->latestTrackingEvent();
 
-            return $event?->photos->first()?->file_path;
-        });
+        return $event?->photos->first()?->file_path;
     }
 
     /** @return BelongsTo<Sale, $this> */

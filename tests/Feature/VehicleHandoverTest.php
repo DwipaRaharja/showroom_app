@@ -8,33 +8,26 @@ use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\User;
 use App\Models\VehicleHandover;
+use App\Models\VehicleHandoverPhoto;
+use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
+    Storage::fake('local');
     $this->actingAs(User::factory()->create());
 });
 
-/** @return array<string, mixed> */
-function validHandoverChecklist(bool $withBpkb = false): array
-{
-    return [
-        'key_count' => 2,
-        'has_stnk' => true,
-        'has_bpkb' => $withBpkb,
-        'has_faktur' => $withBpkb,
-        'has_manual_book' => true,
-        'has_toolkit' => true,
-        'has_spare_tire' => true,
-        'fuel_level' => '1/2',
-        'cleanliness' => 'Bersih & Salon Siap Pakai',
-    ];
-}
+afterEach(function () {
+    Carbon::setTestNow();
+});
 
 function createSaleForHandover(int $dealPrice = 100_000_000): Sale
 {
+    $brandName = 'Toyota '.fake()->unique()->numerify('####');
     $brand = Brand::query()->create([
-        'name' => 'Toyota '.fake()->unique()->numerify('####'),
+        'name' => $brandName,
+        'slug' => str($brandName)->slug()->toString(),
         'is_active' => true,
     ]);
     $car = Car::query()->create([
@@ -67,19 +60,42 @@ function createSaleForHandover(int $dealPrice = 100_000_000): Sale
     ]);
 }
 
-/** @return array<string, mixed> */
-function validHandoverPayload(Sale $sale): array
-{
-    return [
+/**
+ * @param  array<int, string>  $items
+ * @param  array<int, UploadedFile>|null  $photos
+ * @return array<string, mixed>
+ */
+function validHandoverTrackingPayload(
+    Sale $sale,
+    array $items = ['vehicle', 'stnk', 'keys'],
+    ?array $photos = null,
+    ?string $occurredAt = null,
+): array {
+    $payload = [
         'sale_id' => $sale->id,
+        'occurred_at' => $occurredAt ?? now()->format('Y-m-d H:i:s'),
+        'items' => $items,
         'recipient_name' => 'Budi Santoso',
         'recipient_phone' => '081234567890',
         'recipient_id_card' => '3201234567890001',
         'recipient_relation' => 'buyer_self',
         'officer_name' => 'Admin Showroom',
         'handover_location' => 'Showroom Telaga Berlian',
-        'checklist' => validHandoverChecklist(),
+        'photos' => $photos ?? [UploadedFile::fake()->image('bukti.jpg')],
     ];
+
+    if (in_array('keys', $items, true)) {
+        $payload['key_count'] = 2;
+    }
+
+    if (in_array('vehicle', $items, true)) {
+        $payload['vehicle_condition'] = [
+            'fuel_level' => '1/2',
+            'cleanliness' => 'Bersih & Salon Siap Pakai',
+        ];
+    }
+
+    return $payload;
 }
 
 function paySaleForHandover(Sale $sale, int $amount): void
@@ -96,113 +112,186 @@ function paySaleForHandover(Sale $sale, int $amount): void
     ]);
 }
 
-test('vehicle delivery is blocked while the remaining bill exceeds ten million', function () {
+test('vehicle tracking is blocked while the remaining bill exceeds ten million', function () {
     $sale = createSaleForHandover();
 
-    $response = $this->post(route('handovers.store'), [
-        ...validHandoverPayload($sale),
-        'vehicle_delivered_at' => now()->format('Y-m-d H:i:s'),
-    ]);
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale),
+    )->assertSessionHasErrors('items');
 
-    $response->assertSessionHasErrors('vehicle_delivered_at');
     expect(VehicleHandover::query()->whereBelongsTo($sale)->exists())->toBeFalse();
 });
 
-test('a handover cannot be saved without selecting a delivery stage', function () {
+test('a tracking event requires at least one delivered item and one photo', function () {
     $sale = createSaleForHandover(8_000_000);
+    $payload = validHandoverTrackingPayload($sale);
+    $payload['items'] = [];
+    $payload['photos'] = [];
 
-    $response = $this->post(
-        route('handovers.store'),
-        validHandoverPayload($sale),
-    );
-
-    $response->assertSessionHasErrors('vehicle_delivered_at');
+    $this->post(route('handovers.store'), $payload)
+        ->assertSessionHasErrors(['items', 'photos']);
 });
 
-test('vehicle can be delivered with at most ten million remaining while BPKB stays held', function () {
+test('vehicle delivery creates an immutable event with items recipient and photos', function () {
     $sale = createSaleForHandover(100_000_000);
     paySaleForHandover($sale, 92_000_000);
 
-    $response = $this->post(route('handovers.store'), [
-        ...validHandoverPayload($sale),
-        'vehicle_delivered_at' => now()->format('Y-m-d H:i:s'),
-    ]);
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale),
+    )->assertSessionHasNoErrors();
 
-    $response->assertSessionHasNoErrors();
-
-    $handover = VehicleHandover::query()->whereBelongsTo($sale)->firstOrFail();
+    $handover = VehicleHandover::query()
+        ->with(['events.items', 'events.photos'])
+        ->whereBelongsTo($sale)
+        ->firstOrFail();
+    $event = $handover->events->sole();
 
     expect($handover->status)->toBe('vehicle_delivered')
-        ->and($handover->vehicle_delivered_at)->not->toBeNull()
-        ->and($handover->bpkb_delivered_at)->toBeNull();
+        ->and($event->recipient_name)->toBe('Budi Santoso')
+        ->and($event->items->pluck('item_code')->all())
+        ->toBe(['vehicle', 'stnk', 'keys'])
+        ->and($event->photos)->toHaveCount(1)
+        ->and($handover->hasDeliveredItem('vehicle'))->toBeTrue()
+        ->and($handover->hasDeliveredItem('bpkb'))->toBeFalse();
 });
 
-test('BPKB requires full settlement and a recorded vehicle delivery', function () {
+test('datetime-local is interpreted as Makassar time before UTC validation', function () {
+    Carbon::setTestNow(Carbon::create(2026, 8, 24, 14, 31, 0, 'UTC'));
+    $sale = createSaleForHandover(8_000_000);
+
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload(
+            $sale,
+            occurredAt: '2026-08-24T22:30',
+        ),
+    )->assertSessionHasNoErrors();
+
+    $event = VehicleHandover::query()
+        ->whereBelongsTo($sale)
+        ->firstOrFail()
+        ->events()
+        ->firstOrFail();
+
+    expect($event->occurred_at->utc()->format('Y-m-d H:i:s'))
+        ->toBe('2026-08-24 14:30:00');
+});
+
+test('BPKB requires settlement a vehicle event and the invoice', function () {
     $sale = createSaleForHandover(100_000_000);
     paySaleForHandover($sale, 92_000_000);
 
-    $response = $this->post(route('handovers.store'), [
-        ...validHandoverPayload($sale),
-        'bpkb_delivered_at' => now()->format('Y-m-d H:i:s'),
-        'bpkb_recipient_type' => 'customer',
-        'checklist' => validHandoverChecklist(true),
-    ]);
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale, ['bpkb', 'invoice']),
+    )->assertSessionHasErrors('items');
 
-    $response->assertSessionHasErrors('bpkb_delivered_at');
+    paySaleForHandover($sale, 8_000_000);
+
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale, ['bpkb', 'invoice']),
+    )->assertSessionHasErrors('items');
+
+    expect(VehicleHandover::query()->whereBelongsTo($sale)->exists())->toBeFalse();
 });
 
-test('a settled sale may record both delivery stages and print its BAST', function () {
+test('a settled sale can record separate vehicle and document timeline events', function () {
     $sale = createSaleForHandover(100_000_000);
     paySaleForHandover($sale, 100_000_000);
-    $deliveredAt = now()->subMinute()->format('Y-m-d H:i:s');
 
-    $response = $this->post(route('handovers.store'), [
-        ...validHandoverPayload($sale),
-        'vehicle_delivered_at' => $deliveredAt,
-        'bpkb_delivered_at' => now()->format('Y-m-d H:i:s'),
-        'bpkb_recipient_type' => 'customer',
-        'checklist' => validHandoverChecklist(true),
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload(
+            $sale,
+            ['vehicle', 'stnk', 'keys'],
+            null,
+            now()->subMinute()->format('Y-m-d H:i:s'),
+        ),
+    )->assertSessionHasNoErrors();
+
+    $documentPayload = validHandoverTrackingPayload($sale, [
+        'bpkb',
+        'invoice',
     ]);
+    $documentPayload['recipient_name'] = 'Andi Petugas Leasing';
+    $documentPayload['recipient_phone'] = '081298765432';
+    $documentPayload['recipient_id_card'] = null;
+    $documentPayload['recipient_relation'] = 'leasing_officer';
 
-    $response->assertSessionHasNoErrors();
+    $this->post(
+        route('handovers.store'),
+        $documentPayload,
+    )->assertSessionHasNoErrors();
 
-    $handover = VehicleHandover::query()->whereBelongsTo($sale)->firstOrFail();
+    $handover = VehicleHandover::query()
+        ->with(['events.items', 'events.photos'])
+        ->whereBelongsTo($sale)
+        ->firstOrFail();
 
-    expect($handover->status)->toBe('completed');
+    expect($handover->status)->toBe('completed')
+        ->and($handover->events)->toHaveCount(2)
+        ->and($handover->events->pluck('recipient_name')->all())
+        ->toBe(['Budi Santoso', 'Andi Petugas Leasing'])
+        ->and($handover->hasDeliveredItem('vehicle'))->toBeTrue()
+        ->and($handover->hasDeliveredItem('bpkb'))->toBeTrue();
 
     $this->get(route('sales.bast.print', $sale))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('sales/bast-print')
-            ->where('handover.id', $handover->id));
+            ->where('handover.id', $handover->id)
+            ->has('handover.events', 2));
 });
 
-test('BAST cannot be opened before a vehicle delivery is recorded', function () {
+test('an item that has already been handed over cannot be recorded twice', function () {
+    $sale = createSaleForHandover(8_000_000);
+
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale),
+    )->assertSessionHasNoErrors();
+
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale, ['stnk']),
+    )->assertSessionHasErrors('items');
+
+    expect(
+        VehicleHandover::query()
+            ->whereBelongsTo($sale)
+            ->firstOrFail()
+            ->events()
+            ->count(),
+    )->toBe(1);
+});
+
+test('BAST cannot be opened before a vehicle delivery event exists', function () {
     $sale = createSaleForHandover(8_000_000);
 
     $this->get(route('sales.bast.print', $sale))->assertNotFound();
 });
 
-test('proof of handover is stored privately and can be downloaded', function () {
-    Storage::fake('local');
+test('multiple handover photos are stored privately and can be downloaded', function () {
     $sale = createSaleForHandover(8_000_000);
 
-    $response = $this->post(route('handovers.store'), [
-        ...validHandoverPayload($sale),
-        'vehicle_delivered_at' => now()->format('Y-m-d H:i:s'),
-        'proof_file' => UploadedFile::fake()->create(
-            'bukti-serah-terima.pdf',
-            100,
-            'application/pdf',
-        ),
-    ]);
+    $this->post(route('handovers.store'), validHandoverTrackingPayload(
+        $sale,
+        ['vehicle', 'stnk'],
+        [
+            UploadedFile::fake()->image('depan.jpg'),
+            UploadedFile::fake()->image('penerima.png'),
+        ],
+    ))->assertSessionHasNoErrors();
 
-    $response->assertSessionHasNoErrors();
+    $photos = VehicleHandoverPhoto::query()->orderBy('id')->get();
 
-    $handover = VehicleHandover::query()->whereBelongsTo($sale)->firstOrFail();
+    expect($photos)->toHaveCount(2);
 
-    expect($handover->proof_file)->not->toBeNull();
-    Storage::disk('local')->assertExists($handover->proof_file);
-
-    $this->get(route('handovers.proof.download', $handover))->assertOk();
+    foreach ($photos as $photo) {
+        Storage::disk('local')->assertExists($photo->file_path);
+        $this->get(route('handover-photos.download', $photo))->assertOk();
+    }
 });

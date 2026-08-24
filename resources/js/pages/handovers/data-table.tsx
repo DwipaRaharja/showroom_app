@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/table';
 import {
     createHandoverColumns,
+    createHandoverRecords,
     handoverColumnLabels,
     handoverStatusOptions,
     handoverTableFeatures,
@@ -58,7 +59,7 @@ type Props = {
 
 const initialSorting: SortingState = [{ id: 'number', desc: true }];
 const initialPagination: PaginationState = { pageIndex: 0, pageSize: 10 };
-const initialColumnVisibility: ColumnVisibilityState = {};
+const initialColumnVisibility: ColumnVisibilityState = { event_type: false };
 
 export function HandoverDataTable({ sales, onManageHandover }: Props) {
     const [globalFilter, setGlobalFilter] = useState('');
@@ -73,14 +74,17 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
         () => createHandoverColumns(onManageHandover),
         [onManageHandover],
     );
+    const records = useMemo(() => createHandoverRecords(sales), [sales]);
 
     const table = useTable({
         features: handoverTableFeatures,
-        data: sales,
+        data: records,
         columns,
         getRowId: (row) => String(row.id),
         getColumnCanGlobalFilter: (column) =>
-            ['transaction', 'customer'].includes(column.id),
+            ['transaction', 'items', 'recipient', 'officer'].includes(
+                column.id,
+            ),
         globalFilterFn: 'includesString',
         enableSortingRemoval: false,
         state: {
@@ -104,9 +108,8 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
         },
     });
 
-    const statusFilter = table
-        .getColumn('handover_status')
-        ?.getFilterValue() as HandoverFilterStatus | undefined;
+    const statusFilter = table.getColumn('event_type')?.getFilterValue() as
+        HandoverFilterStatus | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
     const selectedCount = table.getSelectedRowIds().length;
     const { pageIndex, pageSize } = pagination;
@@ -126,10 +129,10 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
             <CardHeader className="gap-4 border-b px-4 py-5 sm:px-6">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <CardTitle>Data Penyerahan Unit</CardTitle>
+                        <CardTitle>Riwayat Penyerahan</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            {filteredCount} dari {sales.length} transaksi
-                            penjualan ditampilkan
+                            {filteredCount} dari {records.length} kejadian
+                            penyerahan ditampilkan
                         </p>
                     </div>
 
@@ -149,7 +152,7 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                                 table.setGlobalFilter(event.target.value);
                                 table.setPageIndex(0);
                             }}
-                            placeholder="Cari invoice, BAST, unit, atau customer..."
+                            placeholder="Cari invoice, unit, penerima, barang, atau petugas..."
                             className="pl-9"
                             aria-label="Cari penyerahan unit"
                         />
@@ -160,7 +163,7 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                             value={statusFilter ?? 'all'}
                             onValueChange={(value) => {
                                 table
-                                    .getColumn('handover_status')
+                                    .getColumn('event_type')
                                     ?.setFilterValue(
                                         value === 'all' ? undefined : value,
                                     );
@@ -168,11 +171,11 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                             }}
                         >
                             <SelectTrigger className="w-52">
-                                <SelectValue placeholder="Semua progres" />
+                                <SelectValue placeholder="Semua jenis" />
                             </SelectTrigger>
                             <SelectContent align="end">
                                 <SelectItem value="all">
-                                    Semua progres
+                                    Semua jenis penyerahan
                                 </SelectItem>
                                 {handoverStatusOptions.map((option) => (
                                     <SelectItem
@@ -273,12 +276,12 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                                     >
                                         <div className="space-y-1">
                                             <p className="font-medium">
-                                                Data penyerahan unit tidak
+                                                Riwayat penyerahan tidak
                                                 ditemukan
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                Ubah kata pencarian atau filter
-                                                yang digunakan.
+                                                Tambahkan penyerahan baru atau
+                                                ubah pencarian dan filter.
                                             </p>
                                         </div>
                                     </TableCell>

@@ -125,7 +125,7 @@ return new class extends Migration
         DB::table('vehicle_handovers')
             ->orderBy('id')
             ->get()
-            ->each(function (object $handover): void {
+            ->each(function (stdClass $handover): void {
                 $checklist = $this->decodeJson($handover->checklist);
                 $vehicleEventId = null;
                 $bpkbEventId = null;
@@ -181,7 +181,7 @@ return new class extends Migration
 
     /** @param array<string, mixed>|null $vehicleCondition */
     private function insertEvent(
-        object $handover,
+        stdClass $handover,
         string $eventType,
         mixed $occurredAt,
         ?array $vehicleCondition,
@@ -261,19 +261,19 @@ return new class extends Migration
         DB::table('vehicle_handovers')
             ->orderBy('id')
             ->get()
-            ->each(function (object $handover): void {
+            ->each(function (stdClass $handover): void {
                 $events = DB::table('vehicle_handover_events')
                     ->where('vehicle_handover_id', $handover->id)
                     ->orderBy('occurred_at')
                     ->get();
                 $vehicleEvent = $events->first(
-                    fn (object $event): bool => DB::table('vehicle_handover_items')
+                    fn (stdClass $event): bool => DB::table('vehicle_handover_items')
                         ->where('vehicle_handover_event_id', $event->id)
                         ->where('item_code', 'vehicle')
                         ->exists(),
                 );
                 $bpkbEvent = $events->first(
-                    fn (object $event): bool => DB::table('vehicle_handover_items')
+                    fn (stdClass $event): bool => DB::table('vehicle_handover_items')
                         ->where('vehicle_handover_event_id', $event->id)
                         ->where('item_code', 'bpkb')
                         ->exists(),
@@ -292,6 +292,7 @@ return new class extends Migration
                         ->get()
                         ->keyBy('item_code');
                 $condition = $this->decodeJson($vehicleEvent?->vehicle_condition);
+                $keyItem = $vehicleItems->get('keys');
                 $proof = DB::table('vehicle_handover_photos')
                     ->whereIn('vehicle_handover_event_id', $events->pluck('id'))
                     ->orderBy('id')
@@ -313,7 +314,9 @@ return new class extends Migration
                             ? 'finance_company'
                             : ($bpkbEvent === null ? null : 'customer'),
                         'checklist' => json_encode([
-                            'key_count' => (int) ($vehicleItems->get('keys')?->quantity ?? 0),
+                            'key_count' => $keyItem instanceof stdClass
+                                ? (int) $keyItem->quantity
+                                : 0,
                             'has_stnk' => $vehicleItems->has('stnk'),
                             'has_bpkb' => $bpkbEvent !== null,
                             'has_faktur' => $bpkbEvent !== null

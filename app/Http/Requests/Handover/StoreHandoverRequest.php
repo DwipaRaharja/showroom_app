@@ -10,12 +10,43 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use Throwable;
 
 class StoreHandoverRequest extends FormRequest
 {
+    private const LOCAL_TIMEZONE = 'Asia/Makassar';
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $occurredAt = $this->input('occurred_at');
+
+        if (
+            ! is_string($occurredAt)
+            || preg_match(
+                '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/D',
+                $occurredAt,
+            ) !== 1
+        ) {
+            return;
+        }
+
+        try {
+            $normalizedTime = Carbon::parse(
+                $occurredAt,
+                self::LOCAL_TIMEZONE,
+            )->utc();
+        } catch (Throwable) {
+            return;
+        }
+
+        $this->merge([
+            'occurred_at' => $normalizedTime->format('Y-m-d H:i:s'),
+        ]);
     }
 
     /** @return array<string, array<mixed>> */

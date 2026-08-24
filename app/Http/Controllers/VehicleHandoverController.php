@@ -62,6 +62,25 @@ class VehicleHandoverController extends Controller
         ]);
     }
 
+    /**
+     * Display the tracking detail page for a specific sale's handover.
+     */
+    public function show(Sale $sale): Response
+    {
+        $sale->load([
+            'car' => fn ($query) => $query->with('brand:id,name'),
+            'customer',
+            'financeCompany',
+            'payments',
+            'handover.events.items',
+            'handover.events.photos',
+        ]);
+
+        return Inertia::render('handovers/show', [
+            'sale' => $sale,
+        ]);
+    }
+
     public function store(StoreHandoverRequest $request): RedirectResponse
     {
         $validated = $request->validated();

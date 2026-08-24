@@ -163,8 +163,8 @@ export function CustomerDataTable({ data }: Props) {
                                 </p>
                             )}
                             <Button onClick={() => setIsCreateOpen(true)}>
-                                <PlusIcon />
-                                Tambah customer
+                                <PlusIcon className="size-4" />
+                                Tambah Customer
                             </Button>
                         </div>
                     </div>

@@ -1,4 +1,5 @@
 import {
+    BankIcon,
     CaretDoubleLeftIcon,
     CaretDoubleRightIcon,
     CaretLeftIcon,
@@ -13,7 +14,6 @@ import type {
     ColumnFiltersState,
     ColumnVisibilityState,
     PaginationState,
-    RowSelectionState,
     SortingState,
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
@@ -57,24 +57,32 @@ type Props = {
     data: FinanceCompany[];
 };
 
-const initialSorting: SortingState = [{ id: 'name', desc: false }];
+const initialSorting: SortingState = [{ id: 'company', desc: false }];
 const initialPagination: PaginationState = {
     pageIndex: 0,
     pageSize: 10,
 };
-const initialColumnVisibility: ColumnVisibilityState = {};
+const initialColumnVisibility: ColumnVisibilityState = {
+    created_at: false,
+};
 
 export function FinanceCompanyDataTable({ data }: Props) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [editingCompany, setEditingCompany] = useState<FinanceCompany | null>(null);
-    const [statusCompany, setStatusCompany] = useState<FinanceCompany | null>(null);
-    const [deleteCompany, setDeleteCompany] = useState<FinanceCompany | null>(null);
+    const [editingCompany, setEditingCompany] = useState<FinanceCompany | null>(
+        null,
+    );
+    const [statusCompany, setStatusCompany] = useState<FinanceCompany | null>(
+        null,
+    );
+    const [deleteCompany, setDeleteCompany] = useState<FinanceCompany | null>(
+        null,
+    );
 
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
-    const [pagination, setPagination] = useState<PaginationState>(initialPagination);
-    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+    const [pagination, setPagination] =
+        useState<PaginationState>(initialPagination);
     const [columnVisibility, setColumnVisibility] =
         useState<ColumnVisibilityState>(initialColumnVisibility);
 
@@ -94,7 +102,7 @@ export function FinanceCompanyDataTable({ data }: Props) {
         columns,
         getRowId: (row) => String(row.id),
         getColumnCanGlobalFilter: (column) =>
-            ['name', 'code', 'pic_name', 'pic_phone', 'notes'].includes(column.id),
+            ['company', 'contact', 'notes'].includes(column.id),
         globalFilterFn: 'includesString',
         enableSortingRemoval: false,
         state: {
@@ -102,14 +110,12 @@ export function FinanceCompanyDataTable({ data }: Props) {
             columnFilters,
             sorting,
             pagination,
-            rowSelection,
             columnVisibility,
         },
         onGlobalFilterChange: setGlobalFilter,
         onColumnFiltersChange: setColumnFilters,
         onSortingChange: setSorting,
         onPaginationChange: setPagination,
-        onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
         initialState: {
             sorting: initialSorting,
@@ -119,8 +125,7 @@ export function FinanceCompanyDataTable({ data }: Props) {
     });
 
     const statusFilter = table.getColumn('is_active')?.getFilterValue() as
-        | boolean
-        | undefined;
+        boolean | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
     const { pageIndex, pageSize } = pagination;
     const pageCount = Math.max(table.getPageCount(), 1);
@@ -141,13 +146,14 @@ export function FinanceCompanyDataTable({ data }: Props) {
                     <div>
                         <CardTitle>Daftar Perusahaan Leasing</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            {filteredCount} dari {data.length} rekanan ditampilkan
+                            {filteredCount} dari {data.length} rekanan
+                            ditampilkan
                         </p>
                     </div>
 
                     <Button onClick={() => setIsCreateOpen(true)}>
-                        <PlusIcon className="mr-1.5 size-4" />
-                        Tambah Rekanan
+                        <PlusIcon className="size-4" />
+                        Tambah Leasing
                     </Button>
                 </div>
 
@@ -156,9 +162,10 @@ export function FinanceCompanyDataTable({ data }: Props) {
                         <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={globalFilter}
-                            onChange={(event) =>
-                                table.setGlobalFilter(event.target.value)
-                            }
+                            onChange={(event) => {
+                                table.setGlobalFilter(event.target.value);
+                                table.setPageIndex(0);
+                            }}
                             placeholder="Cari nama, kode, PIC, atau no HP..."
                             className="pl-9"
                             aria-label="Cari perusahaan leasing"
@@ -174,23 +181,28 @@ export function FinanceCompanyDataTable({ data }: Props) {
                                       ? 'active'
                                       : 'inactive'
                             }
-                            onValueChange={(value) =>
+                            onValueChange={(value) => {
                                 table
                                     .getColumn('is_active')
                                     ?.setFilterValue(
                                         value === 'all'
                                             ? undefined
                                             : value === 'active',
-                                    )
-                            }
+                                    );
+                                table.setPageIndex(0);
+                            }}
                         >
                             <SelectTrigger className="w-40">
                                 <SelectValue placeholder="Semua status" />
                             </SelectTrigger>
                             <SelectContent align="end">
-                                <SelectItem value="all">Semua status</SelectItem>
+                                <SelectItem value="all">
+                                    Semua status
+                                </SelectItem>
                                 <SelectItem value="active">Aktif</SelectItem>
-                                <SelectItem value="inactive">Tidak aktif</SelectItem>
+                                <SelectItem value="inactive">
+                                    Tidak aktif
+                                </SelectItem>
                             </SelectContent>
                         </Select>
 
@@ -202,7 +214,9 @@ export function FinanceCompanyDataTable({ data }: Props) {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuLabel>Pilih kolom</DropdownMenuLabel>
+                                <DropdownMenuLabel>
+                                    Pilih kolom
+                                </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {table
                                     .getAllLeafColumns()
@@ -212,10 +226,14 @@ export function FinanceCompanyDataTable({ data }: Props) {
                                             key={column.id}
                                             checked={column.getIsVisible()}
                                             onCheckedChange={(value) =>
-                                                column.toggleVisibility(Boolean(value))
+                                                column.toggleVisibility(
+                                                    Boolean(value),
+                                                )
                                             }
                                         >
-                                            {financeCompanyColumnLabels[column.id] ?? column.id}
+                                            {financeCompanyColumnLabels[
+                                                column.id
+                                            ] ?? column.id}
                                         </DropdownMenuCheckboxItem>
                                     ))}
                             </DropdownMenuContent>
@@ -233,14 +251,19 @@ export function FinanceCompanyDataTable({ data }: Props) {
 
             <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                    <Table className="min-w-200">
+                    <Table className="min-w-250">
                         <TableHeader className="bg-muted/40">
                             {table.getHeaderGroups().map((group) => (
                                 <TableRow key={group.id}>
                                     {group.headers.map((header) => (
-                                        <TableHead key={header.id} className="text-xs font-bold">
+                                        <TableHead
+                                            key={header.id}
+                                            className="text-xs font-semibold whitespace-nowrap"
+                                        >
                                             {header.isPlaceholder ? null : (
-                                                <table.FlexRender header={header} />
+                                                <table.FlexRender
+                                                    header={header}
+                                                />
                                             )}
                                         </TableHead>
                                     ))}
@@ -252,10 +275,13 @@ export function FinanceCompanyDataTable({ data }: Props) {
                                 table.getRowModel().rows.map((row) => (
                                     <TableRow
                                         key={row.id}
-                                        data-state={row.getIsSelected() ? 'selected' : undefined}
+                                        className="transition-colors hover:bg-muted/30"
                                     >
                                         {row.getVisibleCells().map((cell) => (
-                                            <TableCell key={cell.id} className="py-3">
+                                            <TableCell
+                                                key={cell.id}
+                                                className="py-3.5 align-middle"
+                                            >
                                                 <table.FlexRender cell={cell} />
                                             </TableCell>
                                         ))}
@@ -264,15 +290,26 @@ export function FinanceCompanyDataTable({ data }: Props) {
                             ) : (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={table.getVisibleLeafColumns().length}
+                                        colSpan={
+                                            table.getVisibleLeafColumns().length
+                                        }
                                         className="h-32 text-center"
                                     >
-                                        <p className="font-medium text-sm">
-                                            Perusahaan leasing tidak ditemukan
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Coba ubah kata kunci pencarian atau tambah rekanan baru.
-                                        </p>
+                                        <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
+                                            <div className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                                <BankIcon className="size-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium">
+                                                    Perusahaan leasing tidak
+                                                    ditemukan
+                                                </p>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    Ubah kata kunci atau filter,
+                                                    atau tambahkan rekanan baru.
+                                                </p>
+                                            </div>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -282,21 +319,27 @@ export function FinanceCompanyDataTable({ data }: Props) {
 
                 <div className="flex flex-col gap-3 border-t px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
                     <p className="text-xs text-muted-foreground">
-                        Menampilkan {firstRow}–{lastRow} dari {filteredCount} data
+                        Menampilkan {firstRow}–{lastRow} dari {filteredCount}{' '}
+                        data
                     </p>
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-2">
                             <span className="text-xs">Baris per halaman</span>
                             <Select
                                 value={String(pageSize)}
-                                onValueChange={(value) => table.setPageSize(Number(value))}
+                                onValueChange={(value) =>
+                                    table.setPageSize(Number(value))
+                                }
                             >
                                 <SelectTrigger size="sm" className="w-18">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent align="end" className="min-w-18">
                                     {[10, 20, 50].map((size) => (
-                                        <SelectItem key={size} value={String(size)}>
+                                        <SelectItem
+                                            key={size}
+                                            value={String(size)}
+                                        >
                                             {size}
                                         </SelectItem>
                                     ))}
@@ -366,14 +409,18 @@ export function FinanceCompanyDataTable({ data }: Props) {
             <FinanceCompanyStatusDialog
                 company={statusCompany}
                 onOpenChange={(open) => {
-                    if (!open) setStatusCompany(null);
+                    if (!open) {
+                        setStatusCompany(null);
+                    }
                 }}
             />
 
             <FinanceCompanyDeleteDialog
                 company={deleteCompany}
                 onOpenChange={(open) => {
-                    if (!open) setDeleteCompany(null);
+                    if (!open) {
+                        setDeleteCompany(null);
+                    }
                 }}
             />
         </Card>

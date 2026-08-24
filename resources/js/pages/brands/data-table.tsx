@@ -153,8 +153,8 @@ export function BrandDataTable({ data }: Props) {
                                 </p>
                             )}
                             <Button onClick={() => setIsCreateOpen(true)}>
-                                <PlusIcon />
-                                Tambah merek
+                                <PlusIcon className="size-4" />
+                                Tambah Merek
                             </Button>
                         </div>
                     </div>

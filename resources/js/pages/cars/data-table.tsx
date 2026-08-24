@@ -164,8 +164,8 @@ export function CarDataTable({ data }: Props) {
                             )}
                             <Button asChild>
                                 <Link href={CarController.create()}>
-                                    <PlusIcon />
-                                    Tambah unit mobil
+                                    <PlusIcon className="size-4" />
+                                    Tambah Mobil
                                 </Link>
                             </Button>
                         </div>

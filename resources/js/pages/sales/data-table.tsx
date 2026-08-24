@@ -209,8 +209,8 @@ export function SaleDataTable({ data, summary }: Props) {
                             )}
                             <Button asChild>
                                 <Link href={salesCreate.url()}>
-                                    <PlusIcon />
-                                    Buat Penjualan Baru
+                                    <PlusIcon className="size-4" />
+                                    Tambah Penjualan
                                 </Link>
                             </Button>
                         </div>

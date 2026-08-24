@@ -32,7 +32,8 @@ export default function FinanceCompaniesIndex({
                         Perusahaan Leasing
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Kelola data rekanan perusahaan pembiayaan (leasing) dan kontak PIC untuk transaksi penjualan kredit.
+                        Kelola data rekanan perusahaan pembiayaan (leasing) dan
+                        kontak PIC untuk transaksi penjualan kredit.
                     </p>
                 </div>
 

@@ -1,4 +1,10 @@
 import {
+    BankIcon,
+    CaretDownIcon,
+    CaretUpDownIcon,
+    CaretUpIcon,
+    CheckCircleIcon,
+    CopyIcon,
     DotsThreeVerticalIcon,
     PencilSimpleIcon,
     PowerIcon,
@@ -16,11 +22,11 @@ import {
     filterFn_includesString,
     globalFilteringFeature,
     rowPaginationFeature,
-    rowSelectionFeature,
     rowSortingFeature,
     sortFn_text,
     tableFeatures,
 } from '@tanstack/react-table';
+import { toast } from 'sonner';
 import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -49,7 +55,6 @@ export const financeCompanyTableFeatures = tableFeatures({
     },
     rowPaginationFeature,
     paginatedRowModel: createPaginatedRowModel(),
-    rowSelectionFeature,
     columnVisibilityFeature,
 });
 
@@ -58,168 +63,355 @@ const columnHelper = createColumnHelper<
     FinanceCompany
 >();
 
-export const financeCompanyColumnLabels: Record<string, string> = {
-    name: 'Nama Perusahaan',
-    contact: 'Kontak PIC / Marketing',
-    notes: 'Catatan Kerjasama',
-    sales_count: 'Penjualan Didanai',
-    is_active: 'Status Rekanan',
-    actions: 'Aksi',
+const dateFormatter = new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+});
+
+function SortableHeader({
+    label,
+    isSorted,
+    onToggle,
+}: {
+    label: string;
+    isSorted: false | 'asc' | 'desc';
+    onToggle: ((event: unknown) => void) | undefined;
+}) {
+    return (
+        <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3 h-8"
+            onClick={onToggle}
+            aria-label={`Urutkan berdasarkan ${label}`}
+            aria-sort={
+                isSorted === 'asc'
+                    ? 'ascending'
+                    : isSorted === 'desc'
+                      ? 'descending'
+                      : 'none'
+            }
+        >
+            {label}
+            {isSorted === 'asc' ? (
+                <CaretUpIcon className="size-4" />
+            ) : isSorted === 'desc' ? (
+                <CaretDownIcon className="size-4" />
+            ) : (
+                <CaretUpDownIcon className="size-4 opacity-60" />
+            )}
+        </Button>
+    );
+}
+
+function whatsappUrl(phone: string | null): string | null {
+    const normalized = phone?.replace(/\D/g, '') ?? '';
+
+    if (!normalized) {
+        return null;
+    }
+
+    return `https://wa.me/${
+        normalized.startsWith('0') ? `62${normalized.slice(1)}` : normalized
+    }`;
+}
+
+async function copyText(value: string, label: string) {
+    try {
+        await navigator.clipboard.writeText(value);
+        toast.success(`${label} berhasil disalin.`);
+    } catch {
+        toast.error(`${label} gagal disalin.`);
+    }
+}
+
+type FinanceCompanyColumnActions = {
+    onEdit: (company: FinanceCompany) => void;
+    onToggleStatus: (company: FinanceCompany) => void;
+    onDelete: (company: FinanceCompany) => void;
 };
 
 export function createFinanceCompanyColumns({
     onEdit,
     onToggleStatus,
     onDelete,
-}: {
-    onEdit: (company: FinanceCompany) => void;
-    onToggleStatus: (company: FinanceCompany) => void;
-    onDelete: (company: FinanceCompany) => void;
-}) {
+}: FinanceCompanyColumnActions) {
     return columnHelper.columns([
-        columnHelper.accessor('name', {
-            id: 'name',
-            header: 'Nama Perusahaan & Kode',
-            cell: ({ row }) => {
-                const company = row.original;
-
-                return (
-                    <div className="flex items-center gap-2">
-                        <div className="space-y-0.5">
-                            <div className="font-semibold text-foreground text-sm">
-                                {company.name}
-                            </div>
-                            {company.code && (
-                                <Badge variant="outline" className="font-mono text-[10px] tracking-wider uppercase">
-                                    {company.code}
-                                </Badge>
-                            )}
-                        </div>
-                    </div>
-                );
-            },
-        }),
-
         columnHelper.display({
-            id: 'contact',
-            header: 'Kontak PIC / Marketing',
+            id: 'number',
+            header: 'No.',
+            enableHiding: false,
+            enableSorting: false,
             cell: ({ row }) => {
-                const company = row.original;
-                const phoneClean = company.pic_phone?.replace(/\D/g, '') ?? '';
-                const waUrl = phoneClean
-                    ? `https://wa.me/${phoneClean.startsWith('0') ? '62' + phoneClean.slice(1) : phoneClean}`
-                    : null;
-
-                if (!company.pic_name && !company.pic_phone) {
-                    return <span className="text-muted-foreground text-xs">—</span>;
-                }
+                const index = row.getDisplayIndex();
 
                 return (
-                    <div className="space-y-0.5 text-xs">
-                        {company.pic_name && (
-                            <div className="font-medium text-foreground">
-                                {company.pic_name}
-                            </div>
-                        )}
-                        {company.pic_phone && (
-                            <div className="flex items-center gap-1.5 font-mono text-muted-foreground">
-                                <span>{company.pic_phone}</span>
-                                {waUrl && (
-                                    <a
-                                        href={waUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
-                                        title="Hubungi via WhatsApp"
-                                    >
-                                        <WhatsappLogoIcon className="size-3.5" weight="fill" />
-                                    </a>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                );
-            },
-        }),
-
-        columnHelper.accessor('notes', {
-            id: 'notes',
-            header: 'Catatan Kerjasama',
-            cell: ({ row }) => {
-                const notes = row.original.notes;
-
-                if (!notes) {
-                    return <span className="text-muted-foreground text-xs italic">Tidak ada catatan</span>;
-                }
-
-                return (
-                    <p className="max-w-xs truncate text-xs text-muted-foreground" title={notes}>
-                        {notes}
-                    </p>
-                );
-            },
-        }),
-
-        columnHelper.accessor('sales_count', {
-            id: 'sales_count',
-            header: 'Penjualan Didanai',
-            cell: ({ row }) => {
-                const count = row.original.sales_count ?? 0;
-
-                return (
-                    <span className="font-semibold text-xs text-foreground">
-                        {count} Transaksi
+                    <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                        {index === -1 ? '—' : index + 1}
                     </span>
                 );
             },
         }),
-
-        columnHelper.accessor('is_active', {
-            id: 'is_active',
-            header: 'Status Rekanan',
-            cell: ({ row }) => {
-                const isActive = row.original.is_active;
-
-                return <StatusBadge status={isActive} />;
+        columnHelper.accessor(
+            (company) => `${company.name} ${company.code ?? ''}`.trim(),
+            {
+                id: 'company',
+                header: ({ column }) => (
+                    <SortableHeader
+                        label="Perusahaan leasing"
+                        isSorted={column.getIsSorted()}
+                        onToggle={column.getToggleSortingHandler()}
+                    />
+                ),
+                cell: ({ row }) => (
+                    <div className="flex min-w-52 items-center gap-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <BankIcon className="size-5" weight="fill" />
+                        </div>
+                        <div className="min-w-0 space-y-1">
+                            <div className="truncate text-sm font-semibold text-foreground">
+                                {row.original.name}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                {row.original.code ? (
+                                    <Badge
+                                        variant="outline"
+                                        className="font-mono text-[10px] tracking-wider uppercase"
+                                    >
+                                        {row.original.code}
+                                    </Badge>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">
+                                        Tanpa kode
+                                    </span>
+                                )}
+                                <span className="text-[11px] text-muted-foreground">
+                                    ID #{row.original.id}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                ),
+                filterFn: 'includesString',
+                sortFn: 'text',
             },
-        }),
+        ),
+        columnHelper.accessor(
+            (company) =>
+                `${company.pic_name ?? ''} ${company.pic_phone ?? ''}`.trim(),
+            {
+                id: 'contact',
+                header: ({ column }) => (
+                    <SortableHeader
+                        label="PIC / Marketing"
+                        isSorted={column.getIsSorted()}
+                        onToggle={column.getToggleSortingHandler()}
+                    />
+                ),
+                cell: ({ row }) => {
+                    const company = row.original;
+                    const waUrl = whatsappUrl(company.pic_phone);
 
+                    if (!company.pic_name && !company.pic_phone) {
+                        return (
+                            <span className="text-xs text-muted-foreground">
+                                Belum ada kontak
+                            </span>
+                        );
+                    }
+
+                    return (
+                        <div className="min-w-40 space-y-0.5">
+                            <div className="text-sm font-medium text-foreground">
+                                {company.pic_name ?? 'PIC belum dicatat'}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <span className="font-mono">
+                                    {company.pic_phone ?? 'Nomor belum dicatat'}
+                                </span>
+                                {waUrl && (
+                                    <a
+                                        href={waUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="rounded p-0.5 text-emerald-600 transition-colors hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-500"
+                                        aria-label={`Hubungi ${company.pic_name ?? company.name} melalui WhatsApp`}
+                                    >
+                                        <WhatsappLogoIcon
+                                            className="size-4"
+                                            weight="fill"
+                                        />
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    );
+                },
+                filterFn: 'includesString',
+                sortFn: 'text',
+            },
+        ),
+        columnHelper.accessor('notes', {
+            header: 'Catatan kerja sama',
+            cell: ({ getValue }) => {
+                const notes = getValue();
+
+                return notes ? (
+                    <p
+                        className="line-clamp-2 max-w-64 text-xs leading-relaxed text-muted-foreground"
+                        title={notes}
+                    >
+                        {notes}
+                    </p>
+                ) : (
+                    <span className="text-xs text-muted-foreground">
+                        Belum ada catatan
+                    </span>
+                );
+            },
+            filterFn: 'includesString',
+            enableSorting: false,
+        }),
+        columnHelper.accessor('sales_count', {
+            header: ({ column }) => (
+                <SortableHeader
+                    label="Transaksi"
+                    isSorted={column.getIsSorted()}
+                    onToggle={column.getToggleSortingHandler()}
+                />
+            ),
+            cell: ({ getValue }) => {
+                const count = getValue() ?? 0;
+
+                return (
+                    <div className="min-w-24">
+                        <div className="text-sm font-semibold tabular-nums">
+                            {count}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            penjualan kredit
+                        </div>
+                    </div>
+                );
+            },
+            sortFn: (rowA, rowB) =>
+                (rowA.original.sales_count ?? 0) -
+                (rowB.original.sales_count ?? 0),
+        }),
+        columnHelper.accessor('is_active', {
+            header: ({ column }) => (
+                <SortableHeader
+                    label="Status"
+                    isSorted={column.getIsSorted()}
+                    onToggle={column.getToggleSortingHandler()}
+                />
+            ),
+            cell: ({ getValue }) => <StatusBadge status={getValue()} />,
+            filterFn: 'equals',
+        }),
+        columnHelper.accessor('created_at', {
+            header: ({ column }) => (
+                <SortableHeader
+                    label="Ditambahkan"
+                    isSorted={column.getIsSorted()}
+                    onToggle={column.getToggleSortingHandler()}
+                />
+            ),
+            cell: ({ getValue }) => {
+                const value = getValue();
+
+                return value ? (
+                    <span className="text-xs whitespace-nowrap text-muted-foreground">
+                        {dateFormatter.format(new Date(value))}
+                    </span>
+                ) : (
+                    '—'
+                );
+            },
+            sortFn: 'text',
+        }),
         columnHelper.display({
             id: 'actions',
             header: () => <span className="sr-only">Aksi</span>,
+            enableHiding: false,
+            enableSorting: false,
             cell: ({ row }) => {
                 const company = row.original;
 
                 return (
-                    <div className="text-right">
+                    <div className="flex justify-end">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     className="size-8"
-                                    aria-label="Aksi perusahaan leasing"
+                                    aria-label={`Buka aksi untuk ${company.name}`}
                                 >
                                     <DotsThreeVerticalIcon className="size-4" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => onEdit(company)}>
-                                    <PencilSimpleIcon className="mr-2 size-4" />
-                                    Edit Informasi
+                            <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuLabel>
+                                    Aksi leasing
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onSelect={() =>
+                                        void copyText(
+                                            company.name,
+                                            'Nama perusahaan',
+                                        )
+                                    }
+                                >
+                                    <CopyIcon />
+                                    Salin nama perusahaan
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onToggleStatus(company)}>
-                                    <PowerIcon className="mr-2 size-4" />
-                                    {company.is_active ? 'Nonaktifkan' : 'Aktifkan Kembali'}
+                                {company.pic_phone && (
+                                    <DropdownMenuItem
+                                        onSelect={() =>
+                                            void copyText(
+                                                company.pic_phone ?? '',
+                                                'Nomor PIC',
+                                            )
+                                        }
+                                    >
+                                        <CopyIcon />
+                                        Salin nomor PIC
+                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onSelect={() => onEdit(company)}
+                                >
+                                    <PencilSimpleIcon />
+                                    Edit informasi
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    className={
+                                        company.is_active
+                                            ? 'text-amber-600 focus:text-amber-600 dark:text-amber-500 dark:focus:text-amber-500'
+                                            : 'text-emerald-600 focus:text-emerald-600 dark:text-emerald-500 dark:focus:text-emerald-500'
+                                    }
+                                    onSelect={() => onToggleStatus(company)}
+                                >
+                                    {company.is_active ? (
+                                        <PowerIcon />
+                                    ) : (
+                                        <CheckCircleIcon />
+                                    )}
+                                    {company.is_active
+                                        ? 'Nonaktifkan rekanan'
+                                        : 'Aktifkan rekanan'}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                    onClick={() => onDelete(company)}
-                                    className="text-red-600 focus:text-red-600 dark:text-red-400"
+                                    onSelect={() => onDelete(company)}
+                                    className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
                                 >
-                                    <TrashIcon className="mr-2 size-4" />
-                                    Hapus
+                                    <TrashIcon />
+                                    Hapus leasing
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -229,3 +421,12 @@ export function createFinanceCompanyColumns({
         }),
     ]);
 }
+
+export const financeCompanyColumnLabels: Record<string, string> = {
+    company: 'Perusahaan leasing',
+    contact: 'PIC / Marketing',
+    notes: 'Catatan kerja sama',
+    sales_count: 'Transaksi',
+    is_active: 'Status',
+    created_at: 'Tanggal ditambahkan',
+};
