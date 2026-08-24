@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
+    BankIcon,
     CarProfileIcon,
-    CoinsIcon,
     HandCoinsIcon,
     KeyIcon,
     SquaresFourIcon,
@@ -26,7 +26,7 @@ import { dashboard } from '@/routes';
 import { index as brandsIndex } from '@/routes/brands';
 import { index as carsIndex } from '@/routes/cars';
 import { index as customersIndex } from '@/routes/customers';
-import { index as purchasesIndex } from '@/routes/purchases';
+import { index as financeCompaniesIndex } from '@/routes/finance-companies';
 import { index as salesIndex } from '@/routes/sales';
 import type { NavGroup, NavItem } from '@/types';
 
@@ -48,11 +48,6 @@ const mainNavGroups: NavGroup[] = [
                 title: 'Penjualan',
                 href: salesIndex.url(),
                 icon: HandCoinsIcon,
-            },
-            {
-                title: 'Modal Mobil',
-                href: purchasesIndex.url(),
-                icon: CoinsIcon,
             },
             {
                 title: 'Penyerahan Unit',
@@ -83,6 +78,11 @@ const mainNavGroups: NavGroup[] = [
                 title: 'Customer',
                 href: customersIndex.url(),
                 icon: UsersThreeIcon,
+            },
+            {
+                title: 'Leasing',
+                href: financeCompaniesIndex.url(),
+                icon: BankIcon,
             },
         ],
     },

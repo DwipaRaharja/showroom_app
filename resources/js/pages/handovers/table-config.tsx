@@ -32,6 +32,7 @@ import {
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -125,14 +126,21 @@ function SortableHeader({
             className="-ml-3 h-8"
             onClick={onToggle}
             aria-label={`Urutkan berdasarkan ${label}`}
+            aria-sort={
+                isSorted === 'asc'
+                    ? 'ascending'
+                    : isSorted === 'desc'
+                      ? 'descending'
+                      : 'none'
+            }
         >
             {label}
             {isSorted === 'asc' ? (
-                <CaretUpIcon />
+                <CaretUpIcon className="size-4" />
             ) : isSorted === 'desc' ? (
-                <CaretDownIcon />
+                <CaretDownIcon className="size-4" />
             ) : (
-                <CaretUpDownIcon className="opacity-60" />
+                <CaretUpDownIcon className="size-4 opacity-60" />
             )}
         </Button>
     );
@@ -210,15 +218,59 @@ function ProgressCell({ sale }: { sale: Sale }) {
 
 export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
     return columnHelper.columns([
-        columnHelper.accessor((sale) => sale.id, {
-            id: 'number',
-            header: '#',
+        columnHelper.display({
+            id: 'select',
             enableHiding: false,
-            cell: ({ row }) => (
-                <span className="text-sm text-muted-foreground">
-                    {row.index + 1}
-                </span>
+            enableSorting: false,
+            header: ({ table }) => (
+                <Checkbox
+                    checked={
+                        table.getIsAllPageRowsSelected() ||
+                        (table.getIsSomePageRowsSelected() && 'indeterminate')
+                    }
+                    onCheckedChange={(value) =>
+                        table.toggleAllPageRowsSelected(value === true)
+                    }
+                    aria-label="Pilih semua penyerahan pada halaman ini"
+                />
             ),
+            cell: ({ row }) => (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={(value) =>
+                        row.toggleSelected(value === true)
+                    }
+                    aria-label={`Pilih penyerahan ${row.original.invoice_number}`}
+                />
+            ),
+        }),
+        columnHelper.accessor('created_at', {
+            id: 'number',
+            header: ({ column }) => (
+                <SortableHeader
+                    label="No."
+                    isSorted={column.getIsSorted()}
+                    onToggle={column.getToggleSortingHandler()}
+                />
+            ),
+            enableHiding: false,
+            enableSorting: true,
+            sortDescFirst: true,
+            cell: ({ row }) => {
+                const index = row.getDisplayIndex();
+
+                return index === -1 ? '—' : index + 1;
+            },
+            sortFn: (rowA, rowB) => {
+                const timeA = new Date(rowA.original.created_at).getTime();
+                const timeB = new Date(rowB.original.created_at).getTime();
+
+                if (timeA === timeB) {
+                    return rowA.original.id - rowB.original.id;
+                }
+
+                return timeA - timeB;
+            },
         }),
         columnHelper.accessor(
             (sale) =>
@@ -362,7 +414,7 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
         }),
         columnHelper.display({
             id: 'actions',
-            header: 'Aksi',
+            header: () => <span className="sr-only">Aksi</span>,
             enableHiding: false,
             enableSorting: false,
             cell: ({ row }) => {
@@ -371,40 +423,21 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
                 const isLocked = status === 'locked' && !sale.handover;
 
                 return (
-                    <div className="flex items-center justify-end gap-1">
-                        <Button
-                            variant={sale.handover ? 'outline' : 'default'}
-                            size="sm"
-                            disabled={isLocked}
-                            onClick={() => onManageHandover(sale)}
-                        >
-                            {sale.handover ? (
-                                <PencilSimpleIcon />
-                            ) : isLocked ? (
-                                <LockKeyIcon />
-                            ) : (
-                                <KeyIcon />
-                            )}
-                            {sale.handover
-                                ? 'Perbarui'
-                                : isLocked
-                                  ? 'Terkunci'
-                                  : 'Catat'}
-                        </Button>
-
+                    <div className="flex justify-end">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    aria-label={`Aksi ${sale.invoice_number}`}
+                                    className="size-8"
+                                    aria-label={`Buka aksi untuk penyerahan ${sale.invoice_number}`}
                                 >
-                                    <DotsThreeVerticalIcon />
+                                    <DotsThreeVerticalIcon className="size-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52">
                                 <DropdownMenuLabel>
-                                    Aksi lainnya
+                                    Aksi Penyerahan
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>
@@ -412,6 +445,23 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
                                         <EyeIcon />
                                         Detail penjualan
                                     </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    disabled={isLocked}
+                                    onSelect={() => onManageHandover(sale)}
+                                >
+                                    {sale.handover ? (
+                                        <PencilSimpleIcon />
+                                    ) : isLocked ? (
+                                        <LockKeyIcon />
+                                    ) : (
+                                        <KeyIcon />
+                                    )}
+                                    {sale.handover
+                                        ? 'Perbarui penyerahan'
+                                        : isLocked
+                                          ? 'Menunggu pembayaran'
+                                          : 'Catat penyerahan'}
                                 </DropdownMenuItem>
                                 {sale.handover?.vehicle_delivered_at && (
                                     <DropdownMenuItem asChild>

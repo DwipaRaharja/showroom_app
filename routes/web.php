@@ -3,8 +3,8 @@
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CarController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\FinanceCompanyController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\VehicleDocumentController;
 use App\Http\Controllers\VehicleHandoverController;
@@ -34,6 +34,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'update',
         'destroy',
     ]);
+    Route::patch('finance-companies/{financeCompany}/status', [FinanceCompanyController::class, 'updateStatus'])
+        ->name('finance-companies.status.update');
+    Route::resource('finance-companies', FinanceCompanyController::class)->only([
+        'index',
+        'store',
+        'update',
+        'destroy',
+    ]);
     Route::patch('cars/{car}/status', [CarController::class, 'updateStatus'])
         ->name('cars.status.update');
     Route::resource('cars', CarController::class)->only([
@@ -49,16 +57,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('vehicle-documents.store');
     Route::get('cars/{car}/documents/download', [VehicleDocumentController::class, 'download'])
         ->name('vehicle-documents.download');
-    Route::patch('purchases/{purchase}/status', [PurchaseController::class, 'updateStatus'])
-        ->name('purchases.status.update');
-    Route::resource('purchases', PurchaseController::class)->only([
-        'index',
-        'create',
-        'store',
-        'edit',
-        'update',
-        'destroy',
-    ]);
     Route::resource('sales', SaleController::class)->only([
         'index',
         'create',
@@ -78,6 +76,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('sales.bast.print');
     Route::get('handovers/{handover}/proof', [VehicleHandoverController::class, 'downloadProof'])
         ->name('handovers.proof.download');
+    Route::get('handover-photos/{photo}', [VehicleHandoverController::class, 'downloadPhoto'])
+        ->name('handover-photos.download');
 });
 
 require __DIR__.'/settings.php';

@@ -5,6 +5,7 @@ import {
     CaretRightIcon,
     ColumnsIcon,
     MagnifyingGlassIcon,
+    PlusIcon,
     XIcon,
 } from '@phosphor-icons/react';
 import { useTable } from '@tanstack/react-table';
@@ -42,45 +43,58 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { FinanceCompanyDeleteDialog } from '@/pages/finance-companies/finance-company-delete-dialog';
+import { FinanceCompanyFormDialog } from '@/pages/finance-companies/finance-company-form-dialog';
+import { FinanceCompanyStatusDialog } from '@/pages/finance-companies/finance-company-status-dialog';
 import {
-    createHandoverColumns,
-    handoverColumnLabels,
-    handoverStatusOptions,
-    handoverTableFeatures,
-} from '@/pages/handovers/table-config';
-import type { HandoverFilterStatus } from '@/pages/handovers/table-config';
-import type { Sale } from '@/pages/sales/types';
+    createFinanceCompanyColumns,
+    financeCompanyColumnLabels,
+    financeCompanyTableFeatures,
+} from '@/pages/finance-companies/table-config';
+import type { FinanceCompany } from '@/pages/finance-companies/types';
 
 type Props = {
-    sales: Sale[];
-    onManageHandover: (sale: Sale) => void;
+    data: FinanceCompany[];
 };
 
-const initialSorting: SortingState = [{ id: 'number', desc: true }];
-const initialPagination: PaginationState = { pageIndex: 0, pageSize: 10 };
+const initialSorting: SortingState = [{ id: 'name', desc: false }];
+const initialPagination: PaginationState = {
+    pageIndex: 0,
+    pageSize: 10,
+};
 const initialColumnVisibility: ColumnVisibilityState = {};
 
-export function HandoverDataTable({ sales, onManageHandover }: Props) {
+export function FinanceCompanyDataTable({ data }: Props) {
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [editingCompany, setEditingCompany] = useState<FinanceCompany | null>(null);
+    const [statusCompany, setStatusCompany] = useState<FinanceCompany | null>(null);
+    const [deleteCompany, setDeleteCompany] = useState<FinanceCompany | null>(null);
+
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
-    const [pagination, setPagination] =
-        useState<PaginationState>(initialPagination);
+    const [pagination, setPagination] = useState<PaginationState>(initialPagination);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const [columnVisibility, setColumnVisibility] =
         useState<ColumnVisibilityState>(initialColumnVisibility);
+
     const columns = useMemo(
-        () => createHandoverColumns(onManageHandover),
-        [onManageHandover],
+        () =>
+            createFinanceCompanyColumns({
+                onEdit: setEditingCompany,
+                onToggleStatus: setStatusCompany,
+                onDelete: setDeleteCompany,
+            }),
+        [],
     );
 
     const table = useTable({
-        features: handoverTableFeatures,
-        data: sales,
+        features: financeCompanyTableFeatures,
+        data,
         columns,
         getRowId: (row) => String(row.id),
         getColumnCanGlobalFilter: (column) =>
-            ['transaction', 'customer'].includes(column.id),
+            ['name', 'code', 'pic_name', 'pic_phone', 'notes'].includes(column.id),
         globalFilterFn: 'includesString',
         enableSortingRemoval: false,
         state: {
@@ -104,15 +118,14 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
         },
     });
 
-    const statusFilter = table
-        .getColumn('handover_status')
-        ?.getFilterValue() as HandoverFilterStatus | undefined;
+    const statusFilter = table.getColumn('is_active')?.getFilterValue() as
+        | boolean
+        | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
-    const selectedCount = table.getSelectedRowIds().length;
     const { pageIndex, pageSize } = pagination;
     const pageCount = Math.max(table.getPageCount(), 1);
-    const firstVisibleRow = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
-    const lastVisibleRow = Math.min((pageIndex + 1) * pageSize, filteredCount);
+    const firstRow = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
+    const lastRow = Math.min((pageIndex + 1) * pageSize, filteredCount);
     const hasFilters = globalFilter.length > 0 || statusFilter !== undefined;
 
     function resetFilters() {
@@ -126,76 +139,70 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
             <CardHeader className="gap-4 border-b px-4 py-5 sm:px-6">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <CardTitle>Data Penyerahan Unit</CardTitle>
+                        <CardTitle>Daftar Perusahaan Leasing</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            {filteredCount} dari {sales.length} transaksi
-                            penjualan ditampilkan
+                            {filteredCount} dari {data.length} rekanan ditampilkan
                         </p>
                     </div>
 
-                    {selectedCount > 0 && (
-                        <p className="text-sm font-medium">
-                            {selectedCount} baris dipilih
-                        </p>
-                    )}
+                    <Button onClick={() => setIsCreateOpen(true)}>
+                        <PlusIcon className="mr-1.5 size-4" />
+                        Tambah Rekanan
+                    </Button>
                 </div>
 
-                <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-                    <div className="relative flex-1 lg:max-w-sm">
+                <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
+                    <div className="relative flex-1 xl:max-w-sm">
                         <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={globalFilter}
-                            onChange={(event) => {
-                                table.setGlobalFilter(event.target.value);
-                                table.setPageIndex(0);
-                            }}
-                            placeholder="Cari invoice, BAST, unit, atau customer..."
+                            onChange={(event) =>
+                                table.setGlobalFilter(event.target.value)
+                            }
+                            placeholder="Cari nama, kode, PIC, atau no HP..."
                             className="pl-9"
-                            aria-label="Cari penyerahan unit"
+                            aria-label="Cari perusahaan leasing"
                         />
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
                         <Select
-                            value={statusFilter ?? 'all'}
-                            onValueChange={(value) => {
+                            value={
+                                statusFilter === undefined
+                                    ? 'all'
+                                    : statusFilter
+                                      ? 'active'
+                                      : 'inactive'
+                            }
+                            onValueChange={(value) =>
                                 table
-                                    .getColumn('handover_status')
+                                    .getColumn('is_active')
                                     ?.setFilterValue(
-                                        value === 'all' ? undefined : value,
-                                    );
-                                table.setPageIndex(0);
-                            }}
+                                        value === 'all'
+                                            ? undefined
+                                            : value === 'active',
+                                    )
+                            }
                         >
-                            <SelectTrigger className="w-52">
-                                <SelectValue placeholder="Semua progres" />
+                            <SelectTrigger className="w-40">
+                                <SelectValue placeholder="Semua status" />
                             </SelectTrigger>
                             <SelectContent align="end">
-                                <SelectItem value="all">
-                                    Semua progres
-                                </SelectItem>
-                                {handoverStatusOptions.map((option) => (
-                                    <SelectItem
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
+                                <SelectItem value="all">Semua status</SelectItem>
+                                <SelectItem value="active">Aktif</SelectItem>
+                                <SelectItem value="inactive">Tidak aktif</SelectItem>
                             </SelectContent>
                         </Select>
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline">
-                                    <ColumnsIcon />
+                                    <ColumnsIcon className="mr-1.5 size-4" />
                                     Kolom
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                                <DropdownMenuLabel>
-                                    Tampilkan kolom
-                                </DropdownMenuLabel>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel>Pilih kolom</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {table
                                     .getAllLeafColumns()
@@ -205,13 +212,10 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                                             key={column.id}
                                             checked={column.getIsVisible()}
                                             onCheckedChange={(value) =>
-                                                column.toggleVisibility(
-                                                    value === true,
-                                                )
+                                                column.toggleVisibility(Boolean(value))
                                             }
                                         >
-                                            {handoverColumnLabels[column.id] ??
-                                                column.id}
+                                            {financeCompanyColumnLabels[column.id] ?? column.id}
                                         </DropdownMenuCheckboxItem>
                                     ))}
                             </DropdownMenuContent>
@@ -219,7 +223,7 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
 
                         {hasFilters && (
                             <Button variant="ghost" onClick={resetFilters}>
-                                <XIcon />
+                                <XIcon className="mr-1 size-4" />
                                 Reset
                             </Button>
                         )}
@@ -228,17 +232,15 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
             </CardHeader>
 
             <CardContent className="p-0">
-                <div>
-                    <Table className="min-w-240">
+                <div className="overflow-x-auto">
+                    <Table className="min-w-200">
                         <TableHeader className="bg-muted/40">
-                            {table.getHeaderGroups().map((headerGroup) => (
-                                <TableRow key={headerGroup.id}>
-                                    {headerGroup.headers.map((header) => (
-                                        <TableHead key={header.id}>
+                            {table.getHeaderGroups().map((group) => (
+                                <TableRow key={group.id}>
+                                    {group.headers.map((header) => (
+                                        <TableHead key={header.id} className="text-xs font-bold">
                                             {header.isPlaceholder ? null : (
-                                                <table.FlexRender
-                                                    header={header}
-                                                />
+                                                <table.FlexRender header={header} />
                                             )}
                                         </TableHead>
                                     ))}
@@ -250,14 +252,10 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                                 table.getRowModel().rows.map((row) => (
                                     <TableRow
                                         key={row.id}
-                                        data-state={
-                                            row.getIsSelected()
-                                                ? 'selected'
-                                                : undefined
-                                        }
+                                        data-state={row.getIsSelected() ? 'selected' : undefined}
                                     >
                                         {row.getVisibleCells().map((cell) => (
-                                            <TableCell key={cell.id}>
+                                            <TableCell key={cell.id} className="py-3">
                                                 <table.FlexRender cell={cell} />
                                             </TableCell>
                                         ))}
@@ -266,21 +264,15 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                             ) : (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={
-                                            table.getVisibleLeafColumns().length
-                                        }
+                                        colSpan={table.getVisibleLeafColumns().length}
                                         className="h-32 text-center"
                                     >
-                                        <div className="space-y-1">
-                                            <p className="font-medium">
-                                                Data penyerahan unit tidak
-                                                ditemukan
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Ubah kata pencarian atau filter
-                                                yang digunakan.
-                                            </p>
-                                        </div>
+                                        <p className="font-medium text-sm">
+                                            Perusahaan leasing tidak ditemukan
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Coba ubah kata kunci pencarian atau tambah rekanan baru.
+                                        </p>
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -288,36 +280,30 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                     </Table>
                 </div>
 
-                <div className="flex flex-col gap-3 border-t px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-                    <p className="text-sm text-muted-foreground">
-                        Menampilkan {firstVisibleRow}–{lastVisibleRow} dari{' '}
-                        {filteredCount} data
+                <div className="flex flex-col gap-3 border-t px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+                    <p className="text-xs text-muted-foreground">
+                        Menampilkan {firstRow}–{lastRow} dari {filteredCount} data
                     </p>
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-2">
-                            <span className="text-sm">Baris per halaman</span>
+                            <span className="text-xs">Baris per halaman</span>
                             <Select
                                 value={String(pageSize)}
-                                onValueChange={(value) =>
-                                    table.setPageSize(Number(value))
-                                }
+                                onValueChange={(value) => table.setPageSize(Number(value))}
                             >
                                 <SelectTrigger size="sm" className="w-18">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent align="end" className="min-w-18">
                                     {[10, 20, 50].map((size) => (
-                                        <SelectItem
-                                            key={size}
-                                            value={String(size)}
-                                        >
+                                        <SelectItem key={size} value={String(size)}>
                                             {size}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
-                        <span className="min-w-28 text-center text-sm font-medium">
+                        <span className="min-w-24 text-center text-xs font-medium">
                             Halaman {pageIndex + 1} dari {pageCount}
                         </span>
                         <div className="flex items-center gap-1">
@@ -329,7 +315,7 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                                 disabled={!table.getCanPreviousPage()}
                                 aria-label="Halaman pertama"
                             >
-                                <CaretDoubleLeftIcon />
+                                <CaretDoubleLeftIcon className="size-3.5" />
                             </Button>
                             <Button
                                 variant="outline"
@@ -339,7 +325,7 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                                 disabled={!table.getCanPreviousPage()}
                                 aria-label="Halaman sebelumnya"
                             >
-                                <CaretLeftIcon />
+                                <CaretLeftIcon className="size-3.5" />
                             </Button>
                             <Button
                                 variant="outline"
@@ -349,7 +335,7 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                                 disabled={!table.getCanNextPage()}
                                 aria-label="Halaman berikutnya"
                             >
-                                <CaretRightIcon />
+                                <CaretRightIcon className="size-3.5" />
                             </Button>
                             <Button
                                 variant="outline"
@@ -359,12 +345,37 @@ export function HandoverDataTable({ sales, onManageHandover }: Props) {
                                 disabled={!table.getCanNextPage()}
                                 aria-label="Halaman terakhir"
                             >
-                                <CaretDoubleRightIcon />
+                                <CaretDoubleRightIcon className="size-3.5" />
                             </Button>
                         </div>
                     </div>
                 </div>
             </CardContent>
+
+            <FinanceCompanyFormDialog
+                open={isCreateOpen || editingCompany !== null}
+                company={editingCompany}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setIsCreateOpen(false);
+                        setEditingCompany(null);
+                    }
+                }}
+            />
+
+            <FinanceCompanyStatusDialog
+                company={statusCompany}
+                onOpenChange={(open) => {
+                    if (!open) setStatusCompany(null);
+                }}
+            />
+
+            <FinanceCompanyDeleteDialog
+                company={deleteCompany}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteCompany(null);
+                }}
+            />
         </Card>
     );
 }

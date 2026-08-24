@@ -85,7 +85,7 @@ export default function HandoversIndex({ sales, summary }: Props) {
                     key={`${selectedSale.id}-${selectedSale.handover?.updated_at ?? 'new'}`}
                     open={isDialogOpen}
                     sale={selectedSale}
-                    onOpenChange={(open) => {
+                    onOpenChange={(open: boolean) => {
                         setIsDialogOpen(open);
 
                         if (!open) {

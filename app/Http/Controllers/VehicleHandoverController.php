@@ -7,6 +7,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Handover\StoreHandoverRequest;
 use App\Models\Sale;
 use App\Models\VehicleHandover;
+use App\Models\VehicleHandoverEvent;
+use App\Models\VehicleHandoverItem;
+use App\Models\VehicleHandoverPhoto;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -19,18 +22,16 @@ use Throwable;
 
 class VehicleHandoverController extends Controller
 {
-    /**
-     * Display a listing of sales and their vehicle handover / BAST statuses.
-     */
     public function index(): Response
     {
         $sales = Sale::query()
             ->with([
-                'car' => fn ($q) => $q->with('brand:id,name'),
+                'car' => fn ($query) => $query->with('brand:id,name'),
                 'customer',
                 'financeCompany',
                 'payments',
-                'handover',
+                'handover.events.items',
+                'handover.events.photos',
             ])
             ->where('status', '!=', 'cancelled')
             ->latest('id')
@@ -61,117 +62,113 @@ class VehicleHandoverController extends Controller
         ]);
     }
 
-    /**
-     * Store or update a vehicle handover (BAST) record.
-     */
     public function store(StoreHandoverRequest $request): RedirectResponse
     {
         $validated = $request->validated();
-        $uploadedFile = $request->file('proof_file');
-        $newProofPath = null;
-
-        if ($uploadedFile instanceof UploadedFile) {
-            $newProofPath = $uploadedFile->store(
-                "vehicle-handovers/{$validated['sale_id']}",
-                'local',
-            );
-
-            if ($newProofPath === false) {
-                throw ValidationException::withMessages([
-                    'proof_file' => 'Bukti serah terima gagal disimpan. Silakan coba lagi.',
-                ]);
-            }
-        }
-
-        $oldProofPath = null;
+        /** @var array<int, UploadedFile> $photos */
+        $photos = $request->file('photos', []);
+        $storedPaths = [];
 
         try {
             DB::transaction(function () use (
+                $request,
                 $validated,
-                $newProofPath,
-                &$oldProofPath,
+                $photos,
+                &$storedPaths,
             ): void {
                 /** @var Sale $sale */
                 $sale = Sale::query()
-                    ->with(['payments', 'handover'])
+                    ->with(['payments', 'handover.events.items'])
                     ->lockForUpdate()
                     ->findOrFail($validated['sale_id']);
 
                 if ($sale->status === 'cancelled') {
                     throw ValidationException::withMessages([
-                        'sale_id' => 'Penjualan yang dibatalkan tidak dapat diproses serah terimanya.',
+                        'sale_id' => 'Penjualan yang dibatalkan tidak dapat memiliki tracking penyerahan.',
                     ]);
                 }
 
-                $existing = $sale->handover;
-                $vehicleDeliveredAt = $validated['vehicle_delivered_at']
-                    ?? $existing?->vehicle_delivered_at;
-                $bpkbDeliveredAt = $validated['bpkb_delivered_at']
-                    ?? $existing?->bpkb_delivered_at;
-
-                if ($vehicleDeliveredAt !== null && $sale->remaining_bill > 10_000_000) {
-                    throw ValidationException::withMessages([
-                        'vehicle_delivered_at' => 'Sisa tagihan berubah dan kembali melebihi batas Rp 10.000.000. Muat ulang halaman lalu periksa pembayaran.',
-                    ]);
-                }
-
-                if ($bpkbDeliveredAt !== null && $sale->remaining_bill > 0) {
-                    throw ValidationException::withMessages([
-                        'bpkb_delivered_at' => 'Transaksi belum lunas sehingga BPKB tidak dapat diserahkan.',
-                    ]);
-                }
-
-                $oldProofPath = $existing?->proof_file;
-
-                VehicleHandover::query()->updateOrCreate(
+                /** @var VehicleHandover $handover */
+                $handover = VehicleHandover::query()->firstOrCreate(
                     ['sale_id' => $sale->id],
                     [
                         'car_id' => $sale->car_id,
-                        'recipient_name' => $validated['recipient_name'],
-                        'recipient_phone' => $validated['recipient_phone'] ?? null,
-                        'recipient_id_card' => $validated['recipient_id_card'] ?? null,
-                        'recipient_relation' => $validated['recipient_relation'],
-                        'officer_name' => $validated['officer_name'],
-                        'handover_location' => $validated['handover_location'],
-                        'handover_address' => $validated['handover_address'] ?? null,
-                        'vehicle_delivered_at' => $vehicleDeliveredAt,
-                        'bpkb_delivered_at' => $bpkbDeliveredAt,
-                        'bpkb_recipient_type' => $bpkbDeliveredAt !== null
-                            ? ($validated['bpkb_recipient_type'] ?? $existing?->bpkb_recipient_type)
-                            : null,
-                        'checklist' => $validated['checklist'],
-                        'notes' => $validated['notes'] ?? null,
-                        'proof_file' => $newProofPath ?? $oldProofPath,
+                        'status' => 'pending',
                     ],
                 );
+
+                $this->guardCurrentBusinessState($sale, $handover, $validated);
+
+                /** @var VehicleHandoverEvent $event */
+                $event = $handover->events()->create([
+                    'event_type' => $this->determineEventType($validated['items']),
+                    'occurred_at' => $validated['occurred_at'],
+                    'recipient_name' => $validated['recipient_name'],
+                    'recipient_phone' => $validated['recipient_phone'] ?? null,
+                    'recipient_id_card' => $validated['recipient_id_card'] ?? null,
+                    'recipient_relation' => $validated['recipient_relation'],
+                    'officer_name' => $validated['officer_name'],
+                    'handover_location' => $validated['handover_location'],
+                    'handover_address' => $validated['handover_address'] ?? null,
+                    'vehicle_condition' => in_array('vehicle', $validated['items'], true)
+                        ? ($validated['vehicle_condition'] ?? null)
+                        : null,
+                    'notes' => $validated['notes'] ?? null,
+                    'created_by' => $request->user()?->id,
+                ]);
+
+                foreach ($validated['items'] as $itemCode) {
+                    $event->items()->create([
+                        'item_code' => $itemCode,
+                        'item_name' => $itemCode === 'other'
+                            ? $validated['other_item_name']
+                            : VehicleHandoverItem::LABELS[$itemCode],
+                        'quantity' => $itemCode === 'keys'
+                            ? (int) $validated['key_count']
+                            : 1,
+                    ]);
+                }
+
+                foreach ($photos as $photo) {
+                    $path = $photo->store(
+                        "vehicle-handovers/{$handover->id}/events/{$event->id}",
+                        'local',
+                    );
+
+                    if ($path === false) {
+                        throw ValidationException::withMessages([
+                            'photos' => 'Salah satu foto bukti gagal disimpan. Silakan coba lagi.',
+                        ]);
+                    }
+
+                    $storedPaths[] = $path;
+                    $event->photos()->create([
+                        'file_path' => $path,
+                        'file_name' => $photo->getClientOriginalName(),
+                        'file_mime' => $photo->getMimeType(),
+                        'file_size' => $photo->getSize(),
+                    ]);
+                }
+
+                $handover->unsetRelation('events');
+                $handover->refreshTrackingStatus();
             });
         } catch (Throwable $exception) {
-            if ($newProofPath !== null) {
-                Storage::disk('local')->delete($newProofPath);
+            foreach ($storedPaths as $path) {
+                Storage::disk('local')->delete($path);
             }
 
             throw $exception;
         }
 
-        if (
-            $newProofPath !== null
-            && $oldProofPath !== null
-            && $oldProofPath !== $newProofPath
-        ) {
-            Storage::disk('local')->delete($oldProofPath);
-        }
-
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Data penyerahan unit berhasil disimpan.',
+            'message' => 'Tracking penyerahan berhasil ditambahkan.',
         ]);
 
         return back();
     }
 
-    /**
-     * Show the printable BAST (Berita Acara Serah Terima) document.
-     */
     public function printBast(Sale $sale): Response
     {
         $sale->load([
@@ -179,14 +176,15 @@ class VehicleHandoverController extends Controller
             'customer',
             'financeCompany',
             'payments' => fn ($query) => $query->orderBy('payment_date'),
-            'handover',
+            'handover.events.items',
+            'handover.events.photos',
         ]);
 
         $handover = $sale->getRelation('handover');
 
         abort_unless(
             $handover instanceof VehicleHandover
-                && $handover->vehicle_delivered_at !== null,
+                && $handover->hasDeliveredItem('vehicle'),
             404,
         );
 
@@ -196,23 +194,81 @@ class VehicleHandoverController extends Controller
         ]);
     }
 
-    /**
-     * Download the privately stored proof of handover.
-     */
     public function downloadProof(VehicleHandover $handover): StreamedResponse
     {
-        abort_if(
-            $handover->proof_file === null
-                || ! Storage::disk('local')->exists($handover->proof_file),
-            404,
-        );
+        $handover->loadMissing('events.photos');
+        $photo = $handover->events
+            ->flatMap->photos
+            ->sortBy('id')
+            ->first();
+
+        abort_unless($photo instanceof VehicleHandoverPhoto, 404);
+
+        return $this->downloadStoredPhoto($photo);
+    }
+
+    public function downloadPhoto(VehicleHandoverPhoto $photo): StreamedResponse
+    {
+        return $this->downloadStoredPhoto($photo);
+    }
+
+    /** @param array<string, mixed> $validated */
+    private function guardCurrentBusinessState(
+        Sale $sale,
+        VehicleHandover $handover,
+        array $validated,
+    ): void {
+        /** @var array<int, string> $items */
+        $items = $validated['items'];
+        $duplicates = collect($items)
+            ->reject(fn (string $item): bool => $item === 'other')
+            ->filter(fn (string $item): bool => $handover->hasDeliveredItem($item))
+            ->map(fn (string $item): string => VehicleHandoverItem::LABELS[$item])
+            ->values();
+
+        if ($duplicates->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'items' => 'Item berikut sudah pernah diserahkan: '.$duplicates->join(', ').'.',
+            ]);
+        }
+
+        if (in_array('vehicle', $items, true) && $sale->remaining_bill > 10_000_000) {
+            throw ValidationException::withMessages([
+                'items' => 'Sisa tagihan berubah dan kembali melebihi batas Rp 10.000.000.',
+            ]);
+        }
+
+        if (
+            (in_array('bpkb', $items, true) || in_array('invoice', $items, true))
+            && $sale->remaining_bill > 0
+        ) {
+            throw ValidationException::withMessages([
+                'items' => 'Transaksi belum lunas sehingga dokumen asli belum dapat diserahkan.',
+            ]);
+        }
+    }
+
+    /** @param array<int, string> $items */
+    private function determineEventType(array $items): string
+    {
+        if (in_array('vehicle', $items, true)) {
+            return 'vehicle_delivery';
+        }
+
+        if (in_array('bpkb', $items, true) || in_array('invoice', $items, true)) {
+            return 'document_delivery';
+        }
+
+        return 'item_delivery';
+    }
+
+    private function downloadStoredPhoto(VehicleHandoverPhoto $photo): StreamedResponse
+    {
+        abort_unless(Storage::disk('local')->exists($photo->file_path), 404);
 
         return Storage::disk('local')->download(
-            $handover->proof_file,
-            "bukti-{$handover->handover_number}.".pathinfo(
-                $handover->proof_file,
-                PATHINFO_EXTENSION,
-            ),
+            $photo->file_path,
+            $photo->file_name,
         );
     }
 
@@ -221,7 +277,7 @@ class VehicleHandoverController extends Controller
         $handover = $sale->getRelation('handover');
 
         return $handover instanceof VehicleHandover
-            && $handover->vehicle_delivered_at !== null;
+            && $handover->hasDeliveredItem('vehicle');
     }
 
     private function hasBpkbDelivery(Sale $sale): bool
@@ -229,6 +285,6 @@ class VehicleHandoverController extends Controller
         $handover = $sale->getRelation('handover');
 
         return $handover instanceof VehicleHandover
-            && $handover->bpkb_delivered_at !== null;
+            && $handover->hasDeliveredItem('bpkb');
     }
 }

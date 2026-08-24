@@ -77,16 +77,6 @@ class Car extends Model
     }
 
     /**
-     * Get the purchase transaction for the car.
-     *
-     * @return HasOne<Purchase, $this>
-     */
-    public function purchase(): HasOne
-    {
-        return $this->hasOne(Purchase::class);
-    }
-
-    /**
      * Get the capital ledger attached to this vehicle.
      *
      * @return HasOne<Purchase, $this>
@@ -94,20 +84,6 @@ class Car extends Model
     public function capital(): HasOne
     {
         return $this->hasOne(Purchase::class);
-    }
-
-    /**
-     * Scope a query to only include cars available for a new purchase or the current purchase.
-     *
-     * @param  Builder<Car>  $query
-     * @return Builder<Car>
-     */
-    public function scopeAvailableForPurchase(Builder $query, ?int $purchaseCarId = null): Builder
-    {
-        return $query->whereDoesntHave('capital')
-            ->when($purchaseCarId, function ($query, $id) {
-                $query->orWhere('id', $id);
-            });
     }
 
     /**

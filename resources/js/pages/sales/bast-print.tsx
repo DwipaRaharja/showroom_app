@@ -43,9 +43,10 @@ function formatDateTime(value: string | null): string {
 }
 
 function relationLabel(
-    relation: VehicleHandover['recipient_relation'],
+    relation: string | null | undefined,
 ): string {
-    const labels: Record<VehicleHandover['recipient_relation'], string> = {
+    if (!relation) return '—';
+    const labels: Record<string, string> = {
         buyer_self: 'Pembeli sendiri',
         family: 'Keluarga / pasangan',
         driver: 'Supir / utusan',
@@ -53,7 +54,7 @@ function relationLabel(
         other: 'Lainnya',
     };
 
-    return labels[relation];
+    return labels[relation] ?? relation;
 }
 
 function ChecklistStatus({ checked }: { checked: boolean }) {
@@ -161,7 +162,7 @@ export default function BastPrint({ sale, handover }: Props) {
                         <h2 className="mb-2 border-b border-neutral-200 pb-2 text-[11px] font-bold uppercase">
                             Pihak yang menyerahkan
                         </h2>
-                        <DetailRow label="Nama" value={handover.officer_name} />
+                        <DetailRow label="Nama" value={handover.officer_name ?? '—'} />
                         <DetailRow
                             label="Instansi"
                             value="Telaga Berlian Motor"
@@ -173,7 +174,7 @@ export default function BastPrint({ sale, handover }: Props) {
                         </h2>
                         <DetailRow
                             label="Nama"
-                            value={handover.recipient_name}
+                            value={handover.recipient_name ?? '—'}
                         />
                         <DetailRow
                             label="NIK"

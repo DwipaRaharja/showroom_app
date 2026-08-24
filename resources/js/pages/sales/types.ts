@@ -46,6 +46,19 @@ export type HandoverStatus = 'pending' | 'vehicle_delivered' | 'completed';
 export type RecipientRelation =
     'buyer_self' | 'family' | 'driver' | 'leasing_officer' | 'other';
 
+export type HandoverItemCode =
+    | 'vehicle'
+    | 'stnk'
+    | 'bpkb'
+    | 'invoice'
+    | 'keys'
+    | 'manual_book'
+    | 'service_book'
+    | 'toolkit'
+    | 'spare_tire'
+    | 'blanko'
+    | 'other';
+
 export type HandoverChecklist = {
     key_count?: number;
     has_stnk?: boolean;
@@ -66,12 +79,12 @@ export type VehicleHandover = {
     handover_number: string;
     sale_id: number;
     car_id: number;
-    recipient_name: string;
+    recipient_name: string | null;
     recipient_phone: string | null;
     recipient_id_card: string | null;
-    recipient_relation: RecipientRelation;
-    officer_name: string;
-    handover_location: string;
+    recipient_relation: RecipientRelation | null;
+    officer_name: string | null;
+    handover_location: string | null;
     handover_address: string | null;
     vehicle_delivered_at: string | null;
     bpkb_delivered_at: string | null;
@@ -80,8 +93,49 @@ export type VehicleHandover = {
     checklist: HandoverChecklist | null;
     notes: string | null;
     proof_file: string | null;
+    events: VehicleHandoverEvent[];
     created_at?: string;
     updated_at?: string;
+};
+
+export type VehicleHandoverItem = {
+    id: number;
+    vehicle_handover_event_id: number;
+    item_code: HandoverItemCode;
+    item_name: string;
+    quantity: number;
+    notes: string | null;
+};
+
+export type VehicleHandoverPhoto = {
+    id: number;
+    vehicle_handover_event_id: number;
+    file_name: string;
+    file_mime: string | null;
+    file_size: number | null;
+    caption: string | null;
+};
+
+export type VehicleHandoverEvent = {
+    id: number;
+    vehicle_handover_id: number;
+    event_type: 'vehicle_delivery' | 'document_delivery' | 'item_delivery';
+    occurred_at: string;
+    recipient_name: string;
+    recipient_phone: string | null;
+    recipient_id_card: string | null;
+    recipient_relation: RecipientRelation;
+    officer_name: string;
+    handover_location: string;
+    handover_address: string | null;
+    vehicle_condition: {
+        fuel_level?: string | null;
+        cleanliness?: string | null;
+    } | null;
+    notes: string | null;
+    items: VehicleHandoverItem[];
+    photos: VehicleHandoverPhoto[];
+    created_at: string;
 };
 
 export type Sale = {

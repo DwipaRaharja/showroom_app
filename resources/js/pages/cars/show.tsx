@@ -14,7 +14,6 @@ import {
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import CarController from '@/actions/App/Http/Controllers/CarController';
-import PurchaseController from '@/actions/App/Http/Controllers/PurchaseController';
 import VehicleDocumentController from '@/actions/App/Http/Controllers/VehicleDocumentController';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -551,19 +550,7 @@ export default function CarsShow({ car }: Props) {
                                     className="mt-2 w-full"
                                     asChild
                                 >
-                                    <Link
-                                        href={
-                                            car.capital
-                                                ? PurchaseController.edit(
-                                                      car.capital.id,
-                                                  )
-                                                : PurchaseController.create({
-                                                      query: {
-                                                          car_id: car.id,
-                                                      },
-                                                  })
-                                        }
-                                    >
+                                    <Link href={CarController.edit(car.id)}>
                                         <CoinsIcon />
                                         {car.capital
                                             ? 'Kelola modal'
