@@ -18,6 +18,7 @@ abstract class VehicleDocumentRequest extends FormRequest
                 'owner_name' => $this->nullableString($stnk['owner_name'] ?? null),
                 'issued_at' => $this->nullableString($stnk['issued_at'] ?? null),
                 'expires_at' => $this->nullableString($stnk['expires_at'] ?? null),
+                'annual_tax_due_at' => $this->nullableString($stnk['annual_tax_due_at'] ?? null),
             ],
             'bpkb' => [
                 'status' => $bpkb['status'] ?? null,
@@ -62,6 +63,10 @@ abstract class VehicleDocumentRequest extends FormRequest
                 ...($this->filled('stnk.issued_at')
                     ? ['after_or_equal:stnk.issued_at']
                     : []),
+            ],
+            'stnk.annual_tax_due_at' => [
+                'nullable',
+                'date',
             ],
             'bpkb' => ['required', 'array'],
             'bpkb.status' => [
@@ -112,6 +117,7 @@ abstract class VehicleDocumentRequest extends FormRequest
             'stnk.owner_name' => 'nama pemilik STNK',
             'stnk.issued_at' => 'tanggal terbit STNK',
             'stnk.expires_at' => 'masa berlaku STNK',
+            'stnk.annual_tax_due_at' => 'jatuh tempo pajak tahunan',
             'bpkb.status' => 'status BPKB',
             'bpkb.owner_name' => 'nama pemilik BPKB',
             'bpkb.issued_at' => 'tanggal terbit BPKB',

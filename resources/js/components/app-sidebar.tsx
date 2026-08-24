@@ -2,12 +2,14 @@ import { Link } from '@inertiajs/react';
 import {
     BankIcon,
     CarProfileIcon,
+    ClipboardTextIcon,
     HandCoinsIcon,
     KeyIcon,
     SquaresFourIcon,
     TagIcon,
     UsersThreeIcon,
 } from '@phosphor-icons/react';
+import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -49,10 +51,20 @@ const mainNavGroups: NavGroup[] = [
                 href: salesIndex.url(),
                 icon: HandCoinsIcon,
             },
+        ],
+    },
+    {
+        title: 'Operasional',
+        items: [
             {
                 title: 'Penyerahan Unit',
                 href: VehicleHandoverController.index.url(),
                 icon: KeyIcon,
+            },
+            {
+                title: 'Proses Berkas',
+                href: DocumentProcessController.index.url(),
+                icon: ClipboardTextIcon,
             },
         ],
     },

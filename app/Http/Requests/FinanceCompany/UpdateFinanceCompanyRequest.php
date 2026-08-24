@@ -36,8 +36,21 @@ class UpdateFinanceCompanyRequest extends FormRequest
             'code' => ['nullable', 'string', 'max:30'],
             'pic_name' => ['nullable', 'string', 'max:100'],
             'pic_phone' => ['nullable', 'string', 'max:30'],
-            'is_active' => ['boolean'],
+            'is_active' => ['required', 'boolean'],
             'notes' => ['nullable', 'string', 'max:1000'],
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'is_active.required' => 'Pilih status rekanan: aktif atau tidak aktif.',
+            'is_active.boolean' => 'Pilih status rekanan: aktif atau tidak aktif.',
         ];
     }
 

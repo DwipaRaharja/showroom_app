@@ -13,7 +13,6 @@ import type {
     ColumnFiltersState,
     ColumnVisibilityState,
     PaginationState,
-    RowSelectionState,
     SortingState,
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
@@ -44,53 +43,51 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
-    createHandoverColumns,
-    createHandoverRecords,
-    handoverColumnLabels,
-    handoverStatusOptions,
-    handoverTableFeatures,
-} from '@/pages/handovers/table-config';
-import type { HandoverFilterStatus } from '@/pages/handovers/table-config';
-import type { Sale } from '@/pages/sales/types';
+    createProcessColumns,
+    processColumnLabels,
+    processTableFeatures,
+} from '@/pages/document-processes/table-config';
+import type {
+    DocumentProcess,
+    LabelOptions,
+} from '@/pages/document-processes/types';
 
 type Props = {
-    sales: Sale[];
-    onManageHandover: (sale: Sale) => void;
-    onAddHandover: () => void;
+    processes: DocumentProcess[];
+    typeOptions: LabelOptions;
+    statusOptions: LabelOptions;
+    onAdd: () => void;
 };
 
 const initialSorting: SortingState = [{ id: 'number', desc: true }];
 const initialPagination: PaginationState = { pageIndex: 0, pageSize: 10 };
-const initialColumnVisibility: ColumnVisibilityState = { event_type: false };
+const initialColumnVisibility: ColumnVisibilityState = {};
 
-export function HandoverDataTable({
-    sales,
-    onManageHandover,
-    onAddHandover,
+export function ProcessDataTable({
+    processes,
+    typeOptions,
+    statusOptions,
+    onAdd,
 }: Props) {
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
     const [pagination, setPagination] =
         useState<PaginationState>(initialPagination);
-    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const [columnVisibility, setColumnVisibility] =
         useState<ColumnVisibilityState>(initialColumnVisibility);
     const columns = useMemo(
-        () => createHandoverColumns(onManageHandover),
-        [onManageHandover],
+        () => createProcessColumns(typeOptions, statusOptions),
+        [statusOptions, typeOptions],
     );
-    const records = useMemo(() => createHandoverRecords(sales), [sales]);
 
     const table = useTable({
-        features: handoverTableFeatures,
-        data: records,
+        features: processTableFeatures,
+        data: processes,
         columns,
         getRowId: (row) => String(row.id),
         getColumnCanGlobalFilter: (column) =>
-            ['transaction', 'items', 'recipient', 'officer'].includes(
-                column.id,
-            ),
+            ['process', 'responsible'].includes(column.id),
         globalFilterFn: 'includesString',
         enableSortingRemoval: false,
         state: {
@@ -98,14 +95,12 @@ export function HandoverDataTable({
             columnFilters,
             sorting,
             pagination,
-            rowSelection,
             columnVisibility,
         },
         onGlobalFilterChange: setGlobalFilter,
         onColumnFiltersChange: setColumnFilters,
         onSortingChange: setSorting,
         onPaginationChange: setPagination,
-        onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
         initialState: {
             sorting: initialSorting,
@@ -114,15 +109,26 @@ export function HandoverDataTable({
         },
     });
 
-    const statusFilter = table.getColumn('event_type')?.getFilterValue() as
-        HandoverFilterStatus | undefined;
+    const typeFilter = table.getColumn('process_type')?.getFilterValue() as
+        string | undefined;
+    const statusFilter = table.getColumn('status')?.getFilterValue() as
+        string | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
-    const selectedCount = table.getSelectedRowIds().length;
     const { pageIndex, pageSize } = pagination;
     const pageCount = Math.max(table.getPageCount(), 1);
     const firstVisibleRow = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
     const lastVisibleRow = Math.min((pageIndex + 1) * pageSize, filteredCount);
-    const hasFilters = globalFilter.length > 0 || statusFilter !== undefined;
+    const hasFilters =
+        globalFilter.length > 0 ||
+        typeFilter !== undefined ||
+        statusFilter !== undefined;
+
+    function setColumnFilter(columnId: string, value: string) {
+        table
+            .getColumn(columnId)
+            ?.setFilterValue(value === 'all' ? undefined : value);
+        table.setPageIndex(0);
+    }
 
     function resetFilters() {
         setGlobalFilter('');
@@ -135,32 +141,20 @@ export function HandoverDataTable({
             <CardHeader className="gap-4 border-b px-4 py-5 sm:px-6">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <CardTitle>Riwayat Penyerahan</CardTitle>
+                        <CardTitle>Data Proses Berkas</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            {filteredCount} dari {records.length} kejadian
-                            penyerahan ditampilkan
+                            {filteredCount} dari {processes.length} proses
+                            ditampilkan
                         </p>
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-3">
-                        {selectedCount > 0 && (
-                            <p className="text-sm font-medium">
-                                {selectedCount} baris dipilih
-                            </p>
-                        )}
-                        <Button
-                            type="button"
-                            onClick={onAddHandover}
-                            disabled={sales.length === 0}
-                        >
-                            <PlusIcon className="size-4" />
-                            Tambah Penyerahan
-                        </Button>
-                    </div>
+                    <Button type="button" onClick={onAdd}>
+                        <PlusIcon />
+                        Tambah Proses Berkas
+                    </Button>
                 </div>
 
-                <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-                    <div className="relative flex-1 lg:max-w-sm">
+                <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
+                    <div className="relative flex-1 xl:max-w-sm">
                         <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={globalFilter}
@@ -168,39 +162,54 @@ export function HandoverDataTable({
                                 table.setGlobalFilter(event.target.value);
                                 table.setPageIndex(0);
                             }}
-                            placeholder="Cari invoice, unit, penerima, barang, atau petugas..."
+                            placeholder="Cari nomor, kendaraan, customer, atau petugas..."
                             className="pl-9"
-                            aria-label="Cari penyerahan unit"
+                            aria-label="Cari proses berkas"
                         />
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
                         <Select
-                            value={statusFilter ?? 'all'}
-                            onValueChange={(value) => {
-                                table
-                                    .getColumn('event_type')
-                                    ?.setFilterValue(
-                                        value === 'all' ? undefined : value,
-                                    );
-                                table.setPageIndex(0);
-                            }}
+                            value={typeFilter ?? 'all'}
+                            onValueChange={(value) =>
+                                setColumnFilter('process_type', value)
+                            }
                         >
-                            <SelectTrigger className="w-52">
+                            <SelectTrigger className="w-48">
                                 <SelectValue placeholder="Semua jenis" />
                             </SelectTrigger>
                             <SelectContent align="end">
+                                <SelectItem value="all">Semua jenis</SelectItem>
+                                {Object.entries(typeOptions).map(
+                                    ([value, label]) => (
+                                        <SelectItem key={value} value={value}>
+                                            {label}
+                                        </SelectItem>
+                                    ),
+                                )}
+                            </SelectContent>
+                        </Select>
+
+                        <Select
+                            value={statusFilter ?? 'all'}
+                            onValueChange={(value) =>
+                                setColumnFilter('status', value)
+                            }
+                        >
+                            <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Semua status" />
+                            </SelectTrigger>
+                            <SelectContent align="end">
                                 <SelectItem value="all">
-                                    Semua jenis penyerahan
+                                    Semua status
                                 </SelectItem>
-                                {handoverStatusOptions.map((option) => (
-                                    <SelectItem
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
+                                {Object.entries(statusOptions).map(
+                                    ([value, label]) => (
+                                        <SelectItem key={value} value={value}>
+                                            {label}
+                                        </SelectItem>
+                                    ),
+                                )}
                             </SelectContent>
                         </Select>
 
@@ -229,7 +238,7 @@ export function HandoverDataTable({
                                                 )
                                             }
                                         >
-                                            {handoverColumnLabels[column.id] ??
+                                            {processColumnLabels[column.id] ??
                                                 column.id}
                                         </DropdownMenuCheckboxItem>
                                     ))}
@@ -247,8 +256,8 @@ export function HandoverDataTable({
             </CardHeader>
 
             <CardContent className="p-0">
-                <div>
-                    <Table className="min-w-240">
+                <div className="overflow-x-auto">
+                    <Table className="min-w-280">
                         <TableHeader className="bg-muted/40">
                             {table.getHeaderGroups().map((headerGroup) => (
                                 <TableRow key={headerGroup.id}>
@@ -267,14 +276,7 @@ export function HandoverDataTable({
                         <TableBody>
                             {table.getRowModel().rows.length > 0 ? (
                                 table.getRowModel().rows.map((row) => (
-                                    <TableRow
-                                        key={row.id}
-                                        data-state={
-                                            row.getIsSelected()
-                                                ? 'selected'
-                                                : undefined
-                                        }
-                                    >
+                                    <TableRow key={row.id}>
                                         {row.getVisibleCells().map((cell) => (
                                             <TableCell key={cell.id}>
                                                 <table.FlexRender cell={cell} />
@@ -292,12 +294,11 @@ export function HandoverDataTable({
                                     >
                                         <div className="space-y-1">
                                             <p className="font-medium">
-                                                Riwayat penyerahan tidak
-                                                ditemukan
+                                                Proses berkas tidak ditemukan
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                Tambahkan penyerahan baru atau
-                                                ubah pencarian dan filter.
+                                                Tambahkan proses baru atau ubah
+                                                filter yang digunakan.
                                             </p>
                                         </div>
                                     </TableCell>

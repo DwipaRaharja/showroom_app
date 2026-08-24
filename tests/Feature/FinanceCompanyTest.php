@@ -59,6 +59,39 @@ test('authenticated user can store a new finance company', function () {
     ]);
 });
 
+test('authenticated user can store an inactive finance company from checkbox value', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->post(route('finance-companies.store'), [
+        'name' => 'Leasing Nonaktif',
+        'is_active' => '0',
+    ]);
+
+    $response->assertRedirect(route('finance-companies.index'));
+
+    $this->assertDatabaseHas('finance_companies', [
+        'name' => 'Leasing Nonaktif',
+        'is_active' => false,
+    ]);
+});
+
+test('finance company status validation uses a friendly message', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->post(route('finance-companies.store'), [
+        'name' => 'Leasing Status Tidak Valid',
+        'is_active' => 'nilai-tidak-valid',
+    ]);
+
+    $response->assertSessionHasErrors([
+        'is_active' => 'Pilih status rekanan: aktif atau tidak aktif.',
+    ]);
+
+    $this->assertDatabaseMissing('finance_companies', [
+        'name' => 'Leasing Status Tidak Valid',
+    ]);
+});
+
 test('store finance company validates unique name', function () {
     $user = User::factory()->create();
     FinanceCompany::factory()->create(['name' => 'Mandiri Utama Finance']);

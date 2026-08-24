@@ -59,7 +59,7 @@ class SaleController extends Controller
                 ->availableForSale()
                 ->with([
                     'brand:id,name',
-                    'capital:id,car_id,purchase_number,price,repair_cost,transport_cost,other_cost,status',
+                    'capital:id,car_id,purchase_number,price,repair_cost,transport_cost,other_cost,document_process_cost,status',
                 ])
                 ->orderBy('name')
                 ->get(['id', 'brand_id', 'name', 'license_plate', 'year', 'color', 'selling_price', 'status']),
@@ -149,7 +149,7 @@ class SaleController extends Controller
         $sale->load([
             'car' => fn ($q) => $q->with([
                 'brand:id,name',
-                'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,status,notes,created_at',
+                'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,document_process_cost,status,notes,created_at',
                 'documents',
             ]),
             'customer',

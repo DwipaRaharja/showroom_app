@@ -23,6 +23,7 @@ class Purchase extends Model
         'repair_cost',
         'transport_cost',
         'other_cost',
+        'document_process_cost',
         'status',
         'notes',
     ];
@@ -44,6 +45,7 @@ class Purchase extends Model
             'repair_cost' => 'integer',
             'transport_cost' => 'integer',
             'other_cost' => 'integer',
+            'document_process_cost' => 'integer',
         ];
     }
 
@@ -85,7 +87,8 @@ class Purchase extends Model
         return (int) $this->price
             + (int) $this->repair_cost
             + (int) $this->transport_cost
-            + (int) $this->other_cost;
+            + (int) $this->other_cost
+            + (int) $this->document_process_cost;
     }
 
     /**

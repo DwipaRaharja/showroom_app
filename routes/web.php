@@ -3,6 +3,7 @@
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CarController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DocumentProcessController;
 use App\Http\Controllers\FinanceCompanyController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SaleController;
@@ -80,6 +81,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('handovers.proof.download');
     Route::get('handover-photos/{photo}', [VehicleHandoverController::class, 'downloadPhoto'])
         ->name('handover-photos.download');
+    Route::get('document-processes', [DocumentProcessController::class, 'index'])
+        ->name('document-processes.index');
+    Route::post('document-processes', [DocumentProcessController::class, 'store'])
+        ->name('document-processes.store');
+    Route::get('document-processes/{documentProcess}', [DocumentProcessController::class, 'show'])
+        ->name('document-processes.show');
+    Route::post('document-processes/{documentProcess}/events', [DocumentProcessController::class, 'storeEvent'])
+        ->name('document-processes.events.store');
+    Route::post('document-processes/{documentProcess}/costs', [DocumentProcessController::class, 'storeCost'])
+        ->name('document-processes.costs.store');
+    Route::get('document-process-files/{file}', [DocumentProcessController::class, 'downloadFile'])
+        ->name('document-process-files.download');
 });
 
 require __DIR__.'/settings.php';

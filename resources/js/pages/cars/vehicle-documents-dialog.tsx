@@ -224,7 +224,7 @@ function VehicleDocumentsForm({
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="stnk-expires">
-                                        Berlaku sampai
+                                        Berlaku STNK/plat sampai
                                     </Label>
                                     <Input
                                         id="stnk-expires"
@@ -240,6 +240,33 @@ function VehicleDocumentsForm({
                                     />
                                     <InputError
                                         message={errors['stnk.expires_at']}
+                                        className={errorTextClassName}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="stnk-annual-tax-due">
+                                        Jatuh tempo pajak tahunan
+                                    </Label>
+                                    <Input
+                                        id="stnk-annual-tax-due"
+                                        name="stnk[annual_tax_due_at]"
+                                        type="date"
+                                        defaultValue={
+                                            stnk?.annual_tax_due_at?.slice(
+                                                0,
+                                                10,
+                                            ) ?? ''
+                                        }
+                                        aria-invalid={Boolean(
+                                            errors['stnk.annual_tax_due_at'],
+                                        )}
+                                        className={validationColorClassName}
+                                    />
+                                    <InputError
+                                        message={
+                                            errors['stnk.annual_tax_due_at']
+                                        }
                                         className={errorTextClassName}
                                     />
                                 </div>

@@ -3,6 +3,7 @@ import {
     ArrowLeftIcon,
     CalendarBlankIcon,
     CarProfileIcon,
+    ClipboardTextIcon,
     CoinsIcon,
     DownloadSimpleIcon,
     FileTextIcon,
@@ -14,6 +15,7 @@ import {
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import CarController from '@/actions/App/Http/Controllers/CarController';
+import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
 import VehicleDocumentController from '@/actions/App/Http/Controllers/VehicleDocumentController';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -181,6 +183,16 @@ export default function CarsShow({ car }: Props) {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" asChild>
+                            <Link
+                                href={DocumentProcessController.index.url({
+                                    query: { car_id: car.id },
+                                })}
+                            >
+                                <ClipboardTextIcon />
+                                Proses berkas
+                            </Link>
+                        </Button>
                         <Button
                             type="button"
                             variant="outline"
@@ -507,6 +519,17 @@ export default function CarsShow({ car }: Props) {
                                             <span className="font-medium">
                                                 {currencyFormatter.format(
                                                     car.capital.other_cost,
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between gap-4">
+                                            <span className="text-muted-foreground">
+                                                Proses berkas
+                                            </span>
+                                            <span className="font-medium">
+                                                {currencyFormatter.format(
+                                                    car.capital
+                                                        .document_process_cost,
                                                 )}
                                             </span>
                                         </div>

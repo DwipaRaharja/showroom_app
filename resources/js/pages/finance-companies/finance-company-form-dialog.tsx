@@ -146,14 +146,23 @@ function FinanceCompanyFormContent({
                             <InputError message={errors.notes} className={errorTextClassName} />
                         </div>
 
+                        <input
+                            type="hidden"
+                            name="is_active"
+                            value={isActive ? '1' : '0'}
+                        />
                         <div className="flex items-center gap-2 pt-1">
                             <Checkbox
-                                id="is_active"
-                                name="is_active"
+                                id="finance-company-is-active"
                                 checked={isActive}
                                 onCheckedChange={(checked) => setIsActive(checked === true)}
+                                aria-invalid={Boolean(errors.is_active)}
+                                className={validationColorClassName}
                             />
-                            <Label htmlFor="is_active" className="cursor-pointer font-normal">
+                            <Label
+                                htmlFor="finance-company-is-active"
+                                className="cursor-pointer font-normal"
+                            >
                                 Status Rekanan Aktif (dapat dipilih pada transaksi penjualan)
                             </Label>
                         </div>

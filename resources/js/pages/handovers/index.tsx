@@ -3,7 +3,7 @@ import {
     CheckCircleIcon,
     KeyIcon,
     LockIcon,
-    PlusIcon,
+    MagnifyingGlassIcon,
     ShieldCheckIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useState } from 'react';
@@ -17,13 +17,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { HandoverDataTable } from '@/pages/handovers/data-table';
 import { HandoverDialog } from '@/pages/sales/handover-dialog';
 import type { Sale } from '@/pages/sales/types';
@@ -48,12 +43,34 @@ function saleLabel(sale: Sale): string {
     ].join(' · ');
 }
 
+function saleSearchText(sale: Sale): string {
+    return [
+        sale.invoice_number,
+        sale.car?.brand?.name,
+        sale.car?.name,
+        sale.car?.license_plate,
+        sale.car?.chassis_number,
+        sale.customer?.name,
+        sale.customer?.phone,
+    ]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('id-ID');
+}
+
 export default function HandoversIndex({ sales, summary }: Props) {
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSalePickerOpen, setIsSalePickerOpen] = useState(false);
     const [pendingSaleId, setPendingSaleId] = useState('');
+    const [saleSearch, setSaleSearch] = useState('');
     const pendingSale = sales.find((sale) => String(sale.id) === pendingSaleId);
+    const normalizedSaleSearch = saleSearch.trim().toLocaleLowerCase('id-ID');
+    const filteredSales = normalizedSaleSearch
+        ? sales.filter((sale) =>
+              saleSearchText(sale).includes(normalizedSaleSearch),
+          )
+        : [];
 
     const handleManageHandover = useCallback((sale: Sale) => {
         setSelectedSale(sale);
@@ -62,6 +79,7 @@ export default function HandoversIndex({ sales, summary }: Props) {
 
     function openSalePicker() {
         setPendingSaleId('');
+        setSaleSearch('');
         setIsSalePickerOpen(true);
     }
 
@@ -79,23 +97,14 @@ export default function HandoversIndex({ sales, summary }: Props) {
             <Head title="Penyerahan Unit" />
 
             <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Penyerahan Unit
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Pantau setiap kejadian penyerahan, penerima, barang,
-                            petugas, dan bukti foto.
-                        </p>
-                    </div>
-                    <Button
-                        onClick={openSalePicker}
-                        disabled={sales.length === 0}
-                    >
-                        <PlusIcon className="size-4" />
-                        Tambah Penyerahan
-                    </Button>
+                <div>
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                        Penyerahan Unit
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        Pantau setiap kejadian penyerahan, penerima, barang,
+                        petugas, dan bukti foto.
+                    </p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -128,11 +137,12 @@ export default function HandoversIndex({ sales, summary }: Props) {
                 <HandoverDataTable
                     sales={sales}
                     onManageHandover={handleManageHandover}
+                    onAddHandover={openSalePicker}
                 />
             </div>
 
             <Dialog open={isSalePickerOpen} onOpenChange={setIsSalePickerOpen}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Tambah Penyerahan</DialogTitle>
                         <DialogDescription>
@@ -146,24 +156,116 @@ export default function HandoversIndex({ sales, summary }: Props) {
                             <span className="text-sm font-medium">
                                 Transaksi penjualan
                             </span>
-                            <Select
-                                value={pendingSaleId}
-                                onValueChange={setPendingSaleId}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Pilih invoice, unit, atau customer" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {sales.map((sale) => (
-                                        <SelectItem
-                                            key={sale.id}
-                                            value={String(sale.id)}
-                                        >
-                                            {saleLabel(sale)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <div className="relative">
+                                <MagnifyingGlassIcon
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                                />
+                                <Input
+                                    autoFocus
+                                    type="search"
+                                    value={saleSearch}
+                                    onChange={(event) => {
+                                        setSaleSearch(event.target.value);
+                                        setPendingSaleId('');
+                                    }}
+                                    placeholder="Cari invoice, mobil, plat, atau customer..."
+                                    className="pl-9"
+                                />
+                            </div>
+
+                            <div className="mt-1 max-h-72 overflow-y-auto rounded-lg border bg-background">
+                                {!normalizedSaleSearch ? (
+                                    <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                                        Ketik invoice, nama atau plat mobil,
+                                        maupun nama customer untuk mulai
+                                        mencari.
+                                    </p>
+                                ) : filteredSales.length === 0 ? (
+                                    <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                                        Tidak ada transaksi yang cocok dengan “
+                                        {saleSearch.trim()}”.
+                                    </p>
+                                ) : (
+                                    filteredSales.map((sale) => {
+                                        const isSelected =
+                                            pendingSaleId === String(sale.id);
+
+                                        return (
+                                            <button
+                                                key={sale.id}
+                                                type="button"
+                                                aria-label={`Pilih ${saleLabel(sale)}`}
+                                                aria-pressed={isSelected}
+                                                onClick={() =>
+                                                    setPendingSaleId(
+                                                        String(sale.id),
+                                                    )
+                                                }
+                                                className={cn(
+                                                    'flex w-full items-start gap-3 border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none',
+                                                    isSelected &&
+                                                        'bg-primary/5 hover:bg-primary/10',
+                                                )}
+                                            >
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="font-semibold">
+                                                            {
+                                                                sale.invoice_number
+                                                            }
+                                                        </span>
+                                                        {isSelected && (
+                                                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                                                                Dipilih
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="mt-1 text-sm">
+                                                        {[
+                                                            sale.car?.brand
+                                                                ?.name,
+                                                            sale.car?.name,
+                                                        ]
+                                                            .filter(Boolean)
+                                                            .join(' ') ||
+                                                            'Unit tidak tersedia'}
+                                                        {' · '}
+                                                        {sale.car
+                                                            ?.license_plate ??
+                                                            'Tanpa plat'}
+                                                    </p>
+                                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                                        Customer:{' '}
+                                                        {sale.customer?.name ??
+                                                            '—'}
+                                                        {sale.customer?.phone
+                                                            ? ` · ${sale.customer.phone}`
+                                                            : ''}
+                                                    </p>
+                                                </div>
+
+                                                {isSelected && (
+                                                    <CheckCircleIcon
+                                                        aria-hidden="true"
+                                                        weight="fill"
+                                                        className="mt-0.5 size-5 text-primary"
+                                                    />
+                                                )}
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+
+                            {normalizedSaleSearch &&
+                                filteredSales.length > 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                        {filteredSales.length} transaksi
+                                        ditemukan. Klik salah satu data untuk
+                                        memilih.
+                                    </span>
+                                )}
                         </div>
 
                         {pendingSale && (

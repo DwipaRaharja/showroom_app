@@ -114,6 +114,7 @@ export function CarForm({ car, brands }: Props) {
     const [otherCost, setOtherCost] = useState(
         String(car?.capital?.other_cost ?? 0),
     );
+    const documentProcessCost = car?.capital?.document_process_cost ?? 0;
     const [capitalStatus, setCapitalStatus] = useState<CarCapitalStatus>(
         car?.capital?.status ?? 'completed',
     );
@@ -128,8 +129,15 @@ export function CarForm({ car, brands }: Props) {
             numericValue(capitalPrice) +
             numericValue(repairCost) +
             numericValue(transportCost) +
-            numericValue(otherCost),
-        [capitalPrice, repairCost, transportCost, otherCost],
+            numericValue(otherCost) +
+            documentProcessCost,
+        [
+            capitalPrice,
+            repairCost,
+            transportCost,
+            otherCost,
+            documentProcessCost,
+        ],
     );
 
     const formDefinition = isEditing
@@ -685,6 +693,20 @@ export function CarForm({ car, brands }: Props) {
                                     message={errors.selling_price}
                                     className={errorTextClassName}
                                 />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label>Biaya proses berkas (otomatis)</Label>
+                                <PriceInput
+                                    name="capital.document_process_cost"
+                                    value={String(documentProcessCost)}
+                                    onValueChange={() => undefined}
+                                    disabled
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Berasal dari biaya proses yang dibayar
+                                    showroom dan tidak dapat diedit manual.
+                                </p>
                             </div>
 
                             <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:col-span-2">

@@ -25,7 +25,7 @@ class CarController extends Controller
             'cars' => Car::query()
                 ->with([
                     'brand:id,name',
-                    'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,status,notes,created_at',
+                    'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,document_process_cost,status,notes,created_at',
                     'documents' => fn ($query) => $query->select([
                         'id',
                         'car_id',
@@ -34,6 +34,7 @@ class CarController extends Controller
                         'owner_name',
                         'issued_at',
                         'expires_at',
+                        'annual_tax_due_at',
                         'status',
                         'original_received',
                         'notes',
@@ -83,7 +84,7 @@ class CarController extends Controller
     {
         $car->load([
             'brand:id,name',
-            'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,status,notes,created_at',
+            'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,document_process_cost,status,notes,created_at',
             'documents' => fn ($query) => $query->select([
                 'id',
                 'car_id',
@@ -92,6 +93,7 @@ class CarController extends Controller
                 'owner_name',
                 'issued_at',
                 'expires_at',
+                'annual_tax_due_at',
                 'status',
                 'original_received',
                 'notes',
@@ -163,6 +165,7 @@ class CarController extends Controller
                     'repair_cost',
                     'transport_cost',
                     'other_cost',
+                    'document_process_cost',
                     'total_capital',
                     'status',
                     'notes',

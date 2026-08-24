@@ -48,6 +48,7 @@ class VehicleDocumentController extends Controller
                         'owner_name' => $stnk['owner_name'] ?? null,
                         'issued_at' => $stnk['issued_at'] ?? null,
                         'expires_at' => $stnk['expires_at'] ?? null,
+                        'annual_tax_due_at' => $stnk['annual_tax_due_at'] ?? null,
                         'status' => $stnk['status'],
                         'original_received' => $stnk['status'] === 'complete',
                         'notes' => null,

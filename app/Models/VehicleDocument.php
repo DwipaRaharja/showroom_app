@@ -19,6 +19,7 @@ class VehicleDocument extends Model
         'owner_name',
         'issued_at',
         'expires_at',
+        'annual_tax_due_at',
         'status',
         'original_received',
         'file_path',
@@ -47,6 +48,7 @@ class VehicleDocument extends Model
         return [
             'issued_at' => 'date:Y-m-d',
             'expires_at' => 'date:Y-m-d',
+            'annual_tax_due_at' => 'date:Y-m-d',
             'original_received' => 'boolean',
             'file_size' => 'integer',
         ];

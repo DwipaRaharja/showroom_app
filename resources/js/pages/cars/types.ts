@@ -23,6 +23,7 @@ export type VehicleDocument = {
     owner_name: string | null;
     issued_at: string | null;
     expires_at: string | null;
+    annual_tax_due_at: string | null;
     status: VehicleDocumentStatus;
     original_received: boolean;
     notes: string | null;
@@ -48,6 +49,7 @@ export type CarCapital = {
     repair_cost: number;
     transport_cost: number;
     other_cost: number;
+    document_process_cost: number;
     total_capital: number;
     status: CarCapitalStatus;
     notes: string | null;

@@ -130,4 +130,10 @@ class Car extends Model
     {
         return $this->hasOne(VehicleDocumentAttachment::class);
     }
+
+    /** @return HasMany<DocumentProcess, $this> */
+    public function documentProcesses(): HasMany
+    {
+        return $this->hasMany(DocumentProcess::class)->latest('id');
+    }
 }
