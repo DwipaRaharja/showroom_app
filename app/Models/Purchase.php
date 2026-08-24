@@ -18,13 +18,11 @@ class Purchase extends Model
     protected $fillable = [
         'purchase_number',
         'car_id',
-        'seller_id',
         'purchase_date',
         'price',
         'repair_cost',
         'transport_cost',
         'other_cost',
-        'payment_method',
         'status',
         'notes',
     ];
@@ -69,7 +67,7 @@ class Purchase extends Model
     ];
 
     /**
-     * Generate a readable purchase number before saving a new record.
+     * Generate a readable capital number before saving a new record.
      */
     protected static function booted(): void
     {
@@ -79,37 +77,6 @@ class Purchase extends Model
             }
 
             $purchase->purchase_number = static::generatePurchaseNumber($purchase->purchase_date);
-        });
-
-        static::saved(function (Purchase $purchase): void {
-            $car = $purchase->car;
-
-            if ($car === null) {
-                return;
-            }
-
-            if ($purchase->status === 'completed') {
-                $car->update([
-                    'purchase_price' => $purchase->calculateTotalCapital(),
-                ]);
-
-                return;
-            }
-
-            if ($car->purchase_price === $purchase->calculateTotalCapital()) {
-                $car->update(['purchase_price' => null]);
-            }
-        });
-
-        static::deleting(function (Purchase $purchase): void {
-            $car = $purchase->car;
-
-            if (
-                $car !== null
-                && $car->purchase_price === $purchase->calculateTotalCapital()
-            ) {
-                $car->update(['purchase_price' => null]);
-            }
         });
     }
 
@@ -138,16 +105,5 @@ class Purchase extends Model
     public function car(): BelongsTo
     {
         return $this->belongsTo(Car::class)->withTrashed();
-    }
-
-    /**
-     * Get the customer who sold the car to the showroom.
-     */
-    /**
-     * @return BelongsTo<Customer, $this>
-     */
-    public function seller(): BelongsTo
-    {
-        return $this->belongsTo(Customer::class, 'seller_id')->withTrashed();
     }
 }

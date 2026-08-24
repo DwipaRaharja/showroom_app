@@ -115,11 +115,6 @@ export type Sale = {
     can_accept_payment?: boolean;
     can_deliver_vehicle?: boolean;
     can_deliver_bpkb?: boolean;
-    document_process?: {
-        id: number;
-        process_number: string;
-        status: string;
-    } | null;
 };
 
 export type SalesSummary = {

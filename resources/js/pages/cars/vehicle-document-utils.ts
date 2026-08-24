@@ -13,31 +13,55 @@ export const documentTypeOptions: {
     { value: 'stnk', label: 'STNK', required: true },
     { value: 'bpkb', label: 'BPKB', required: true },
     { value: 'invoice', label: 'Faktur kendaraan', required: true },
-    { value: 'receipt', label: 'Kuitansi pembelian', required: true },
-    { value: 'form_a', label: 'Form A', required: false },
-    { value: 'kir', label: 'Buku KIR', required: false },
-    { value: 'other', label: 'Dokumen lainnya', required: false },
 ];
 
-export const documentStatusOptions: {
-    value: VehicleDocumentStatus;
-    label: string;
-}[] = [
+export const stnkStatusOptions = [
+    { value: 'printing', label: 'Sedang dicetak' },
     { value: 'complete', label: 'Lengkap' },
-    { value: 'pending', label: 'Belum diterima' },
-    { value: 'processing', label: 'Sedang diproses' },
-    { value: 'missing', label: 'Tidak tersedia' },
-];
+    { value: 'incomplete', label: 'Tidak lengkap' },
+] as const;
 
-export const requiredDocumentTypes = documentTypeOptions
-    .filter((option) => option.required)
-    .map((option) => option.value);
+export const bpkbStatusOptions = [
+    { value: 'printing', label: 'Sedang dicetak' },
+    { value: 'ready', label: 'Ready' },
+    { value: 'uncollected', label: 'Belum diambil' },
+] as const;
+
+export const invoiceStatusOptions = [
+    { value: 'ready', label: 'Ready' },
+    { value: 'not_ready', label: 'Belum ready' },
+] as const;
+
+export const requiredDocumentTypes = documentTypeOptions.map(
+    (option) => option.value,
+);
 
 export function getDocumentTypeLabel(type: VehicleDocumentType): string {
-    return (
-        documentTypeOptions.find((option) => option.value === type)?.label ??
-        type
-    );
+    const knownLabels: Partial<Record<VehicleDocumentType, string>> = {
+        stnk: 'STNK',
+        bpkb: 'BPKB',
+        invoice: 'Faktur kendaraan',
+        receipt: 'Kuitansi pembelian',
+        form_a: 'Form A',
+        kir: 'Buku KIR',
+        other: 'Dokumen lainnya',
+    };
+
+    return knownLabels[type] ?? type;
+}
+
+export function getDocumentStatusLabel(
+    type: VehicleDocumentType,
+    status: VehicleDocumentStatus,
+): string {
+    const options =
+        type === 'stnk'
+            ? stnkStatusOptions
+            : type === 'bpkb'
+              ? bpkbStatusOptions
+              : invoiceStatusOptions;
+
+    return options.find((option) => option.value === status)?.label ?? status;
 }
 
 function localDateString(): string {
@@ -49,9 +73,27 @@ function localDateString(): string {
 
 export function isDocumentExpired(document: VehicleDocument): boolean {
     return Boolean(
+        document.document_type === 'stnk' &&
         document.expires_at &&
         document.expires_at.slice(0, 10) < localDateString(),
     );
+}
+
+export function isDocumentReady(document: VehicleDocument): boolean {
+    if (isDocumentExpired(document)) {
+        return false;
+    }
+
+    switch (document.document_type) {
+        case 'stnk':
+            return document.status === 'complete';
+        case 'bpkb':
+            return ['ready', 'uncollected'].includes(document.status);
+        case 'invoice':
+            return document.status === 'ready';
+        default:
+            return false;
+    }
 }
 
 export function getEffectiveDocumentStatus(
@@ -72,7 +114,7 @@ export function getCarDocumentState(
             (candidate) => candidate.document_type === type,
         );
 
-        return document?.status === 'complete' && document.original_received;
+        return document ? isDocumentReady(document) : false;
     });
 
     return requiredDocumentsAreComplete ? 'complete' : 'incomplete';
@@ -86,7 +128,7 @@ export function countCompleteRequiredDocuments(
             (candidate) => candidate.document_type === type,
         );
 
-        return document?.status === 'complete' && document.original_received;
+        return document ? isDocumentReady(document) : false;
     }).length;
 }
 

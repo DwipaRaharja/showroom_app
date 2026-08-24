@@ -1,6 +1,10 @@
 import { Form, Link } from '@inertiajs/react';
-import { FloppyDiskIcon, WarningCircleIcon } from '@phosphor-icons/react';
-import { useState } from 'react';
+import {
+    CalculatorIcon,
+    FloppyDiskIcon,
+    WarningCircleIcon,
+} from '@phosphor-icons/react';
+import { useMemo, useState } from 'react';
 import CarController from '@/actions/App/Http/Controllers/CarController';
 import InputError from '@/components/input-error';
 import { MileageInput } from '@/components/mileage-input';
@@ -28,6 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Brand } from '@/pages/brands/types';
 import type {
     Car,
+    CarCapitalStatus,
     CarStatus,
     FuelType,
     Transmission,
@@ -43,6 +48,27 @@ type Props = {
 const validationColorClassName =
     'aria-invalid:border-red-500 aria-invalid:ring-red-500/20 dark:aria-invalid:ring-red-500/40';
 const errorTextClassName = 'text-red-500 dark:text-red-500';
+
+const currencyFormatter = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+});
+
+function today(): string {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
+
+function numericValue(value: string): number {
+    const parsed = Number(value);
+
+    return Number.isFinite(parsed) ? parsed : 0;
+}
 
 export function CarForm({ car, brands }: Props) {
     const isEditing = car !== null;
@@ -73,16 +99,38 @@ export function CarForm({ car, brands }: Props) {
         car?.fuel_type ?? 'bensin',
     );
     const [mileage, setMileage] = useState(car ? String(car.mileage) : '0');
-    const [purchasePrice, setPurchasePrice] = useState(
-        car?.purchase_price !== null && car?.purchase_price !== undefined
-            ? String(car.purchase_price)
-            : '',
+    const [capitalDate, setCapitalDate] = useState(
+        car?.capital?.purchase_date?.slice(0, 10) ?? today(),
     );
+    const [capitalPrice, setCapitalPrice] = useState(
+        car?.capital ? String(car.capital.price) : '',
+    );
+    const [repairCost, setRepairCost] = useState(
+        String(car?.capital?.repair_cost ?? 0),
+    );
+    const [transportCost, setTransportCost] = useState(
+        String(car?.capital?.transport_cost ?? 0),
+    );
+    const [otherCost, setOtherCost] = useState(
+        String(car?.capital?.other_cost ?? 0),
+    );
+    const [capitalStatus, setCapitalStatus] = useState<CarCapitalStatus>(
+        car?.capital?.status ?? 'completed',
+    );
+    const [capitalNotes, setCapitalNotes] = useState(car?.capital?.notes ?? '');
     const [sellingPrice, setSellingPrice] = useState(
         car ? String(car.selling_price) : '',
     );
     const [status, setStatus] = useState<CarStatus>(car?.status ?? 'available');
     const [description, setDescription] = useState(car?.description ?? '');
+    const totalCapital = useMemo(
+        () =>
+            numericValue(capitalPrice) +
+            numericValue(repairCost) +
+            numericValue(transportCost) +
+            numericValue(otherCost),
+        [capitalPrice, repairCost, transportCost, otherCost],
+    );
 
     const formDefinition = isEditing
         ? CarController.update.form(car.id)
@@ -105,6 +153,11 @@ export function CarForm({ car, brands }: Props) {
                     />
                     <input type="hidden" name="fuel_type" value={fuelType} />
                     <input type="hidden" name="status" value={status} />
+                    <input
+                        type="hidden"
+                        name="capital[status]"
+                        value={capitalStatus}
+                    />
 
                     {!hasBrands && (
                         <Alert variant="destructive">
@@ -200,7 +253,10 @@ export function CarForm({ car, brands }: Props) {
                                             onChange={(event) =>
                                                 setPlatePrefix(
                                                     event.target.value
-                                                        .replace(/[^a-zA-Z]/g, '')
+                                                        .replace(
+                                                            /[^a-zA-Z]/g,
+                                                            '',
+                                                        )
                                                         .toUpperCase(),
                                                 )
                                             }
@@ -250,7 +306,10 @@ export function CarForm({ car, brands }: Props) {
                                             onChange={(event) =>
                                                 setPlateSuffix(
                                                     event.target.value
-                                                        .replace(/[^a-zA-Z]/g, '')
+                                                        .replace(
+                                                            /[^a-zA-Z]/g,
+                                                            '',
+                                                        )
                                                         .toUpperCase(),
                                                 )
                                             }
@@ -287,7 +346,9 @@ export function CarForm({ car, brands }: Props) {
                                     }
                                     placeholder="Contoh: MHF11234567890123"
                                     maxLength={50}
-                                    aria-invalid={Boolean(errors.chassis_number)}
+                                    aria-invalid={Boolean(
+                                        errors.chassis_number,
+                                    )}
                                     className={validationColorClassName}
                                 />
                                 <InputError
@@ -459,29 +520,149 @@ export function CarForm({ car, brands }: Props) {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Harga</CardTitle>
+                            <CardTitle>Modal awal dan harga jual</CardTitle>
                             <CardDescription>
-                                Nilai modal dan harga penawaran unit mobil.
+                                Modal tersimpan langsung sebagai bagian dari
+                                unit mobil dan menjadi sumber perhitungan
+                                keuntungan.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="grid gap-5 sm:grid-cols-2">
                             <div className="grid gap-2">
-                                <Label htmlFor="car-purchase-price">
-                                    Harga beli / modal (Rp)
+                                <Label htmlFor="car-capital-date">
+                                    Tanggal perolehan
                                 </Label>
-                                <PriceInput
-                                    id="car-purchase-price"
-                                    name="purchase_price"
-                                    value={purchasePrice}
-                                    onValueChange={setPurchasePrice}
-                                    placeholder="Contoh: 180.000.000"
+                                <Input
+                                    id="car-capital-date"
+                                    name="capital[purchase_date]"
+                                    type="date"
+                                    value={capitalDate}
+                                    onChange={(event) =>
+                                        setCapitalDate(event.target.value)
+                                    }
+                                    required
                                     aria-invalid={Boolean(
-                                        errors.purchase_price,
+                                        errors['capital.purchase_date'],
                                     )}
                                     className={validationColorClassName}
                                 />
                                 <InputError
-                                    message={errors.purchase_price}
+                                    message={errors['capital.purchase_date']}
+                                    className={errorTextClassName}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="car-capital-status">
+                                    Status modal
+                                </Label>
+                                <Select
+                                    value={capitalStatus}
+                                    onValueChange={(value) =>
+                                        setCapitalStatus(
+                                            value as CarCapitalStatus,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger id="car-capital-status">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="completed">
+                                            Aktif
+                                        </SelectItem>
+                                        <SelectItem value="draft">
+                                            Draft
+                                        </SelectItem>
+                                        <SelectItem value="cancelled">
+                                            Dibatalkan
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <InputError
+                                    message={errors['capital.status']}
+                                    className={errorTextClassName}
+                                />
+                            </div>
+
+                            <div className="grid gap-2 sm:col-span-2">
+                                <Label htmlFor="car-capital-price">
+                                    Harga perolehan mobil
+                                </Label>
+                                <PriceInput
+                                    id="car-capital-price"
+                                    name="capital[price]"
+                                    value={capitalPrice}
+                                    onValueChange={setCapitalPrice}
+                                    placeholder="Contoh: 180.000.000"
+                                    required
+                                    aria-invalid={Boolean(
+                                        errors['capital.price'],
+                                    )}
+                                    className={validationColorClassName}
+                                />
+                                <InputError
+                                    message={errors['capital.price']}
+                                    className={errorTextClassName}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="car-repair-cost">
+                                    Biaya perbaikan / rekondisi
+                                </Label>
+                                <PriceInput
+                                    id="car-repair-cost"
+                                    name="capital[repair_cost]"
+                                    value={repairCost}
+                                    onValueChange={setRepairCost}
+                                    aria-invalid={Boolean(
+                                        errors['capital.repair_cost'],
+                                    )}
+                                    className={validationColorClassName}
+                                />
+                                <InputError
+                                    message={errors['capital.repair_cost']}
+                                    className={errorTextClassName}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="car-transport-cost">
+                                    Biaya transportasi
+                                </Label>
+                                <PriceInput
+                                    id="car-transport-cost"
+                                    name="capital[transport_cost]"
+                                    value={transportCost}
+                                    onValueChange={setTransportCost}
+                                    aria-invalid={Boolean(
+                                        errors['capital.transport_cost'],
+                                    )}
+                                    className={validationColorClassName}
+                                />
+                                <InputError
+                                    message={errors['capital.transport_cost']}
+                                    className={errorTextClassName}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="car-other-cost">
+                                    Biaya lainnya
+                                </Label>
+                                <PriceInput
+                                    id="car-other-cost"
+                                    name="capital[other_cost]"
+                                    value={otherCost}
+                                    onValueChange={setOtherCost}
+                                    aria-invalid={Boolean(
+                                        errors['capital.other_cost'],
+                                    )}
+                                    className={validationColorClassName}
+                                />
+                                <InputError
+                                    message={errors['capital.other_cost']}
                                     className={errorTextClassName}
                                 />
                             </div>
@@ -502,6 +683,52 @@ export function CarForm({ car, brands }: Props) {
                                 />
                                 <InputError
                                     message={errors.selling_price}
+                                    className={errorTextClassName}
+                                />
+                            </div>
+
+                            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:col-span-2">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                        <CalculatorIcon className="size-5" />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-medium text-muted-foreground">
+                                            Total modal kendaraan
+                                        </div>
+                                        <div className="mt-0.5 text-2xl font-bold text-primary tabular-nums">
+                                            {currencyFormatter.format(
+                                                totalCapital,
+                                            )}
+                                        </div>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            Penjualan hanya dapat dibuat ketika
+                                            status modal Aktif.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2 sm:col-span-2">
+                                <Label htmlFor="car-capital-notes">
+                                    Catatan modal
+                                </Label>
+                                <Textarea
+                                    id="car-capital-notes"
+                                    name="capital[notes]"
+                                    value={capitalNotes}
+                                    onChange={(event) =>
+                                        setCapitalNotes(event.target.value)
+                                    }
+                                    placeholder="Catatan mengenai harga perolehan atau biaya persiapan unit."
+                                    rows={3}
+                                    aria-invalid={Boolean(
+                                        errors['capital.notes'],
+                                    )}
+                                    className={validationColorClassName}
+                                />
+                                <InputError
+                                    message={errors['capital.notes']}
                                     className={errorTextClassName}
                                 />
                             </div>

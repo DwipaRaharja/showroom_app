@@ -30,6 +30,7 @@ class Car extends Model
                 return;
             }
 
+            $car->documentAttachment?->delete();
             $car->documents()->get()->each->delete();
         });
     }
@@ -45,7 +46,6 @@ class Car extends Model
         'transmission',
         'fuel_type',
         'mileage',
-        'purchase_price',
         'selling_price',
         'status',
         'description',
@@ -62,7 +62,6 @@ class Car extends Model
         return [
             'year' => 'integer',
             'mileage' => 'integer',
-            'purchase_price' => 'integer',
             'selling_price' => 'integer',
         ];
     }
@@ -88,6 +87,16 @@ class Car extends Model
     }
 
     /**
+     * Get the capital ledger attached to this vehicle.
+     *
+     * @return HasOne<Purchase, $this>
+     */
+    public function capital(): HasOne
+    {
+        return $this->hasOne(Purchase::class);
+    }
+
+    /**
      * Scope a query to only include cars available for a new purchase or the current purchase.
      *
      * @param  Builder<Car>  $query
@@ -95,7 +104,7 @@ class Car extends Model
      */
     public function scopeAvailableForPurchase(Builder $query, ?int $purchaseCarId = null): Builder
     {
-        return $query->whereDoesntHave('purchase')
+        return $query->whereDoesntHave('capital')
             ->when($purchaseCarId, function ($query, $id) {
                 $query->orWhere('id', $id);
             });
@@ -121,7 +130,9 @@ class Car extends Model
     {
         return $query->where(function ($q) use ($saleCarId) {
             $q->whereIn('status', ['available', 'booked'])
-                ->whereDoesntHave('sale');
+                ->whereDoesntHave('sale')
+                ->whereHas('capital', fn (Builder $capital) => $capital
+                    ->where('status', 'completed'));
             if ($saleCarId) {
                 $q->orWhere('id', $saleCarId);
             }
@@ -136,5 +147,11 @@ class Car extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(VehicleDocument::class)->orderBy('document_type');
+    }
+
+    /** @return HasOne<VehicleDocumentAttachment, $this> */
+    public function documentAttachment(): HasOne
+    {
+        return $this->hasOne(VehicleDocumentAttachment::class);
     }
 }

@@ -6,7 +6,6 @@ import {
     CheckCircleIcon,
     CopyIcon,
     DotsThreeVerticalIcon,
-    FilesIcon,
     HandCoinsIcon,
     KeyIcon,
     PlusIcon,
@@ -19,7 +18,6 @@ import {
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
 import PaymentController from '@/actions/App/Http/Controllers/PaymentController';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import { StatusBadge } from '@/components/status-badge';
@@ -144,7 +142,7 @@ export default function SalesShow({ sale }: Props) {
         (remainingBill > 0 ||
             (sale.payment_type === 'credit' && bonusRemaining > 0));
 
-    const purchasePrice = car?.purchase_price ?? 0;
+    const purchasePrice = car?.capital?.total_capital ?? 0;
     const estimatedProfit =
         sale.deal_price + sale.leasing_bonus - purchasePrice;
 
@@ -198,27 +196,6 @@ export default function SalesShow({ sale }: Props) {
                             >
                                 <PlusIcon className="size-4" />
                                 Catat Pembayaran Masuk
-                            </Button>
-                        )}
-
-                        {sale.status !== 'cancelled' && (
-                            <Button variant="outline" asChild>
-                                <Link
-                                    href={
-                                        sale.document_process
-                                            ? DocumentProcessController.show(
-                                                  sale.document_process.id,
-                                              )
-                                            : DocumentProcessController.create(
-                                                  sale.id,
-                                              )
-                                    }
-                                >
-                                    <FilesIcon className="size-4" />
-                                    {sale.document_process
-                                        ? 'Kelola Proses Berkas'
-                                        : 'Mulai Proses Berkas'}
-                                </Link>
                             </Button>
                         )}
 
@@ -706,7 +683,7 @@ export default function SalesShow({ sale }: Props) {
                                 </CardContent>
                             </Card>
                         )}
-                        {/* Vehicle Handover & BAST Card */}
+                        {/* Vehicle handover card */}
                         <Card className="border-primary/20 bg-primary/[0.02] shadow-xs">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
@@ -718,7 +695,7 @@ export default function SalesShow({ sale }: Props) {
                                             />
                                         </div>
                                         <CardTitle className="text-sm">
-                                            Serah Terima Unit & BAST
+                                            Penyerahan Unit
                                         </CardTitle>
                                     </div>
                                     {sale.handover && (
@@ -852,27 +829,34 @@ export default function SalesShow({ sale }: Props) {
                                         }
                                         size="sm"
                                         className="flex-1 text-xs"
+                                        disabled={
+                                            !sale.handover && !canDeliverVehicle
+                                        }
                                         onClick={() => setIsHandoverOpen(true)}
                                     >
                                         {sale.handover
-                                            ? 'Perbarui BAST'
-                                            : 'Catat Serah Terima (BAST)'}
+                                            ? 'Perbarui Penyerahan'
+                                            : canDeliverVehicle
+                                              ? 'Catat Penyerahan'
+                                              : 'Menunggu Pembayaran'}
                                     </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        asChild
-                                        className="text-xs"
-                                    >
-                                        <Link
-                                            href={VehicleHandoverController.printBast.url(
-                                                sale.id,
-                                            )}
+                                    {sale.handover?.vehicle_delivered_at && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            asChild
+                                            className="text-xs"
                                         >
-                                            <PrinterIcon className="size-3.5" />
-                                            Cetak BAST
-                                        </Link>
-                                    </Button>
+                                            <Link
+                                                href={VehicleHandoverController.printBast.url(
+                                                    sale.id,
+                                                )}
+                                            >
+                                                <PrinterIcon className="size-3.5" />
+                                                Cetak BAST
+                                            </Link>
+                                        </Button>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -880,12 +864,13 @@ export default function SalesShow({ sale }: Props) {
                 </div>
             </div>
 
-            {/* Handover Dialog */}
-            <HandoverDialog
-                open={isHandoverOpen}
-                sale={sale}
-                onOpenChange={setIsHandoverOpen}
-            />
+            {isHandoverOpen && (
+                <HandoverDialog
+                    open={isHandoverOpen}
+                    sale={sale}
+                    onOpenChange={setIsHandoverOpen}
+                />
+            )}
 
             {/* Payment Dialog */}
             <PaymentDialog

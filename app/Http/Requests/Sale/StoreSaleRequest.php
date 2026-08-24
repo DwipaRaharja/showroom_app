@@ -23,6 +23,16 @@ class StoreSaleRequest extends FormRequest
                 'required',
                 Rule::exists(Car::class, 'id')->whereNull('deleted_at'),
                 Rule::unique(Sale::class, 'car_id'),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $isEligible = Car::query()
+                        ->whereKey($value)
+                        ->availableForSale()
+                        ->exists();
+
+                    if (! $isEligible) {
+                        $fail('Unit mobil harus berstatus tersedia dan memiliki modal aktif sebelum dijual.');
+                    }
+                },
             ],
             'customer_id' => [
                 'required',

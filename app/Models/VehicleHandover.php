@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class VehicleHandover extends Model
 {
-    use HasFactory;
-
     /**
      * The table associated with the model.
      *
@@ -23,7 +21,7 @@ class VehicleHandover extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'handover_number',
@@ -71,6 +69,12 @@ class VehicleHandover extends Model
 
         static::updating(function (VehicleHandover $handover): void {
             $handover->determineStatus();
+        });
+
+        static::deleted(function (VehicleHandover $handover): void {
+            if ($handover->proof_file !== null) {
+                Storage::disk('local')->delete($handover->proof_file);
+            }
         });
     }
 
@@ -127,6 +131,6 @@ class VehicleHandover extends Model
      */
     public function car(): BelongsTo
     {
-        return $this->belongsTo(Car::class);
+        return $this->belongsTo(Car::class)->withTrashed();
     }
 }

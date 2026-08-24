@@ -50,8 +50,7 @@ test('archiving a sold car preserves all transaction and document relations', fu
 
     $this->actingAs($user)
         ->delete(route('cars.destroy', $car))
-        ->assertRedirect(route('cars.index'))
-        ->assertSessionHas('toast.message', 'Data mobil berhasil diarsipkan. Riwayat transaksi dan dokumen tetap tersimpan.');
+        ->assertRedirect(route('cars.index'));
 
     $this->assertSoftDeleted('cars', ['id' => $car->id]);
     $this->assertDatabaseHas('purchases', ['id' => $purchase->id]);

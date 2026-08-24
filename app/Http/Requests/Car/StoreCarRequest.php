@@ -28,6 +28,9 @@ class StoreCarRequest extends FormRequest
             $licensePlate = $normalized !== '' ? $normalized : null;
         }
 
+        $capital = (array) $this->input('capital', []);
+        $capitalNotes = trim((string) ($capital['notes'] ?? ''));
+
         $this->merge([
             'name' => trim((string) $this->input('name')),
             'license_plate' => $licensePlate,
@@ -35,6 +38,15 @@ class StoreCarRequest extends FormRequest
             'engine_number' => $this->input('engine_number') ? strtoupper(trim((string) $this->input('engine_number'))) : null,
             'color' => $this->input('color') ? trim((string) $this->input('color')) : null,
             'description' => $this->input('description') ? trim((string) $this->input('description')) : null,
+            'capital' => [
+                'purchase_date' => $capital['purchase_date'] ?? null,
+                'price' => $capital['price'] ?? null,
+                'repair_cost' => $capital['repair_cost'] ?? 0,
+                'transport_cost' => $capital['transport_cost'] ?? 0,
+                'other_cost' => $capital['other_cost'] ?? 0,
+                'status' => $capital['status'] ?? 'completed',
+                'notes' => $capitalNotes === '' ? null : $capitalNotes,
+            ],
         ]);
     }
 
@@ -98,11 +110,6 @@ class StoreCarRequest extends FormRequest
                 'integer',
                 'min:0',
             ],
-            'purchase_price' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
             'selling_price' => [
                 'required',
                 'numeric',
@@ -116,6 +123,17 @@ class StoreCarRequest extends FormRequest
                 'nullable',
                 'string',
             ],
+            'capital' => ['required', 'array'],
+            'capital.purchase_date' => ['required', 'date'],
+            'capital.price' => ['required', 'integer', 'min:0'],
+            'capital.repair_cost' => ['required', 'integer', 'min:0'],
+            'capital.transport_cost' => ['required', 'integer', 'min:0'],
+            'capital.other_cost' => ['required', 'integer', 'min:0'],
+            'capital.status' => [
+                'required',
+                Rule::in(['draft', 'completed', 'cancelled']),
+            ],
+            'capital.notes' => ['nullable', 'string', 'max:2000'],
         ];
     }
 
@@ -137,10 +155,16 @@ class StoreCarRequest extends FormRequest
             'transmission' => 'transmisi',
             'fuel_type' => 'bahan bakar',
             'mileage' => 'kilometer / jarak tempuh',
-            'purchase_price' => 'harga beli',
             'selling_price' => 'harga jual',
             'status' => 'status',
             'description' => 'deskripsi / catatan',
+            'capital.purchase_date' => 'tanggal perolehan',
+            'capital.price' => 'harga perolehan',
+            'capital.repair_cost' => 'biaya perbaikan',
+            'capital.transport_cost' => 'biaya transportasi',
+            'capital.other_cost' => 'biaya lainnya',
+            'capital.status' => 'status modal',
+            'capital.notes' => 'catatan modal',
         ];
     }
 

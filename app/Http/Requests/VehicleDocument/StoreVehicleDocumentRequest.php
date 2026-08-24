@@ -2,8 +2,6 @@
 
 namespace App\Http\Requests\VehicleDocument;
 
-use App\Models\Car;
-
 class StoreVehicleDocumentRequest extends VehicleDocumentRequest
 {
     /**
@@ -11,10 +9,6 @@ class StoreVehicleDocumentRequest extends VehicleDocumentRequest
      */
     public function rules(): array
     {
-        $car = $this->route('car');
-
-        abort_unless($car instanceof Car, 404);
-
-        return $this->documentRules($car);
+        return $this->documentRules();
     }
 }

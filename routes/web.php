@@ -3,8 +3,6 @@
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CarController;
 use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\DocumentProcessController;
-use App\Http\Controllers\DocumentProcessItemController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\SaleController;
@@ -42,18 +40,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'index',
         'create',
         'store',
+        'show',
         'edit',
         'update',
         'destroy',
     ]);
     Route::post('cars/{car}/documents', [VehicleDocumentController::class, 'store'])
         ->name('vehicle-documents.store');
-    Route::get('vehicle-documents/{vehicleDocument}/download', [VehicleDocumentController::class, 'download'])
+    Route::get('cars/{car}/documents/download', [VehicleDocumentController::class, 'download'])
         ->name('vehicle-documents.download');
-    Route::put('vehicle-documents/{vehicleDocument}', [VehicleDocumentController::class, 'update'])
-        ->name('vehicle-documents.update');
-    Route::delete('vehicle-documents/{vehicleDocument}', [VehicleDocumentController::class, 'destroy'])
-        ->name('vehicle-documents.destroy');
     Route::patch('purchases/{purchase}/status', [PurchaseController::class, 'updateStatus'])
         ->name('purchases.status.update');
     Route::resource('purchases', PurchaseController::class)->only([
@@ -71,22 +66,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'show',
         'destroy',
     ]);
-    Route::get('document-processes', [DocumentProcessController::class, 'index'])
-        ->name('document-processes.index');
-    Route::get('sales/{sale}/document-process/create', [DocumentProcessController::class, 'create'])
-        ->name('document-processes.create');
-    Route::post('sales/{sale}/document-process', [DocumentProcessController::class, 'store'])
-        ->name('document-processes.store');
-    Route::get('document-processes/{documentProcess}', [DocumentProcessController::class, 'show'])
-        ->name('document-processes.show');
-    Route::put('document-processes/{documentProcess}', [DocumentProcessController::class, 'update'])
-        ->name('document-processes.update');
-    Route::patch('document-processes/{documentProcess}/cancel', [DocumentProcessController::class, 'cancel'])
-        ->name('document-processes.cancel');
-    Route::patch('document-processes/{documentProcess}/reopen', [DocumentProcessController::class, 'reopen'])
-        ->name('document-processes.reopen');
-    Route::put('document-process-items/{documentProcessItem}', [DocumentProcessItemController::class, 'update'])
-        ->name('document-process-items.update');
     Route::post('sales/{sale}/payments', [PaymentController::class, 'store'])
         ->name('payments.store');
     Route::delete('payments/{payment}', [PaymentController::class, 'destroy'])
@@ -97,8 +76,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('handovers.store');
     Route::get('sales/{sale}/bast', [VehicleHandoverController::class, 'printBast'])
         ->name('sales.bast.print');
-    Route::delete('handovers/{handover}', [VehicleHandoverController::class, 'destroy'])
-        ->name('handovers.destroy');
+    Route::get('handovers/{handover}/proof', [VehicleHandoverController::class, 'downloadProof'])
+        ->name('handovers.proof.download');
 });
 
 require __DIR__.'/settings.php';

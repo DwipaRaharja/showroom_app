@@ -5,11 +5,56 @@ use App\Models\Car;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
-test('guest cannot access car create and edit pages', function () {
+test('guest cannot access car create, detail, and edit pages', function () {
     $car = Car::factory()->create();
 
     $this->get(route('cars.create'))->assertRedirect(route('login'));
+    $this->get(route('cars.show', $car))->assertRedirect(route('login'));
     $this->get(route('cars.edit', $car))->assertRedirect(route('login'));
+});
+
+test('authenticated user can view a car on a dedicated detail page', function () {
+    $user = User::factory()->create();
+    $brand = Brand::factory()->create([
+        'name' => 'Toyota',
+        'slug' => 'toyota-detail',
+    ]);
+    $car = Car::factory()->for($brand)->create([
+        'name' => 'Innova Zenix',
+    ]);
+    $capital = $car->capital()->create([
+        'purchase_date' => '2026-08-20',
+        'price' => 380000000,
+        'repair_cost' => 2000000,
+        'transport_cost' => 1000000,
+        'other_cost' => 0,
+        'status' => 'completed',
+    ]);
+    $car->documents()->create([
+        'document_type' => 'stnk',
+        'status' => 'complete',
+        'owner_name' => 'Budi Santoso',
+        'issued_at' => '2026-08-01',
+        'expires_at' => '2027-08-01',
+    ]);
+    $attachment = $car->documentAttachment()->create([
+        'file_name' => 'dokumen-mobil.pdf',
+        'file_mime' => 'application/pdf',
+        'file_size' => 128000,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('cars.show', $car))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('cars/show')
+            ->where('car.id', $car->id)
+            ->where('car.name', 'Innova Zenix')
+            ->where('car.brand.name', 'Toyota')
+            ->where('car.capital.id', $capital->id)
+            ->has('car.documents', 1)
+            ->where('car.document_attachment.id', $attachment->id)
+        );
 });
 
 test('car create page only provides active brands', function () {
@@ -82,10 +127,18 @@ test('authenticated user can create a car from the dedicated form', function () 
             'transmission' => 'automatic',
             'fuel_type' => 'bensin',
             'mileage' => 12000,
-            'purchase_price' => 180000000,
             'selling_price' => 205000000,
             'status' => 'available',
             'description' => 'Kondisi siap jual.',
+            'capital' => [
+                'purchase_date' => '2026-08-24',
+                'price' => 180000000,
+                'repair_cost' => 5000000,
+                'transport_cost' => 1000000,
+                'other_cost' => 0,
+                'status' => 'completed',
+                'notes' => 'Modal awal unit.',
+            ],
         ])
         ->assertRedirect(route('cars.index'))
         ->assertSessionHasNoErrors();
@@ -97,12 +150,26 @@ test('authenticated user can create a car from the dedicated form', function () 
         'selling_price' => 205000000,
         'status' => 'available',
     ]);
+    $this->assertDatabaseHas('purchases', [
+        'price' => 180000000,
+        'repair_cost' => 5000000,
+        'transport_cost' => 1000000,
+        'status' => 'completed',
+    ]);
 });
 
 test('authenticated user can update a car from the dedicated form', function () {
     $user = User::factory()->create();
     $brand = Brand::factory()->create(['is_active' => true]);
     $car = Car::factory()->for($brand)->create();
+    $capital = $car->capital()->create([
+        'purchase_date' => '2026-08-20',
+        'price' => 380000000,
+        'repair_cost' => 0,
+        'transport_cost' => 0,
+        'other_cost' => 0,
+        'status' => 'completed',
+    ]);
 
     $this->actingAs($user)
         ->put(route('cars.update', $car), [
@@ -114,12 +181,20 @@ test('authenticated user can update a car from the dedicated form', function () 
             'transmission' => 'cvt',
             'fuel_type' => 'hybrid',
             'mileage' => 9000,
-            'purchase_price' => 390000000,
             'selling_price' => 425000000,
             'status' => 'booked',
             'description' => 'Sudah dibooking customer.',
+            'capital' => [
+                'purchase_date' => '2026-08-21',
+                'price' => 390000000,
+                'repair_cost' => 2000000,
+                'transport_cost' => 1000000,
+                'other_cost' => 500000,
+                'status' => 'completed',
+                'notes' => 'Modal diperbarui.',
+            ],
         ])
-        ->assertRedirect(route('cars.index'))
+        ->assertRedirect(route('cars.show', $car))
         ->assertSessionHasNoErrors();
 
     $this->assertDatabaseHas('cars', [
@@ -129,5 +204,12 @@ test('authenticated user can update a car from the dedicated form', function () 
         'fuel_type' => 'hybrid',
         'selling_price' => 425000000,
         'status' => 'booked',
+    ]);
+    $this->assertDatabaseHas('purchases', [
+        'id' => $capital->id,
+        'car_id' => $car->id,
+        'price' => 390000000,
+        'repair_cost' => 2000000,
+        'status' => 'completed',
     ]);
 });

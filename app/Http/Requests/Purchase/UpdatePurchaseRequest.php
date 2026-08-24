@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Purchase;
 
 use App\Models\Purchase;
+use Illuminate\Validation\Rule;
 
 class UpdatePurchaseRequest extends PurchaseRequest
 {
@@ -15,8 +16,14 @@ class UpdatePurchaseRequest extends PurchaseRequest
     {
         $purchase = $this->route('purchase');
 
-        return $this->purchaseRules(
+        $rules = $this->purchaseRules(
             $purchase instanceof Purchase ? $purchase : null,
         );
+
+        if ($purchase instanceof Purchase) {
+            $rules['car_id'][] = Rule::in([$purchase->car_id]);
+        }
+
+        return $rules;
     }
 }

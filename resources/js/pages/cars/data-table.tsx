@@ -46,7 +46,6 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { CarDeleteDialog } from '@/pages/cars/car-delete-dialog';
-import { CarDetailDialog } from '@/pages/cars/car-detail-dialog';
 import { CarStatusDialog } from '@/pages/cars/car-status-dialog';
 import {
     carColumnLabels,
@@ -70,7 +69,6 @@ const initialColumnVisibility: ColumnVisibilityState = {
 };
 
 export function CarDataTable({ data }: Props) {
-    const [detailCar, setDetailCar] = useState<Car | null>(null);
     const [statusCar, setStatusCar] = useState<Car | null>(null);
     const [documentsCar, setDocumentsCar] = useState<Car | null>(null);
     const [deletingCar, setDeletingCar] = useState<Car | null>(null);
@@ -86,7 +84,6 @@ export function CarDataTable({ data }: Props) {
     const columns = useMemo(
         () =>
             createCarColumns({
-                onDetail: setDetailCar,
                 onStatusChange: setStatusCar,
                 onManageDocuments: setDocumentsCar,
                 onDelete: setDeletingCar,
@@ -447,17 +444,6 @@ export function CarDataTable({ data }: Props) {
                 </CardContent>
             </Card>
 
-            <CarDetailDialog
-                open={detailCar !== null}
-                car={detailCar}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setDetailCar(null);
-                    }
-                }}
-                onStatusChange={setStatusCar}
-                onManageDocuments={setDocumentsCar}
-            />
             <VehicleDocumentsDialog
                 car={documentsCar}
                 onOpenChange={(open) => {

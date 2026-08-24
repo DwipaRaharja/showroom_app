@@ -8,9 +8,10 @@ import {
 
 type Props = {
     cars: PurchaseCar[];
+    selected_car_id: number | null;
 };
 
-export default function PurchasesCreate({ cars }: Props) {
+export default function PurchasesCreate({ cars, selected_car_id }: Props) {
     return (
         <>
             <Head title="Tambah Modal Mobil" />
@@ -26,7 +27,11 @@ export default function PurchasesCreate({ cars }: Props) {
                     </p>
                 </div>
 
-                <PurchaseForm purchase={null} cars={cars} />
+                <PurchaseForm
+                    purchase={null}
+                    cars={cars}
+                    selectedCarId={selected_car_id}
+                />
             </div>
         </>
     );

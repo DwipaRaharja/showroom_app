@@ -15,15 +15,7 @@ class VehicleDocumentFactory extends Factory
     {
         return [
             'car_id' => Car::factory(),
-            'document_type' => $this->faker->randomElement([
-                'stnk',
-                'bpkb',
-                'invoice',
-                'receipt',
-                'form_a',
-                'kir',
-                'other',
-            ]),
+            'document_type' => 'stnk',
             'document_number' => strtoupper($this->faker->bothify('DOC-####-????')),
             'owner_name' => $this->faker->name(),
             'issued_at' => $this->faker->dateTimeBetween('-3 years', '-1 month'),

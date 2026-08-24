@@ -2,9 +2,6 @@
 
 namespace App\Http\Requests\VehicleDocument;
 
-use App\Models\Car;
-use App\Models\VehicleDocument;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,90 +9,121 @@ abstract class VehicleDocumentRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        $nullableStrings = [
-            'document_number',
-            'owner_name',
-            'issued_at',
-            'expires_at',
-            'notes',
-        ];
-
-        $normalized = [];
-
-        foreach ($nullableStrings as $field) {
-            $value = trim((string) $this->input($field));
-            $normalized[$field] = $value === '' ? null : $value;
-        }
+        $stnk = (array) $this->input('stnk', []);
+        $bpkb = (array) $this->input('bpkb', []);
 
         $this->merge([
-            ...$normalized,
-            'original_received' => $this->boolean('original_received'),
+            'stnk' => [
+                'status' => $stnk['status'] ?? null,
+                'owner_name' => $this->nullableString($stnk['owner_name'] ?? null),
+                'issued_at' => $this->nullableString($stnk['issued_at'] ?? null),
+                'expires_at' => $this->nullableString($stnk['expires_at'] ?? null),
+            ],
+            'bpkb' => [
+                'status' => $bpkb['status'] ?? null,
+                'owner_name' => $this->nullableString($bpkb['owner_name'] ?? null),
+                'issued_at' => $this->nullableString($bpkb['issued_at'] ?? null),
+            ],
             'remove_file' => $this->boolean('remove_file'),
         ]);
     }
 
-    /**
-     * @return array<string, array<mixed>>
-     */
-    protected function documentRules(
-        Car $car,
-        ?VehicleDocument $document = null,
-    ): array {
+    /** @return array<string, array<mixed>> */
+    protected function documentRules(): array
+    {
+        $stnkIsComplete = $this->input('stnk.status') === 'complete';
+        $bpkbHasBeenPrinted = in_array(
+            $this->input('bpkb.status'),
+            ['ready', 'uncollected'],
+            true,
+        );
+
         return [
-            'document_type' => [
+            'stnk' => ['required', 'array'],
+            'stnk.status' => [
                 'required',
-                Rule::in(['stnk', 'bpkb', 'invoice', 'receipt', 'form_a', 'kir', 'other']),
-                Rule::unique(VehicleDocument::class, 'document_type')
-                    ->where(fn (QueryBuilder $query) => $query->where('car_id', $car->id))
-                    ->ignore($document),
+                Rule::in(['printing', 'complete', 'incomplete']),
             ],
-            'document_number' => ['nullable', 'string', 'max:100'],
-            'owner_name' => ['nullable', 'string', 'max:100'],
-            'issued_at' => ['nullable', 'date'],
-            'expires_at' => [
+            'stnk.owner_name' => [
+                Rule::requiredIf($stnkIsComplete),
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'stnk.issued_at' => [
+                Rule::requiredIf($stnkIsComplete),
                 'nullable',
                 'date',
-                ...($this->filled('issued_at') ? ['after_or_equal:issued_at'] : []),
             ],
-            'status' => [
+            'stnk.expires_at' => [
+                Rule::requiredIf($stnkIsComplete),
+                'nullable',
+                'date',
+                ...($this->filled('stnk.issued_at')
+                    ? ['after_or_equal:stnk.issued_at']
+                    : []),
+            ],
+            'bpkb' => ['required', 'array'],
+            'bpkb.status' => [
                 'required',
-                Rule::in(['complete', 'pending', 'processing', 'missing']),
+                Rule::in(['printing', 'ready', 'uncollected']),
             ],
-            'original_received' => ['required', 'boolean'],
-            'file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'bpkb.owner_name' => [
+                Rule::requiredIf($bpkbHasBeenPrinted),
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'bpkb.issued_at' => [
+                Rule::requiredIf($bpkbHasBeenPrinted),
+                'nullable',
+                'date',
+            ],
+            'invoice' => ['required', 'array'],
+            'invoice.status' => [
+                'required',
+                Rule::in(['ready', 'not_ready']),
+            ],
+            'file' => [
+                'nullable',
+                'file',
+                'mimes:pdf,jpg,jpeg,png',
+                'max:5120',
+            ],
             'remove_file' => ['sometimes', 'boolean'],
-            'notes' => ['nullable', 'string', 'max:2000'],
         ];
     }
 
-    /**
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     public function messages(): array
     {
         return [
-            'document_type.unique' => 'Jenis dokumen ini sudah tercatat untuk mobil tersebut.',
-            'expires_at.after_or_equal' => 'Tanggal berlaku sampai tidak boleh sebelum tanggal terbit.',
-            'file.mimes' => 'Berkas harus berupa PDF, JPG, JPEG, atau PNG.',
-            'file.max' => 'Ukuran berkas maksimal 5 MB.',
+            'stnk.expires_at.after_or_equal' => 'Masa berlaku STNK tidak boleh sebelum tanggal terbit.',
+            'file.mimes' => 'Lampiran harus berupa PDF, JPG, JPEG, atau PNG.',
+            'file.max' => 'Ukuran lampiran maksimal 5 MB.',
         ];
     }
 
-    /**
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     public function attributes(): array
     {
         return [
-            'document_type' => 'jenis dokumen',
-            'document_number' => 'nomor dokumen',
-            'owner_name' => 'nama pemilik',
-            'issued_at' => 'tanggal terbit',
-            'expires_at' => 'tanggal berlaku sampai',
-            'status' => 'status dokumen',
-            'original_received' => 'dokumen asli diterima',
-            'file' => 'berkas dokumen',
-            'notes' => 'catatan',
+            'stnk.status' => 'status STNK',
+            'stnk.owner_name' => 'nama pemilik STNK',
+            'stnk.issued_at' => 'tanggal terbit STNK',
+            'stnk.expires_at' => 'masa berlaku STNK',
+            'bpkb.status' => 'status BPKB',
+            'bpkb.owner_name' => 'nama pemilik BPKB',
+            'bpkb.issued_at' => 'tanggal terbit BPKB',
+            'invoice.status' => 'status faktur',
+            'file' => 'lampiran dokumen',
         ];
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $normalized = trim((string) $value);
+
+        return $normalized === '' ? null : $normalized;
     }
 }

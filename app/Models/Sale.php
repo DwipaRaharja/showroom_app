@@ -296,12 +296,6 @@ class Sale extends Model
         return $this->hasMany(Payment::class);
     }
 
-    /** @return HasOne<DocumentProcess, $this> */
-    public function documentProcess(): HasOne
-    {
-        return $this->hasOne(DocumentProcess::class);
-    }
-
     /**
      * Get the vehicle handover (BAST) record.
      *

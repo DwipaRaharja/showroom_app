@@ -166,14 +166,12 @@ export function formatFuel(fuel: FuelType) {
 }
 
 type CarColumnActions = {
-    onDetail: (car: Car) => void;
     onStatusChange: (car: Car) => void;
     onManageDocuments: (car: Car) => void;
     onDelete: (car: Car) => void;
 };
 
 export function createCarColumns({
-    onDetail,
     onStatusChange,
     onManageDocuments,
     onDelete,
@@ -332,12 +330,23 @@ export function createCarColumns({
                     <div className="font-semibold text-emerald-600 dark:text-emerald-500">
                         {currencyFormatter.format(row.original.selling_price)}
                     </div>
-                    {row.original.purchase_price && (
+                    {row.original.capital && (
                         <div className="text-xs text-muted-foreground">
                             Modal:{' '}
                             {currencyFormatter.format(
-                                row.original.purchase_price,
+                                row.original.capital.total_capital,
                             )}
+                            {row.original.capital.status !== 'completed' &&
+                                ` · ${
+                                    row.original.capital.status === 'draft'
+                                        ? 'Draft'
+                                        : 'Dibatalkan'
+                                }`}
+                        </div>
+                    )}
+                    {!row.original.capital && (
+                        <div className="text-xs font-medium text-amber-600 dark:text-amber-500">
+                            Modal belum lengkap
                         </div>
                     )}
                 </div>
@@ -414,11 +423,13 @@ export function createCarColumns({
                         <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuLabel>Aksi</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                onSelect={() => onDetail(row.original)}
-                            >
-                                <EyeIcon />
-                                Detail unit mobil
+                            <DropdownMenuItem asChild>
+                                <Link
+                                    href={CarController.show(row.original.id)}
+                                >
+                                    <EyeIcon />
+                                    Detail unit mobil
+                                </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 onSelect={() =>

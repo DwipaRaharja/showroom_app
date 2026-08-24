@@ -30,26 +30,11 @@ class VehicleDocument extends Model
 
     protected static function booted(): void
     {
-        static::saved(function (VehicleDocument $document): void {
-            $document->syncActiveDocumentProcess();
-        });
-
         static::deleted(function (VehicleDocument $document): void {
             if ($document->file_path !== null) {
                 Storage::disk('local')->delete($document->file_path);
             }
-
-            $document->syncActiveDocumentProcess();
         });
-    }
-
-    private function syncActiveDocumentProcess(): void
-    {
-        $process = $this->car?->sale?->documentProcess;
-
-        if ($process && $process->status !== 'cancelled') {
-            $process->syncItemsFromVehicleDocuments();
-        }
     }
 
     /**
@@ -65,6 +50,16 @@ class VehicleDocument extends Model
             'original_received' => 'boolean',
             'file_size' => 'integer',
         ];
+    }
+
+    public function isReadyForProcess(): bool
+    {
+        return match ($this->document_type) {
+            'stnk' => $this->status === 'complete',
+            'bpkb' => in_array($this->status, ['ready', 'uncollected'], true),
+            'invoice' => $this->status === 'ready',
+            default => false,
+        };
     }
 
     /**

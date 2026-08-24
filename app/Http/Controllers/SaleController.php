@@ -57,7 +57,10 @@ class SaleController extends Controller
         return Inertia::render('sales/create', [
             'available_cars' => Car::query()
                 ->availableForSale()
-                ->with(['brand:id,name'])
+                ->with([
+                    'brand:id,name',
+                    'capital:id,car_id,purchase_number,price,repair_cost,transport_cost,other_cost,status',
+                ])
                 ->orderBy('name')
                 ->get(['id', 'brand_id', 'name', 'license_plate', 'year', 'color', 'selling_price', 'status']),
             'customers' => Customer::query()
@@ -144,11 +147,14 @@ class SaleController extends Controller
     public function show(Sale $sale): Response
     {
         $sale->load([
-            'car' => fn ($q) => $q->with(['brand:id,name', 'documents']),
+            'car' => fn ($q) => $q->with([
+                'brand:id,name',
+                'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,status,notes,created_at',
+                'documents',
+            ]),
             'customer',
             'financeCompany',
             'payments' => fn ($q) => $q->latest('payment_date')->latest('id'),
-            'documentProcess:id,sale_id,process_number,status',
             'handover',
         ]);
 
@@ -164,6 +170,7 @@ class SaleController extends Controller
     {
         DB::transaction(function () use ($sale) {
             $car = $sale->car;
+            $sale->handover?->delete();
             $sale->delete();
 
             if ($car && ! $car->trashed()) {

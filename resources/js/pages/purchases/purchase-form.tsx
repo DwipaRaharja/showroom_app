@@ -39,6 +39,7 @@ import { index as purchasesIndex } from '@/routes/purchases';
 type Props = {
     purchase: PurchaseFormValue | null;
     cars: PurchaseCar[];
+    selectedCarId?: number | null;
 };
 
 const validationColorClassName =
@@ -66,14 +67,16 @@ function numericValue(value: string): number {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function PurchaseForm({ purchase, cars }: Props) {
+export function PurchaseForm({ purchase, cars, selectedCarId = null }: Props) {
     const isEditing = purchase !== null;
     const [carId, setCarId] = useState(
         purchase?.car_id
             ? String(purchase.car_id)
-            : cars[0]?.id
-              ? String(cars[0].id)
-              : '',
+            : selectedCarId && cars.some((car) => car.id === selectedCarId)
+              ? String(selectedCarId)
+              : cars[0]?.id
+                ? String(cars[0].id)
+                : '',
     );
     const [purchaseDate, setPurchaseDate] = useState(
         purchase?.purchase_date.slice(0, 10) ?? today(),
@@ -145,7 +148,7 @@ export function PurchaseForm({ purchase, cars }: Props) {
                                 <Select
                                     value={carId}
                                     onValueChange={setCarId}
-                                    disabled={!hasCars}
+                                    disabled={!hasCars || isEditing}
                                 >
                                     <SelectTrigger
                                         id="capital-car"
@@ -175,6 +178,12 @@ export function PurchaseForm({ purchase, cars }: Props) {
                                     message={errors.car_id}
                                     className={errorTextClassName}
                                 />
+                                {isEditing && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Modal tetap terikat pada unit ini agar
+                                        riwayat keuangan tidak berpindah.
+                                    </p>
+                                )}
                             </div>
 
                             <div className="grid gap-2">

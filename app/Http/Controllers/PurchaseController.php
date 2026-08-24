@@ -9,6 +9,7 @@ use App\Models\Purchase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -46,13 +47,16 @@ class PurchaseController extends Controller
     /**
      * Show the form for creating a new purchase.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $selectedCarId = $request->integer('car_id') ?: null;
+
         return Inertia::render('purchases/create', [
             'cars' => Car::availableForPurchase()
                 ->with('brand:id,name')
                 ->orderBy('name')
                 ->get(['id', 'brand_id', 'name', 'license_plate', 'year']),
+            'selected_car_id' => $selectedCarId,
         ]);
     }
 
@@ -103,7 +107,18 @@ class PurchaseController extends Controller
      */
     public function update(UpdatePurchaseRequest $request, Purchase $purchase): RedirectResponse
     {
-        $purchase->update($request->validated());
+        $validated = $request->validated();
+
+        if (
+            $validated['status'] !== 'completed'
+            && $purchase->car?->sale()->exists()
+        ) {
+            throw ValidationException::withMessages([
+                'status' => 'Modal mobil yang sudah memiliki penjualan harus tetap aktif.',
+            ]);
+        }
+
+        $purchase->update($validated);
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -122,6 +137,18 @@ class PurchaseController extends Controller
             'status' => ['required', Rule::in(['draft', 'completed', 'cancelled'])],
         ]);
 
+        if (
+            $validated['status'] !== 'completed'
+            && $purchase->car?->sale()->exists()
+        ) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Modal tidak dapat dinonaktifkan karena mobil sudah memiliki transaksi penjualan.',
+            ]);
+
+            return back();
+        }
+
         $purchase->update($validated);
 
         Inertia::flash('toast', [
@@ -137,6 +164,15 @@ class PurchaseController extends Controller
      */
     public function destroy(Purchase $purchase): RedirectResponse
     {
+        if ($purchase->car?->sale()->exists()) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Modal tidak dapat dihapus karena mobil sudah memiliki transaksi penjualan.',
+            ]);
+
+            return back();
+        }
+
         $purchase->delete();
 
         Inertia::flash('toast', [

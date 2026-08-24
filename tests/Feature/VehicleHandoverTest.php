@@ -8,135 +8,201 @@ use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\User;
 use App\Models\VehicleHandover;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    $this->user = User::factory()->create();
-    $this->actingAs($this->user);
+    $this->actingAs(User::factory()->create());
 });
 
-test('it validates that vehicle cannot be delivered if remaining bill is greater than 10 million', function () {
-    $brand = Brand::create(['name' => 'Toyota', 'is_active' => true]);
-    $car = Car::create([
-        'brand_id' => $brand->id,
-        'name' => 'Innova Zenix',
-        'year' => 2023,
-        'transmission' => 'automatic',
-        'fuel_type' => 'gasoline',
-        'color' => 'Hitam',
-        'mileage' => 15000,
-        'license_plate' => 'B 1234 TB',
-        'status' => 'available',
-        'purchase_price' => 350_000_000,
-        'selling_price' => 420_000_000,
-    ]);
+/** @return array<string, mixed> */
+function validHandoverChecklist(bool $withBpkb = false): array
+{
+    return [
+        'key_count' => 2,
+        'has_stnk' => true,
+        'has_bpkb' => $withBpkb,
+        'has_faktur' => $withBpkb,
+        'has_manual_book' => true,
+        'has_toolkit' => true,
+        'has_spare_tire' => true,
+        'fuel_level' => '1/2',
+        'cleanliness' => 'Bersih & Salon Siap Pakai',
+    ];
+}
 
-    $customer = Customer::create([
+function createSaleForHandover(int $dealPrice = 100_000_000): Sale
+{
+    $brand = Brand::query()->create([
+        'name' => 'Toyota '.fake()->unique()->numerify('####'),
+        'is_active' => true,
+    ]);
+    $car = Car::query()->create([
+        'brand_id' => $brand->id,
+        'name' => 'Avanza G',
+        'year' => 2024,
+        'transmission' => 'automatic',
+        'fuel_type' => 'bensin',
+        'color' => 'Hitam',
+        'mileage' => 12_000,
+        'license_plate' => fake()->unique()->bothify('B #### ??'),
+        'status' => 'booked',
+        'selling_price' => $dealPrice,
+    ]);
+    $customer = Customer::query()->create([
         'name' => 'Budi Santoso',
         'phone' => '081234567890',
         'ktp_number' => '3201234567890001',
     ]);
 
-    $sale = Sale::create([
+    return Sale::query()->create([
         'car_id' => $car->id,
         'customer_id' => $customer->id,
         'payment_type' => 'cash_tempo',
-        'deal_price' => 400_000_000,
-        'down_payment' => 50_000_000,
+        'deal_price' => $dealPrice,
+        'down_payment' => 0,
         'finance_amount' => 0,
         'leasing_bonus' => 0,
-        'due_date' => now()->addDays(30),
-        'status' => 'partial',
+        'status' => 'pending',
     ]);
+}
 
-    // Sale has 400jt deal price and 0 payments recorded yet, remaining is 400jt (> 10jt)
-    expect($sale->can_deliver_vehicle)->toBeFalse()
-        ->and($sale->can_deliver_bpkb)->toBeFalse();
-
-    $response = $this->post(route('handovers.store'), [
+/** @return array<string, mixed> */
+function validHandoverPayload(Sale $sale): array
+{
+    return [
         'sale_id' => $sale->id,
         'recipient_name' => 'Budi Santoso',
+        'recipient_phone' => '081234567890',
+        'recipient_id_card' => '3201234567890001',
         'recipient_relation' => 'buyer_self',
         'officer_name' => 'Admin Showroom',
         'handover_location' => 'Showroom Telaga Berlian',
+        'checklist' => validHandoverChecklist(),
+    ];
+}
+
+function paySaleForHandover(Sale $sale, int $amount): void
+{
+    $sale->payments()->create([
+        'payment_number' => 'KW-TEST-'.fake()->unique()->numerify('######'),
+        'payment_date' => now()->toDateString(),
+        'payer_type' => 'customer',
+        'payment_category' => 'down_payment',
+        'amount' => $amount,
+        'payment_method' => 'transfer',
+        'destination_account' => 'BCA Showroom',
+        'status' => 'confirmed',
+    ]);
+}
+
+test('vehicle delivery is blocked while the remaining bill exceeds ten million', function () {
+    $sale = createSaleForHandover();
+
+    $response = $this->post(route('handovers.store'), [
+        ...validHandoverPayload($sale),
         'vehicle_delivered_at' => now()->format('Y-m-d H:i:s'),
     ]);
 
     $response->assertSessionHasErrors('vehicle_delivered_at');
+    expect(VehicleHandover::query()->whereBelongsTo($sale)->exists())->toBeFalse();
 });
 
-test('it allows vehicle delivery when remaining bill is 10 million or less but blocks BPKB until settled', function () {
-    $brand = Brand::create(['name' => 'Honda', 'is_active' => true]);
-    $car = Car::create([
-        'brand_id' => $brand->id,
-        'name' => 'HR-V SE',
-        'year' => 2022,
-        'transmission' => 'automatic',
-        'fuel_type' => 'gasoline',
-        'color' => 'Putih',
-        'mileage' => 25000,
-        'license_plate' => 'B 5678 TB',
-        'status' => 'available',
-        'purchase_price' => 300_000_000,
-        'selling_price' => 350_000_000,
-    ]);
+test('a handover cannot be saved without selecting a delivery stage', function () {
+    $sale = createSaleForHandover(8_000_000);
 
-    $customer = Customer::create([
-        'name' => 'Ahmad Dani',
-        'phone' => '081298765432',
-    ]);
+    $response = $this->post(
+        route('handovers.store'),
+        validHandoverPayload($sale),
+    );
 
-    $sale = Sale::create([
-        'car_id' => $car->id,
-        'customer_id' => $customer->id,
-        'payment_type' => 'cash_tempo',
-        'deal_price' => 350_000_000,
-        'down_payment' => 342_000_000,
-        'finance_amount' => 0,
-        'leasing_bonus' => 0,
-        'status' => 'partial',
-    ]);
+    $response->assertSessionHasErrors('vehicle_delivered_at');
+});
 
-    // Record payment of 342jt so remaining is 8jt (<= 10jt)
-    $sale->payments()->create([
-        'payment_number' => 'KW-TEST-001',
-        'payment_date' => now()->format('Y-m-d'),
-        'payer_type' => 'customer',
-        'payment_category' => 'down_payment',
-        'amount' => 342_000_000,
-        'payment_method' => 'transfer',
-        'destination_account' => 'BCA 123456789',
-        'status' => 'confirmed',
-    ]);
+test('vehicle can be delivered with at most ten million remaining while BPKB stays held', function () {
+    $sale = createSaleForHandover(100_000_000);
+    paySaleForHandover($sale, 92_000_000);
 
-    $sale->refresh();
-
-    expect($sale->remaining_bill)->toBe(8_000_000)
-        ->and($sale->can_deliver_vehicle)->toBeTrue()
-        ->and($sale->can_deliver_bpkb)->toBeFalse();
-
-    // 1. Vehicle delivery should succeed
     $response = $this->post(route('handovers.store'), [
-        'sale_id' => $sale->id,
-        'recipient_name' => 'Ahmad Dani',
-        'recipient_relation' => 'buyer_self',
-        'officer_name' => 'Staf Showroom',
-        'handover_location' => 'Showroom Telaga Berlian',
+        ...validHandoverPayload($sale),
         'vehicle_delivered_at' => now()->format('Y-m-d H:i:s'),
     ]);
 
     $response->assertSessionHasNoErrors();
-    expect(VehicleHandover::where('sale_id', $sale->id)->first()->status)->toBe('vehicle_delivered');
 
-    // 2. But BPKB delivery should fail if attempted while not settled
-    $failBpkbResponse = $this->post(route('handovers.store'), [
-        'sale_id' => $sale->id,
-        'recipient_name' => 'Ahmad Dani',
-        'recipient_relation' => 'buyer_self',
-        'officer_name' => 'Staf Showroom',
-        'handover_location' => 'Showroom Telaga Berlian',
-        'vehicle_delivered_at' => now()->format('Y-m-d H:i:s'),
+    $handover = VehicleHandover::query()->whereBelongsTo($sale)->firstOrFail();
+
+    expect($handover->status)->toBe('vehicle_delivered')
+        ->and($handover->vehicle_delivered_at)->not->toBeNull()
+        ->and($handover->bpkb_delivered_at)->toBeNull();
+});
+
+test('BPKB requires full settlement and a recorded vehicle delivery', function () {
+    $sale = createSaleForHandover(100_000_000);
+    paySaleForHandover($sale, 92_000_000);
+
+    $response = $this->post(route('handovers.store'), [
+        ...validHandoverPayload($sale),
         'bpkb_delivered_at' => now()->format('Y-m-d H:i:s'),
+        'bpkb_recipient_type' => 'customer',
+        'checklist' => validHandoverChecklist(true),
     ]);
 
-    $failBpkbResponse->assertSessionHasErrors('bpkb_delivered_at');
+    $response->assertSessionHasErrors('bpkb_delivered_at');
+});
+
+test('a settled sale may record both delivery stages and print its BAST', function () {
+    $sale = createSaleForHandover(100_000_000);
+    paySaleForHandover($sale, 100_000_000);
+    $deliveredAt = now()->subMinute()->format('Y-m-d H:i:s');
+
+    $response = $this->post(route('handovers.store'), [
+        ...validHandoverPayload($sale),
+        'vehicle_delivered_at' => $deliveredAt,
+        'bpkb_delivered_at' => now()->format('Y-m-d H:i:s'),
+        'bpkb_recipient_type' => 'customer',
+        'checklist' => validHandoverChecklist(true),
+    ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $handover = VehicleHandover::query()->whereBelongsTo($sale)->firstOrFail();
+
+    expect($handover->status)->toBe('completed');
+
+    $this->get(route('sales.bast.print', $sale))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('sales/bast-print')
+            ->where('handover.id', $handover->id));
+});
+
+test('BAST cannot be opened before a vehicle delivery is recorded', function () {
+    $sale = createSaleForHandover(8_000_000);
+
+    $this->get(route('sales.bast.print', $sale))->assertNotFound();
+});
+
+test('proof of handover is stored privately and can be downloaded', function () {
+    Storage::fake('local');
+    $sale = createSaleForHandover(8_000_000);
+
+    $response = $this->post(route('handovers.store'), [
+        ...validHandoverPayload($sale),
+        'vehicle_delivered_at' => now()->format('Y-m-d H:i:s'),
+        'proof_file' => UploadedFile::fake()->create(
+            'bukti-serah-terima.pdf',
+            100,
+            'application/pdf',
+        ),
+    ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $handover = VehicleHandover::query()->whereBelongsTo($sale)->firstOrFail();
+
+    expect($handover->proof_file)->not->toBeNull();
+    Storage::disk('local')->assertExists($handover->proof_file);
+
+    $this->get(route('handovers.proof.download', $handover))->assertOk();
 });

@@ -31,7 +31,7 @@ class SaleSeeder extends Seeder
 
         $customers = Customer::all();
         $finances = FinanceCompany::all();
-        $cars = Car::query()->whereDoesntHave('sale')->get();
+        $cars = Car::query()->availableForSale()->get();
 
         if ($cars->isEmpty()) {
             return;
@@ -240,7 +240,7 @@ class SaleSeeder extends Seeder
                     ]);
 
                     // Payment 3: Bonus from leasing if scenario allows
-                    if (!empty($scenario['bonus_received']) && $leasingBonus > 0) {
+                    if (! empty($scenario['bonus_received']) && $leasingBonus > 0) {
                         $bonusDate = Carbon::parse($disbursedDate)->addDays(3);
                         Payment::query()->create([
                             'payment_number' => Payment::generatePaymentNumber($bonusDate),

@@ -1,373 +1,368 @@
 import { Head, Link } from '@inertiajs/react';
 import {
     ArrowLeftIcon,
-    CheckCircleIcon,
+    CheckIcon,
     PrinterIcon,
-    XCircleIcon,
+    XIcon,
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
-import type { Sale, VehicleHandover } from '@/pages/sales/types';
+import type {
+    HandoverChecklist,
+    Sale,
+    VehicleHandover,
+} from '@/pages/sales/types';
 import { show as salesShow } from '@/routes/sales';
 
 type Props = {
     sale: Sale;
-    handover?: VehicleHandover | null;
+    handover: VehicleHandover;
 };
 
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
+const dateFormatter = new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Makassar',
 });
 
-function formatIndonesianDate(dateStr?: string | null): string {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
+const timeFormatter = new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone: 'Asia/Makassar',
+});
+
+function formatDateTime(value: string | null): string {
+    if (!value) {
+        return '—';
+    }
+
+    const date = new Date(value);
+
+    return `${dateFormatter.format(date)}, pukul ${timeFormatter.format(date)} WITA`;
 }
 
-function formatIndonesianDateTime(dateStr?: string | null): string {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    return (
-        d.toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-        }) +
-        ' pukul ' +
-        d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) +
-        ' WIB'
+function relationLabel(
+    relation: VehicleHandover['recipient_relation'],
+): string {
+    const labels: Record<VehicleHandover['recipient_relation'], string> = {
+        buyer_self: 'Pembeli sendiri',
+        family: 'Keluarga / pasangan',
+        driver: 'Supir / utusan',
+        leasing_officer: 'Petugas perusahaan pembiayaan',
+        other: 'Lainnya',
+    };
+
+    return labels[relation];
+}
+
+function ChecklistStatus({ checked }: { checked: boolean }) {
+    return checked ? (
+        <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+            <CheckIcon className="size-3.5" weight="bold" /> Ada
+        </span>
+    ) : (
+        <span className="inline-flex items-center gap-1 text-neutral-500">
+            <XIcon className="size-3.5" /> Tidak ada
+        </span>
     );
 }
 
+function DetailRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="grid grid-cols-[7rem_1fr] gap-2 py-0.5">
+            <span className="text-neutral-500">{label}</span>
+            <span className="font-medium text-neutral-900">
+                : {value || '—'}
+            </span>
+        </div>
+    );
+}
+
+function checklistRows(checklist: HandoverChecklist) {
+    return [
+        ['STNK asli', checklist.has_stnk ?? false],
+        ['Buku manual / servis', checklist.has_manual_book ?? false],
+        ['Tool kit & dongkrak', checklist.has_toolkit ?? false],
+        ['Ban cadangan', checklist.has_spare_tire ?? false],
+    ] as const;
+}
+
 export default function BastPrint({ sale, handover }: Props) {
-    const checklist = handover?.checklist;
-    const remainingBill = sale.remaining_bill ?? 0;
+    const checklist = handover.checklist ?? {};
+    const bpkbDelivered = Boolean(handover.bpkb_delivered_at);
 
     return (
-        <div className="min-h-screen bg-neutral-100 p-4 md:p-8 print:bg-white print:p-0">
-            <Head title={`BAST - ${handover?.handover_number ?? sale.invoice_number}`} />
+        <div className="min-h-screen bg-neutral-100 px-4 py-6 text-neutral-900 print:bg-white print:p-0">
+            <Head title={`BAST ${handover.handover_number}`} />
+            <style>{`
+                @page { size: A4 portrait; margin: 12mm; }
+                @media print {
+                    html, body { background: white !important; }
+                    * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+                }
+            `}</style>
 
-            {/* Top Action Bar (Hidden on Print) */}
-            <div className="mx-auto max-w-4xl mb-6 flex items-center justify-between print:hidden">
-                <Button variant="outline" size="sm" asChild className="gap-1.5">
+            <div className="mx-auto mb-4 flex max-w-[210mm] items-center justify-between print:hidden">
+                <Button variant="outline" size="sm" asChild>
                     <Link href={salesShow(sale.id)}>
-                        <ArrowLeftIcon className="size-4" />
-                        Kembali ke Detail Penjualan
+                        <ArrowLeftIcon />
+                        Kembali
                     </Link>
                 </Button>
-
-                <Button
-                    onClick={() => window.print()}
-                    size="sm"
-                    className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
-                >
-                    <PrinterIcon className="size-4" />
-                    Cetak Dokumen BAST
+                <Button size="sm" onClick={() => window.print()}>
+                    <PrinterIcon />
+                    Cetak BAST
                 </Button>
             </div>
 
-            {/* Printable Document Sheet (A4 format) */}
-            <div className="mx-auto max-w-4xl rounded-2xl bg-white p-8 md:p-12 shadow-md print:shadow-none print:p-6 print:rounded-none print:max-w-none text-neutral-900 border border-neutral-200 print:border-none">
-                {/* Header / Kop Showroom */}
-                <div className="border-b-2 border-neutral-900 pb-4 mb-6 flex items-start justify-between">
+            <main className="mx-auto max-w-[210mm] bg-white p-8 shadow-sm ring-1 ring-neutral-200 print:max-w-none print:p-0 print:shadow-none print:ring-0">
+                <header className="flex items-start justify-between gap-6 border-b-2 border-neutral-900 pb-4">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-neutral-900">
+                        <p className="text-xl font-black tracking-tight">
                             TELAGA BERLIAN MOTOR
-                        </h1>
-                        <p className="text-xs text-neutral-600 font-medium mt-0.5">
-                            Showroom Jual Beli Mobil Bekas Berkualitas & Terpercaya
                         </p>
-                        <p className="text-xs text-neutral-500 mt-1">
-                            Jl. Raya Showroom No. 88, Telaga Berlian • WhatsApp: 0812-3456-7890 • Email: info@telagaberlian.com
+                        <p className="mt-1 text-[11px] text-neutral-500">
+                            Dokumen resmi penyerahan kendaraan
                         </p>
                     </div>
-                    <div className="text-right">
-                        <div className="text-[11px] uppercase tracking-wider text-neutral-500 font-semibold">
-                            No. Dokumen BAST
-                        </div>
-                        <div className="font-mono text-sm font-bold text-neutral-900">
-                            {handover?.handover_number ?? 'BAST-DRAFT'}
-                        </div>
-                        <div className="text-[11px] text-neutral-500 mt-1 font-mono">
-                            Ref: {sale.invoice_number}
-                        </div>
+                    <div className="text-right text-[11px]">
+                        <p className="text-neutral-500">Nomor BAST</p>
+                        <p className="font-mono text-sm font-bold">
+                            {handover.handover_number}
+                        </p>
+                        <p className="mt-1 font-mono text-neutral-500">
+                            Ref. {sale.invoice_number}
+                        </p>
                     </div>
-                </div>
+                </header>
 
-                {/* Title */}
-                <div className="text-center mb-6">
-                    <h2 className="text-base font-bold uppercase tracking-wide underline underline-offset-4 text-neutral-900">
-                        BERITA ACARA SERAH TERIMA KENDARAAN (BAST)
-                    </h2>
-                    <p className="text-xs text-neutral-600 mt-1">
-                        Tanggal: {formatIndonesianDate(handover?.vehicle_delivered_at ?? sale.created_at)} • Lokasi: {handover?.handover_location ?? 'Showroom Telaga Berlian'}
+                <section className="py-5 text-center">
+                    <h1 className="text-base font-bold tracking-wide uppercase underline underline-offset-4">
+                        Berita Acara Serah Terima Kendaraan
+                    </h1>
+                    <p className="mt-2 text-xs text-neutral-600">
+                        {formatDateTime(handover.vehicle_delivered_at)}
                     </p>
-                </div>
+                </section>
 
-                {/* Body Paragraph */}
-                <p className="text-xs leading-relaxed text-neutral-700 mb-4">
-                    Pada hari ini, bertempat di <strong>{handover?.handover_location ?? 'Showroom Telaga Berlian'}</strong> ({handover?.handover_address ?? 'Showroom'}), telah dilakukan penyerahan unit kendaraan bermotor dan/atau dokumen kelengkapan oleh dan antara pihak-pihak di bawah ini:
+                <p className="mb-5 text-xs leading-5 text-neutral-700">
+                    Pada waktu tersebut di atas, bertempat di{' '}
+                    <strong>{handover.handover_location}</strong>
+                    {handover.handover_address
+                        ? `, ${handover.handover_address}`
+                        : ''}
+                    , telah dilakukan penyerahan kendaraan dari pihak showroom
+                    kepada pihak penerima dengan rincian berikut.
                 </p>
 
-                {/* Parties (Pihak I & Pihak II) */}
-                <div className="grid grid-cols-2 gap-4 mb-6 text-xs">
-                    {/* Pihak I */}
-                    <div className="rounded-lg border border-neutral-200 p-3.5 bg-neutral-50">
-                        <div className="font-bold text-neutral-900 border-b border-neutral-200 pb-1.5 mb-2 uppercase text-[11px]">
-                            PIHAK PERTAMA (Yang Menyerahkan)
-                        </div>
-                        <table className="w-full text-xs">
-                            <tbody>
-                                <tr>
-                                    <td className="w-24 text-neutral-500 py-0.5">Nama Petugas</td>
-                                    <td className="font-semibold text-neutral-900">: {handover?.officer_name ?? 'Admin Showroom'}</td>
-                                </tr>
-                                <tr>
-                                    <td className="text-neutral-500 py-0.5">Instansi/Jabatan</td>
-                                    <td>: Showroom Telaga Berlian Motor</td>
-                                </tr>
-                                <tr>
-                                    <td className="text-neutral-500 py-0.5">Alamat</td>
-                                    <td>: Jl. Raya Showroom No. 88</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <section className="mb-5 grid gap-4 text-xs sm:grid-cols-2 print:grid-cols-2">
+                    <div className="break-inside-avoid rounded-lg border border-neutral-200 p-3.5">
+                        <h2 className="mb-2 border-b border-neutral-200 pb-2 text-[11px] font-bold uppercase">
+                            Pihak yang menyerahkan
+                        </h2>
+                        <DetailRow label="Nama" value={handover.officer_name} />
+                        <DetailRow
+                            label="Instansi"
+                            value="Telaga Berlian Motor"
+                        />
                     </div>
+                    <div className="break-inside-avoid rounded-lg border border-neutral-200 p-3.5">
+                        <h2 className="mb-2 border-b border-neutral-200 pb-2 text-[11px] font-bold uppercase">
+                            Pihak yang menerima
+                        </h2>
+                        <DetailRow
+                            label="Nama"
+                            value={handover.recipient_name}
+                        />
+                        <DetailRow
+                            label="NIK"
+                            value={handover.recipient_id_card ?? '—'}
+                        />
+                        <DetailRow
+                            label="No. HP"
+                            value={handover.recipient_phone ?? '—'}
+                        />
+                        <DetailRow
+                            label="Hubungan"
+                            value={relationLabel(handover.recipient_relation)}
+                        />
+                    </div>
+                </section>
 
-                    {/* Pihak II */}
-                    <div className="rounded-lg border border-neutral-200 p-3.5 bg-neutral-50">
-                        <div className="font-bold text-neutral-900 border-b border-neutral-200 pb-1.5 mb-2 uppercase text-[11px]">
-                            PIHAK KEDUA (Yang Menerima)
-                        </div>
-                        <table className="w-full text-xs">
-                            <tbody>
-                                <tr>
-                                    <td className="w-24 text-neutral-500 py-0.5">Nama Penerima</td>
-                                    <td className="font-semibold text-neutral-900">: {handover?.recipient_name ?? sale.customer?.name ?? '—'}</td>
-                                </tr>
-                                <tr>
-                                    <td className="text-neutral-500 py-0.5">NIK KTP</td>
-                                    <td>: {handover?.recipient_id_card ?? sale.customer?.ktp_number ?? '—'}</td>
-                                </tr>
-                                <tr>
-                                    <td className="text-neutral-500 py-0.5">No. Telepon</td>
-                                    <td>: {handover?.recipient_phone ?? sale.customer?.phone ?? '—'}</td>
-                                </tr>
-                                <tr>
-                                    <td className="text-neutral-500 py-0.5">Hubungan</td>
-                                    <td>
-                                        : {handover?.recipient_relation === 'buyer_self'
-                                            ? 'Pembeli Sendiri'
-                                            : handover?.recipient_relation === 'family'
-                                              ? 'Keluarga / Pasangan'
-                                              : handover?.recipient_relation === 'driver'
-                                                ? 'Supir / Utusan'
-                                                : handover?.recipient_relation === 'leasing_officer'
-                                                  ? 'Petugas Leasing'
-                                                  : 'Lainnya'} (Customer: {sale.customer?.name})
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <section className="mb-5 break-inside-avoid overflow-hidden rounded-lg border border-neutral-200 text-xs">
+                    <h2 className="border-b border-neutral-200 bg-neutral-100 px-3.5 py-2 text-[11px] font-bold uppercase">
+                        Identitas kendaraan
+                    </h2>
+                    <div className="grid gap-x-8 gap-y-1 p-3.5 sm:grid-cols-2 print:grid-cols-2">
+                        <DetailRow
+                            label="Merek / tipe"
+                            value={`${sale.car?.brand?.name ?? ''} ${sale.car?.name ?? ''}`.trim()}
+                        />
+                        <DetailRow
+                            label="Nomor polisi"
+                            value={sale.car?.license_plate ?? '—'}
+                        />
+                        <DetailRow
+                            label="Nomor rangka"
+                            value={sale.car?.chassis_number ?? '—'}
+                        />
+                        <DetailRow
+                            label="Nomor mesin"
+                            value={sale.car?.engine_number ?? '—'}
+                        />
+                        <DetailRow
+                            label="Tahun / warna"
+                            value={`${sale.car?.year ?? '—'} / ${sale.car?.color ?? '—'}`}
+                        />
+                        <DetailRow
+                            label="Odometer"
+                            value={`${(sale.car?.mileage ?? 0).toLocaleString('id-ID')} km`}
+                        />
                     </div>
-                </div>
+                </section>
 
-                {/* Identitas Unit Kendaraan */}
-                <div className="rounded-lg border border-neutral-200 p-3.5 mb-6 bg-neutral-50 text-xs">
-                    <div className="font-bold text-neutral-900 border-b border-neutral-200 pb-1.5 mb-2 uppercase text-[11px]">
-                        IDENTITAS KENDARAAN YANG DISERAHKAN
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-                        <div className="flex justify-between">
-                            <span className="text-neutral-500">Merek & Tipe Unit:</span>
-                            <span className="font-bold text-neutral-900">{sale.car?.brand?.name} {sale.car?.name}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-neutral-500">Nomor Polisi:</span>
-                            <span className="font-mono font-bold text-neutral-900">{sale.car?.license_plate ?? 'Tanpa Plat'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-neutral-500">Nomor Rangka (VIN):</span>
-                            <span className="font-mono text-neutral-900">{sale.car?.chassis_number ?? '—'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-neutral-500">Nomor Mesin:</span>
-                            <span className="font-mono text-neutral-900">{sale.car?.engine_number ?? '—'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-neutral-500">Tahun Pembuatan:</span>
-                            <span className="text-neutral-900">{sale.car?.year}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-neutral-500">Warna Kendaraan:</span>
-                            <span className="text-neutral-900">{sale.car?.color ?? '—'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-neutral-500">Transmisi / Bahan Bakar:</span>
-                            <span className="capitalize text-neutral-900">{sale.car?.transmission} / {sale.car?.fuel_type}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-neutral-500">Jarak Tempuh (Odometer):</span>
-                            <span className="font-mono text-neutral-900">{sale.car?.mileage ? sale.car.mileage.toLocaleString('id-ID') : 0} km</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Checklist Kelengkapan & Legalitas */}
-                <div className="rounded-lg border border-neutral-200 mb-6 overflow-hidden text-xs">
-                    <div className="bg-neutral-100 px-3.5 py-2 font-bold text-neutral-900 border-b border-neutral-200 uppercase text-[11px]">
-                        CHECKLIST KELENGKAPAN FISIK & DOKUMEN
-                    </div>
-                    <table className="w-full text-xs">
-                        <thead>
-                            <tr className="border-b border-neutral-200 bg-neutral-50/50 text-neutral-500">
-                                <th className="text-left py-2 px-3 w-8">No</th>
-                                <th className="text-left py-2 px-3">Item Kelengkapan</th>
-                                <th className="text-center py-2 px-3 w-28">Status</th>
-                                <th className="text-left py-2 px-3">Keterangan</th>
+                <section className="mb-5 break-inside-avoid overflow-hidden rounded-lg border border-neutral-200 text-xs">
+                    <h2 className="border-b border-neutral-200 bg-neutral-100 px-3.5 py-2 text-[11px] font-bold uppercase">
+                        Kelengkapan yang diserahkan bersama unit
+                    </h2>
+                    <table className="w-full">
+                        <thead className="border-b border-neutral-200 text-left text-[11px] text-neutral-500">
+                            <tr>
+                                <th className="px-3 py-2">Kelengkapan</th>
+                                <th className="w-32 px-3 py-2">Status</th>
+                                <th className="px-3 py-2">Keterangan</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200">
+                            {checklistRows(checklist).map(
+                                ([label, checked]) => (
+                                    <tr key={label}>
+                                        <td className="px-3 py-2 font-medium">
+                                            {label}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <ChecklistStatus
+                                                checked={checked}
+                                            />
+                                        </td>
+                                        <td className="px-3 py-2 text-neutral-500">
+                                            —
+                                        </td>
+                                    </tr>
+                                ),
+                            )}
                             <tr>
-                                <td className="py-2 px-3 text-neutral-500">1</td>
-                                <td className="py-2 px-3 font-medium">Fisik Unit Kendaraan</td>
-                                <td className="py-2 px-3 text-center">
-                                    {handover?.vehicle_delivered_at ? (
-                                        <span className="font-bold text-emerald-700">Diserahkan</span>
-                                    ) : (
-                                        <span className="text-neutral-400">Belum</span>
-                                    )}
+                                <td className="px-3 py-2 font-medium">
+                                    Kunci kendaraan
                                 </td>
-                                <td className="py-2 px-3 text-neutral-600">
-                                    {handover?.vehicle_delivered_at
-                                        ? `Diserahkan pada ${formatIndonesianDateTime(handover.vehicle_delivered_at)}`
-                                        : `Sisa piutang Rp ${remainingBill.toLocaleString('id-ID')}`}
+                                <td className="px-3 py-2 font-semibold">
+                                    {checklist.key_count ?? 0} buah
+                                </td>
+                                <td className="px-3 py-2 text-neutral-500">
+                                    —
                                 </td>
                             </tr>
                             <tr>
-                                <td className="py-2 px-3 text-neutral-500">2</td>
-                                <td className="py-2 px-3 font-medium">Kunci Kontak Kendaraan</td>
-                                <td className="py-2 px-3 text-center font-bold text-emerald-700">
-                                    {checklist?.key_count ?? 2} Kunci
+                                <td className="px-3 py-2 font-medium">
+                                    BBM & kebersihan
                                 </td>
-                                <td className="py-2 px-3 text-neutral-600">
-                                    {checklist?.key_count && checklist.key_count > 1 ? 'Kunci Utama + Kunci Cadangan' : 'Kunci Utama'}
+                                <td className="px-3 py-2 font-semibold">
+                                    {checklist.fuel_level ?? '—'}
                                 </td>
-                            </tr>
-                            <tr>
-                                <td className="py-2 px-3 text-neutral-500">3</td>
-                                <td className="py-2 px-3 font-medium">STNK Asli & Surat Ketetapan Pajak</td>
-                                <td className="py-2 px-3 text-center">
-                                    {checklist?.has_stnk !== false ? (
-                                        <span className="font-bold text-emerald-700">Lengkap</span>
-                                    ) : (
-                                        <span className="text-neutral-400">Tidak Ada</span>
-                                    )}
-                                </td>
-                                <td className="py-2 px-3 text-neutral-600">Diserahkan bersama fisik unit kendaraan</td>
-                            </tr>
-                            <tr>
-                                <td className="py-2 px-3 text-neutral-500">4</td>
-                                <td className="py-2 px-3 font-medium">BPKB Asli & Faktur Pembelian</td>
-                                <td className="py-2 px-3 text-center">
-                                    {handover?.bpkb_delivered_at ? (
-                                        <span className="font-bold text-emerald-700">Diserahkan</span>
-                                    ) : (
-                                        <span className="font-bold text-amber-700">Ditahan</span>
-                                    )}
-                                </td>
-                                <td className="py-2 px-3 text-neutral-600">
-                                    {handover?.bpkb_delivered_at
-                                        ? `Diserahkan pada ${formatIndonesianDateTime(handover.bpkb_delivered_at)} (${handover.bpkb_recipient_type === 'finance_company' ? 'Ke Finance Leasing' : 'Ke Customer'})`
-                                        : remainingBill > 0
-                                          ? `Ditahan di Showroom (Belum lunas, sisa Rp ${remainingBill.toLocaleString('id-ID')})`
-                                          : 'Siap diserahkan (Lunas 100%)'}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td className="py-2 px-3 text-neutral-500">5</td>
-                                <td className="py-2 px-3 font-medium">Tool Kit, Dongkrak & Ban Cadangan</td>
-                                <td className="py-2 px-3 text-center font-bold text-emerald-700">
-                                    {checklist?.has_toolkit !== false ? 'Lengkap' : '—'}
-                                </td>
-                                <td className="py-2 px-3 text-neutral-600">Terpasang dan tersimpan rapi di bagasi unit</td>
-                            </tr>
-                            <tr>
-                                <td className="py-2 px-3 text-neutral-500">6</td>
-                                <td className="py-2 px-3 font-medium">Buku Manual / Buku Servis</td>
-                                <td className="py-2 px-3 text-center font-bold text-neutral-700">
-                                    {checklist?.has_manual_book !== false ? 'Lengkap' : '—'}
-                                </td>
-                                <td className="py-2 px-3 text-neutral-600">Buku panduan pemilik kendaraan</td>
-                            </tr>
-                            <tr>
-                                <td className="py-2 px-3 text-neutral-500">7</td>
-                                <td className="py-2 px-3 font-medium">Kondisi BBM & Kebersihan Unit</td>
-                                <td className="py-2 px-3 text-center font-bold text-neutral-700">
-                                    {checklist?.fuel_level ?? '1/2'}
-                                </td>
-                                <td className="py-2 px-3 text-neutral-600">
-                                    {checklist?.cleanliness ?? 'Bersih & Salon Siap Pakai'}
+                                <td className="px-3 py-2 text-neutral-600">
+                                    {checklist.cleanliness ?? '—'}
                                 </td>
                             </tr>
                         </tbody>
                     </table>
-                </div>
+                </section>
 
-                {/* Catatan Khusus */}
-                {handover?.notes && (
-                    <div className="rounded-lg border border-neutral-200 p-3 mb-6 bg-neutral-50 text-xs">
-                        <div className="font-bold text-neutral-900 mb-1">Catatan Tambahan:</div>
-                        <p className="text-neutral-700 italic">{handover.notes}</p>
+                <section className="mb-5 break-inside-avoid rounded-lg border border-neutral-200 p-3.5 text-xs">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 className="font-bold">
+                                Status BPKB & Faktur Asli
+                            </h2>
+                            <p className="mt-1 text-neutral-600">
+                                {bpkbDelivered && handover.bpkb_delivered_at
+                                    ? `Diserahkan pada ${formatDateTime(handover.bpkb_delivered_at)} kepada ${
+                                          handover.bpkb_recipient_type ===
+                                          'finance_company'
+                                              ? 'perusahaan pembiayaan'
+                                              : 'customer'
+                                      }.`
+                                    : 'Belum diserahkan dan tetap disimpan oleh showroom sampai proses penyerahan BPKB dicatat.'}
+                            </p>
+                        </div>
+                        <span
+                            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                bpkbDelivered
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-amber-100 text-amber-800'
+                            }`}
+                        >
+                            {bpkbDelivered
+                                ? 'Sudah diserahkan'
+                                : 'Ditahan showroom'}
+                        </span>
                     </div>
+                </section>
+
+                {handover.notes && (
+                    <section className="mb-5 break-inside-avoid rounded-lg border border-neutral-200 p-3.5 text-xs">
+                        <h2 className="font-bold">Catatan</h2>
+                        <p className="mt-1 whitespace-pre-wrap text-neutral-600">
+                            {handover.notes}
+                        </p>
+                    </section>
                 )}
 
-                {/* Pernyataan Hukum */}
-                <div className="text-[11px] leading-relaxed text-neutral-600 mb-8 border-t border-neutral-200 pt-3">
-                    <p className="font-semibold text-neutral-800 mb-1">Ketentuan & Pernyataan Serah Terima:</p>
-                    <ol className="list-decimal pl-4 space-y-0.5">
-                        <li>Pihak Kedua telah memeriksa kondisi fisik dan kelengkapan kendaraan di atas dan menyatakan menerima dalam keadaan baik.</li>
-                        <li>Segala tanggung jawab pemakaian, perawatan, serta risiko hukum dan lalu lintas atas kendaraan beralih kepada Pihak Kedua sejak tanggal dan jam penyerahan ini.</li>
-                        <li>BPKB asli akan diserahkan penuh kepada Pihak Kedua / Lembaga Pembiayaan terkait setelah kewajiban pembayaran dinyatakan lunas 100% oleh Showroom Telaga Berlian.</li>
+                <section className="mb-8 break-inside-avoid border-t border-neutral-200 pt-3 text-[11px] leading-5 text-neutral-600">
+                    <p className="font-semibold text-neutral-900">Pernyataan</p>
+                    <ol className="list-decimal space-y-0.5 pl-4">
+                        <li>
+                            Penerima telah memeriksa kendaraan dan kelengkapan
+                            yang tercantum pada dokumen ini.
+                        </li>
+                        <li>
+                            Tanggung jawab penggunaan kendaraan beralih kepada
+                            penerima sejak waktu penyerahan yang tercatat.
+                        </li>
+                        <li>
+                            Status penyerahan BPKB mengikuti keterangan pada
+                            bagian BPKB & Faktur Asli di atas.
+                        </li>
                     </ol>
-                </div>
+                </section>
 
-                {/* Kolom Tanda Tangan */}
-                <div className="grid grid-cols-3 gap-4 text-center text-xs pt-4">
+                <section className="grid break-inside-avoid grid-cols-2 gap-12 pt-2 text-center text-xs">
                     <div>
-                        <p className="text-neutral-600 mb-16">Pihak Pertama (Showroom),</p>
-                        <p className="font-bold text-neutral-900 underline underline-offset-4">
-                            ({handover?.officer_name ?? 'Staf Showroom'})
+                        <p className="mb-16 text-neutral-600">
+                            Yang menyerahkan,
                         </p>
-                        <p className="text-[10px] text-neutral-500 mt-0.5">Telaga Berlian Motor</p>
+                        <p className="font-bold underline underline-offset-4">
+                            {handover.officer_name}
+                        </p>
+                        <p className="mt-1 text-[10px] text-neutral-500">
+                            Telaga Berlian Motor
+                        </p>
                     </div>
+                    <div>
+                        <p className="mb-16 text-neutral-600">Yang menerima,</p>
+                        <p className="font-bold underline underline-offset-4">
+                            {handover.recipient_name}
+                        </p>
+                        <p className="mt-1 text-[10px] text-neutral-500">
+                            {relationLabel(handover.recipient_relation)}
+                        </p>
+                    </div>
+                </section>
 
-                    <div>
-                        <p className="text-neutral-600 mb-4">Materai Rp 10.000</p>
-                        <div className="mx-auto w-24 h-12 border border-dashed border-neutral-300 rounded flex items-center justify-center text-[10px] text-neutral-400 mb-2">
-                            Materai
-                        </div>
-                        <p className="font-bold text-neutral-900 underline underline-offset-4">
-                            ({handover?.recipient_name ?? sale.customer?.name ?? 'Penerima / Pembeli'})
-                        </p>
-                        <p className="text-[10px] text-neutral-500 mt-0.5">Pihak Kedua (Penerima)</p>
-                    </div>
-
-                    <div>
-                        <p className="text-neutral-600 mb-16">Mengetahui,</p>
-                        <p className="font-bold text-neutral-900 underline underline-offset-4">
-                            (Pimpinan Showroom)
-                        </p>
-                        <p className="text-[10px] text-neutral-500 mt-0.5">Telaga Berlian Motor</p>
-                    </div>
-                </div>
-            </div>
+                <footer className="mt-8 border-t border-neutral-200 pt-2 text-center text-[9px] text-neutral-400">
+                    {handover.handover_number} · {sale.invoice_number}
+                </footer>
+            </main>
         </div>
     );
 }

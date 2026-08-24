@@ -58,8 +58,8 @@ class CarFactory extends Factory
         $plateSuffix = strtoupper($this->faker->lexify('???'));
         $licensePlate = "{$platePrefix} {$plateNumber} {$plateSuffix}";
 
-        $purchasePrice = $this->faker->numberBetween(100, 700) * 1_000_000;
-        $sellingPrice = $purchasePrice + ($this->faker->numberBetween(15, 45) * 1_000_000);
+        $capitalEstimate = $this->faker->numberBetween(100, 700) * 1_000_000;
+        $sellingPrice = $capitalEstimate + ($this->faker->numberBetween(15, 45) * 1_000_000);
 
         return [
             'brand_id' => Brand::query()->inRandomOrder()->value('id') ?? Brand::factory(),
@@ -72,7 +72,6 @@ class CarFactory extends Factory
             'transmission' => $this->faker->randomElement(['manual', 'automatic', 'cvt']),
             'fuel_type' => $this->faker->randomElement(['bensin', 'diesel', 'hybrid', 'electric']),
             'mileage' => $this->faker->numberBetween(5_000, 95_000),
-            'purchase_price' => $purchasePrice,
             'selling_price' => $sellingPrice,
             'status' => $this->faker->randomElement(['available', 'available', 'available', 'booked', 'sold']),
             'description' => 'Kondisi istimewa, servis rutin bengkel resmi, surat-surat lengkap (STNK, BPKB, Faktur). Siap pakai.',

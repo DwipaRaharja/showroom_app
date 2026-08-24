@@ -3,12 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\VehicleDocument\StoreVehicleDocumentRequest;
-use App\Http\Requests\VehicleDocument\UpdateVehicleDocumentRequest;
 use App\Models\Car;
-use App\Models\VehicleDocument;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -22,112 +20,126 @@ class VehicleDocumentController extends Controller
         Car $car,
     ): RedirectResponse {
         $validated = $request->validated();
-        $fileAttributes = [];
-
         $uploadedFile = $request->file('file');
+        $newFileAttributes = [];
 
         if ($uploadedFile instanceof UploadedFile) {
-            $fileAttributes = $this->storeFile($uploadedFile, $car);
+            $newFileAttributes = $this->storeFile($uploadedFile, $car);
         }
+
+        $car->loadMissing('documentAttachment');
+        $oldFilePath = $car->documentAttachment?->file_path;
 
         try {
-            $car->documents()->create([
-                ...Arr::except($validated, ['file', 'remove_file']),
-                ...$fileAttributes,
-            ]);
-        } catch (Throwable $exception) {
-            if (isset($fileAttributes['file_path'])) {
-                Storage::disk('local')->delete($fileAttributes['file_path']);
-            }
-
-            throw $exception;
-        }
-
-        Inertia::flash('toast', [
-            'type' => 'success',
-            'message' => 'Dokumen kendaraan berhasil ditambahkan.',
-        ]);
-
-        return to_route('cars.index');
-    }
-
-    public function update(
-        UpdateVehicleDocumentRequest $request,
-        VehicleDocument $vehicleDocument,
-    ): RedirectResponse {
-        $validated = $request->validated();
-        $oldFilePath = $vehicleDocument->file_path;
-        $fileAttributes = [];
-
-        $uploadedFile = $request->file('file');
-
-        if ($uploadedFile instanceof UploadedFile) {
-            $car = $vehicleDocument->car;
-
-            abort_unless($car instanceof Car, 404);
-
-            $fileAttributes = $this->storeFile(
-                $uploadedFile,
+            DB::transaction(function () use (
                 $car,
-            );
-        } elseif ($request->boolean('remove_file')) {
-            $fileAttributes = [
-                'file_path' => null,
-                'file_name' => null,
-                'file_mime' => null,
-                'file_size' => null,
-            ];
-        }
+                $validated,
+                $newFileAttributes,
+                $request,
+            ): void {
+                $stnk = $validated['stnk'];
+                $bpkb = $validated['bpkb'];
+                $invoice = $validated['invoice'];
 
-        try {
-            $vehicleDocument->update([
-                ...Arr::except($validated, ['file', 'remove_file']),
-                ...$fileAttributes,
-            ]);
+                $car->documents()->updateOrCreate(
+                    ['document_type' => 'stnk'],
+                    [
+                        'document_number' => null,
+                        'owner_name' => $stnk['owner_name'] ?? null,
+                        'issued_at' => $stnk['issued_at'] ?? null,
+                        'expires_at' => $stnk['expires_at'] ?? null,
+                        'status' => $stnk['status'],
+                        'original_received' => $stnk['status'] === 'complete',
+                        'notes' => null,
+                    ],
+                );
+
+                $car->documents()->updateOrCreate(
+                    ['document_type' => 'bpkb'],
+                    [
+                        'document_number' => null,
+                        'owner_name' => $bpkb['owner_name'] ?? null,
+                        'issued_at' => $bpkb['issued_at'] ?? null,
+                        'expires_at' => null,
+                        'status' => $bpkb['status'],
+                        'original_received' => in_array(
+                            $bpkb['status'],
+                            ['ready', 'uncollected'],
+                            true,
+                        ),
+                        'notes' => null,
+                    ],
+                );
+
+                $car->documents()->updateOrCreate(
+                    ['document_type' => 'invoice'],
+                    [
+                        'document_number' => null,
+                        'owner_name' => null,
+                        'issued_at' => null,
+                        'expires_at' => null,
+                        'status' => $invoice['status'],
+                        'original_received' => $invoice['status'] === 'ready',
+                        'notes' => null,
+                    ],
+                );
+
+                if ($newFileAttributes !== []) {
+                    $car->documentAttachment()->updateOrCreate(
+                        [],
+                        $newFileAttributes,
+                    );
+                } elseif ($request->boolean('remove_file')) {
+                    $car->documentAttachment?->update([
+                        'file_path' => null,
+                        'file_name' => null,
+                        'file_mime' => null,
+                        'file_size' => null,
+                    ]);
+                }
+            });
         } catch (Throwable $exception) {
-            if (isset($fileAttributes['file_path'])) {
-                Storage::disk('local')->delete($fileAttributes['file_path']);
+            if (isset($newFileAttributes['file_path'])) {
+                Storage::disk('local')->delete($newFileAttributes['file_path']);
             }
 
             throw $exception;
         }
 
-        if ($oldFilePath !== null && array_key_exists('file_path', $fileAttributes)) {
+        $fileWasReplaced = isset($newFileAttributes['file_path']);
+        $fileWasRemoved = $request->boolean('remove_file') && ! $fileWasReplaced;
+
+        if (
+            $oldFilePath !== null
+            && ($fileWasReplaced || $fileWasRemoved)
+            && $oldFilePath !== ($newFileAttributes['file_path'] ?? null)
+        ) {
             Storage::disk('local')->delete($oldFilePath);
         }
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Dokumen kendaraan berhasil diperbarui.',
+            'message' => 'Data STNK, BPKB, dan faktur berhasil disimpan.',
         ]);
 
-        return to_route('cars.index');
+        return to_route('cars.show', $car);
     }
 
-    public function download(VehicleDocument $vehicleDocument): StreamedResponse
+    public function download(Car $car): StreamedResponse
     {
+        $attachment = $car->documentAttachment;
+
         abort_if(
-            $vehicleDocument->file_path === null
-                || ! Storage::disk('local')->exists($vehicleDocument->file_path),
+            $attachment === null
+                || $attachment->file_path === null
+                || ! Storage::disk('local')->exists($attachment->file_path),
             404,
         );
 
         return Storage::disk('local')->download(
-            $vehicleDocument->file_path,
-            $vehicleDocument->file_name ?? basename($vehicleDocument->file_path),
+            $attachment->file_path,
+            $attachment->file_name ?? basename($attachment->file_path),
         );
-    }
-
-    public function destroy(VehicleDocument $vehicleDocument): RedirectResponse
-    {
-        $vehicleDocument->delete();
-
-        Inertia::flash('toast', [
-            'type' => 'success',
-            'message' => 'Dokumen kendaraan berhasil dihapus.',
-        ]);
-
-        return to_route('cars.index');
     }
 
     /**
@@ -135,11 +147,11 @@ class VehicleDocumentController extends Controller
      */
     private function storeFile(UploadedFile $file, Car $car): array
     {
-        $path = $file->store("vehicle-documents/{$car->id}", 'local');
+        $path = $file->store("vehicle-documents/{$car->id}/shared", 'local');
 
         if ($path === false) {
             throw ValidationException::withMessages([
-                'file' => 'Berkas dokumen gagal disimpan. Silakan coba lagi.',
+                'file' => 'Lampiran dokumen gagal disimpan. Silakan coba lagi.',
             ]);
         }
 

@@ -2,7 +2,6 @@ import { Link } from '@inertiajs/react';
 import {
     CarProfileIcon,
     CoinsIcon,
-    FilesIcon,
     HandCoinsIcon,
     KeyIcon,
     SquaresFourIcon,
@@ -27,7 +26,6 @@ import { dashboard } from '@/routes';
 import { index as brandsIndex } from '@/routes/brands';
 import { index as carsIndex } from '@/routes/cars';
 import { index as customersIndex } from '@/routes/customers';
-import { index as documentProcessesIndex } from '@/routes/document-processes';
 import { index as purchasesIndex } from '@/routes/purchases';
 import { index as salesIndex } from '@/routes/sales';
 import type { NavGroup, NavItem } from '@/types';
@@ -60,11 +58,6 @@ const mainNavGroups: NavGroup[] = [
                 title: 'Penyerahan Unit',
                 href: VehicleHandoverController.index.url(),
                 icon: KeyIcon,
-            },
-            {
-                title: 'Pengurusan Dokumen',
-                href: documentProcessesIndex.url(),
-                icon: FilesIcon,
             },
         ],
     },

@@ -36,7 +36,8 @@ class PurchaseSeeder extends Seeder
 
         foreach ($cars as $index => $car) {
             $purchaseDate = Carbon::now()->subDays(fake()->numberBetween(5, 180));
-            $price = $car->purchase_price ?: fake()->numberBetween(120, 650) * 1_000_000;
+            $estimatedMargin = fake()->numberBetween(15, 45) * 1_000_000;
+            $price = max(0, (int) $car->selling_price - $estimatedMargin);
 
             Purchase::query()->create([
                 'purchase_number' => Purchase::generatePurchaseNumber($purchaseDate),
