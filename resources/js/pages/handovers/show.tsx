@@ -11,7 +11,6 @@ import {
     ShieldCheckIcon,
     UserIcon,
 } from '@phosphor-icons/react';
-import { useState } from 'react';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import { StatCard } from '@/components/stat-card';
 import { StatusBadge } from '@/components/status-badge';
@@ -25,9 +24,8 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { TimelineEvent } from '@/pages/handovers/timeline-event';
-import { HandoverDialog } from '@/pages/sales/handover-dialog';
 import type { Sale } from '@/pages/sales/types';
-import { index as handoversIndex, show as handoversShow } from '@/routes/handovers';
+import { index as handoversIndex } from '@/routes/handovers';
 
 type Props = {
     sale: Sale;
@@ -39,12 +37,6 @@ const currencyFormatter = new Intl.NumberFormat('id-ID', {
     maximumFractionDigits: 0,
 });
 
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-});
-
 const paymentTypeLabels: Record<string, string> = {
     cash_full: 'Cash Keras',
     cash_tempo: 'Cash Tempo',
@@ -52,16 +44,15 @@ const paymentTypeLabels: Record<string, string> = {
 };
 
 export default function HandoverShow({ sale }: Props) {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-
     const events = sale.handover?.events ?? [];
     const remainingBill = sale.remaining_bill ?? sale.deal_price;
     const canDeliverVehicle =
         sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
-    const canDeliverBpkb = sale.can_deliver_bpkb ?? remainingBill <= 0;
     const isSettled = sale.is_settled ?? remainingBill <= 0;
     const unitDelivered = sale.handover?.vehicle_delivered_at != null;
     const bpkbDelivered = sale.handover?.bpkb_delivered_at != null;
+    const canAddTracking =
+        sale.status !== 'cancelled' && (canDeliverVehicle || unitDelivered);
 
     const unitStatusLabel = unitDelivered
         ? 'Sudah Diserahkan'
@@ -108,22 +99,29 @@ export default function HandoverShow({ sale }: Props) {
                                 Tracking Penyerahan
                             </h1>
                             <p className="text-sm text-muted-foreground">
-                                {sale.invoice_number} ·{' '}
-                                {sale.car?.brand?.name} {sale.car?.name}
+                                {sale.invoice_number} · {sale.car?.brand?.name}{' '}
+                                {sale.car?.name}
                             </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button
-                            onClick={() => setIsDialogOpen(true)}
-                            disabled={
-                                sale.status === 'cancelled' ||
-                                (!canDeliverVehicle && !unitDelivered)
-                            }
-                        >
-                            <PlusIcon className="size-4" />
-                            Tambah Tracking
-                        </Button>
+                        {canAddTracking ? (
+                            <Button asChild>
+                                <Link
+                                    href={VehicleHandoverController.create.url(
+                                        sale.id,
+                                    )}
+                                >
+                                    <PlusIcon className="size-4" />
+                                    Tambah Tracking
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button disabled>
+                                <PlusIcon className="size-4" />
+                                Tambah Tracking
+                            </Button>
+                        )}
                         {unitDelivered && (
                             <Button variant="outline" asChild>
                                 <Link
@@ -151,14 +149,10 @@ export default function HandoverShow({ sale }: Props) {
                     <StatCard
                         title="Status Unit Fisik"
                         value={unitStatusLabel}
-                        icon={
-                            unitDelivered ? CheckCircleIcon : CarProfileIcon
-                        }
+                        icon={unitDelivered ? CheckCircleIcon : CarProfileIcon}
                         variant={
                             unitStatusVariant as
-                                | 'success'
-                                | 'warning'
-                                | 'danger'
+                                'success' | 'warning' | 'danger'
                         }
                     />
                     <StatCard
@@ -166,10 +160,7 @@ export default function HandoverShow({ sale }: Props) {
                         value={bpkbStatusLabel}
                         icon={ShieldCheckIcon}
                         variant={
-                            bpkbStatusVariant as
-                                | 'success'
-                                | 'info'
-                                | 'warning'
+                            bpkbStatusVariant as 'success' | 'info' | 'warning'
                         }
                     />
                     <StatCard
@@ -369,27 +360,28 @@ export default function HandoverShow({ sale }: Props) {
                                             : 'Sisa tagihan masih melebihi batas Rp 10.000.000.'}
                                     </p>
                                 </div>
-                                <Button
-                                    size="sm"
-                                    onClick={() => setIsDialogOpen(true)}
-                                    disabled={!canDeliverVehicle}
-                                >
-                                    <PlusIcon className="size-4" />
-                                    Tambah Tracking Pertama
-                                </Button>
+                                {canDeliverVehicle ? (
+                                    <Button size="sm" asChild>
+                                        <Link
+                                            href={VehicleHandoverController.create.url(
+                                                sale.id,
+                                            )}
+                                        >
+                                            <PlusIcon className="size-4" />
+                                            Tambah Tracking Pertama
+                                        </Link>
+                                    </Button>
+                                ) : (
+                                    <Button size="sm" disabled>
+                                        <PlusIcon className="size-4" />
+                                        Tambah Tracking Pertama
+                                    </Button>
+                                )}
                             </div>
                         )}
                     </CardContent>
                 </Card>
             </div>
-
-            {/* Handover Dialog */}
-            <HandoverDialog
-                key={`${sale.id}-${sale.handover?.updated_at ?? 'new'}`}
-                open={isDialogOpen}
-                sale={sale}
-                onOpenChange={setIsDialogOpen}
-            />
         </>
     );
 }

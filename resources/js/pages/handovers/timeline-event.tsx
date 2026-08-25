@@ -1,11 +1,6 @@
-import {
-    CalendarBlankIcon,
-    FileArrowDownIcon,
-    MapPinIcon,
-    UserIcon,
-} from '@phosphor-icons/react';
+import { CalendarBlankIcon, MapPinIcon, UserIcon } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { HandoverPhotoPreview } from '@/pages/handovers/photo-preview';
 import type {
     RecipientRelation,
     VehicleHandoverEvent,
@@ -99,20 +94,8 @@ export function TimelineEvent({ event }: { event: VehicleHandoverEvent }) {
                 )}
 
                 {event.photos.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                        {event.photos.map((photo, index) => (
-                            <Button
-                                key={photo.id}
-                                variant="outline"
-                                size="sm"
-                                asChild
-                            >
-                                <a href={`/handover-photos/${photo.id}`}>
-                                    <FileArrowDownIcon />
-                                    Foto {index + 1}
-                                </a>
-                            </Button>
-                        ))}
+                    <div className="mt-3">
+                        <HandoverPhotoPreview photos={event.photos} />
                     </div>
                 )}
             </div>

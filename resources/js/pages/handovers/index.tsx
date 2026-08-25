@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     CheckCircleIcon,
     KeyIcon,
@@ -6,7 +6,8 @@ import {
     MagnifyingGlassIcon,
     ShieldCheckIcon,
 } from '@phosphor-icons/react';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
+import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import { StatCard } from '@/components/stat-card';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +21,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { HandoverDataTable } from '@/pages/handovers/data-table';
-import { HandoverDialog } from '@/pages/sales/handover-dialog';
 import type { Sale } from '@/pages/sales/types';
 import { index as handoversIndex } from '@/routes/handovers';
 
@@ -59,8 +59,6 @@ function saleSearchText(sale: Sale): string {
 }
 
 export default function HandoversIndex({ sales, summary }: Props) {
-    const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSalePickerOpen, setIsSalePickerOpen] = useState(false);
     const [pendingSaleId, setPendingSaleId] = useState('');
     const [saleSearch, setSaleSearch] = useState('');
@@ -71,11 +69,6 @@ export default function HandoversIndex({ sales, summary }: Props) {
               saleSearchText(sale).includes(normalizedSaleSearch),
           )
         : [];
-
-    const handleManageHandover = useCallback((sale: Sale) => {
-        setSelectedSale(sale);
-        setIsDialogOpen(true);
-    }, []);
 
     function openSalePicker() {
         setPendingSaleId('');
@@ -89,7 +82,7 @@ export default function HandoversIndex({ sales, summary }: Props) {
         }
 
         setIsSalePickerOpen(false);
-        handleManageHandover(pendingSale);
+        router.visit(VehicleHandoverController.create.url(pendingSale.id));
     }
 
     return (
@@ -102,8 +95,8 @@ export default function HandoversIndex({ sales, summary }: Props) {
                         Penyerahan Unit
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Pantau setiap kejadian penyerahan, penerima, barang,
-                        petugas, dan bukti foto.
+                        Setiap penjualan ditampilkan satu kali dengan ringkasan
+                        seluruh tracking, penerima, barang, dan bukti foto.
                     </p>
                 </div>
 
@@ -136,7 +129,6 @@ export default function HandoversIndex({ sales, summary }: Props) {
 
                 <HandoverDataTable
                     sales={sales}
-                    onManageHandover={handleManageHandover}
                     onAddHandover={openSalePicker}
                 />
             </div>
@@ -304,21 +296,6 @@ export default function HandoversIndex({ sales, summary }: Props) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
-            {selectedSale && (
-                <HandoverDialog
-                    key={`${selectedSale.id}-${selectedSale.handover?.updated_at ?? 'new'}`}
-                    open={isDialogOpen}
-                    sale={selectedSale}
-                    onOpenChange={(open: boolean) => {
-                        setIsDialogOpen(open);
-
-                        if (!open) {
-                            setSelectedSale(null);
-                        }
-                    }}
-                />
-            )}
         </>
     );
 }

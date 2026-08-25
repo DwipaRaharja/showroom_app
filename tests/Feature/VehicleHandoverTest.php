@@ -112,6 +112,22 @@ function paySaleForHandover(Sale $sale, int $amount): void
     ]);
 }
 
+test('tracking history and tracking form use separate pages', function () {
+    $sale = createSaleForHandover(8_000_000);
+
+    $this->get(route('handovers.show', $sale))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('handovers/show')
+            ->where('sale.id', $sale->id));
+
+    $this->get(route('handovers.create', $sale))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('handovers/create')
+            ->where('sale.id', $sale->id));
+});
+
 test('vehicle tracking is blocked while the remaining bill exceeds ten million', function () {
     $sale = createSaleForHandover();
 
@@ -140,7 +156,8 @@ test('vehicle delivery creates an immutable event with items recipient and photo
     $this->post(
         route('handovers.store'),
         validHandoverTrackingPayload($sale),
-    )->assertSessionHasNoErrors();
+    )->assertSessionHasNoErrors()
+        ->assertRedirect(route('handovers.show', $sale));
 
     $handover = VehicleHandover::query()
         ->with(['events.items', 'events.photos'])
@@ -292,6 +309,11 @@ test('multiple handover photos are stored privately and can be downloaded', func
 
     foreach ($photos as $photo) {
         Storage::disk('local')->assertExists($photo->file_path);
-        $this->get(route('handover-photos.download', $photo))->assertOk();
+        $this->get(route('handover-photos.show', $photo))
+            ->assertOk()
+            ->assertHeader('content-type', $photo->file_mime);
+        $this->get(route('handover-photos.download', $photo))
+            ->assertOk()
+            ->assertDownload($photo->file_name);
     }
 });

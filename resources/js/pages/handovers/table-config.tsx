@@ -4,12 +4,11 @@ import {
     CaretDownIcon,
     CaretUpDownIcon,
     CaretUpIcon,
+    ClockCounterClockwiseIcon,
     DotsThreeVerticalIcon,
     EyeIcon,
-    FileArrowDownIcon,
-    MapPinIcon,
     PackageIcon,
-    PencilSimpleIcon,
+    PlusIcon,
     PrinterIcon,
     UserIcon,
 } from '@phosphor-icons/react';
@@ -41,40 +40,48 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { HandoverPhotoPreview } from '@/pages/handovers/photo-preview';
 import type {
     Sale,
     VehicleHandover,
     VehicleHandoverEvent,
+    VehicleHandoverItem,
+    VehicleHandoverPhoto,
 } from '@/pages/sales/types';
 import { show as salesShow } from '@/routes/sales';
 
 export type HandoverFilterStatus =
-    'vehicle_delivery' | 'document_delivery' | 'item_delivery';
+    'locked' | 'ready' | 'pending' | 'vehicle_delivered' | 'completed';
 
 export type HandoverRecord = {
     id: number;
     sale: Sale;
-    handover: VehicleHandover;
-    event: VehicleHandoverEvent;
+    handover: VehicleHandover | null;
+    events: VehicleHandoverEvent[];
+    latestEvent: VehicleHandoverEvent | null;
+    items: VehicleHandoverItem[];
+    photos: VehicleHandoverPhoto[];
+    status: HandoverFilterStatus;
 };
 
 export const handoverStatusOptions: Array<{
     value: HandoverFilterStatus;
     label: string;
 }> = [
-    { value: 'vehicle_delivery', label: 'Penyerahan unit' },
-    { value: 'document_delivery', label: 'Penyerahan dokumen' },
-    { value: 'item_delivery', label: 'Penyerahan barang' },
+    { value: 'locked', label: 'Masih terkunci' },
+    { value: 'ready', label: 'Siap diserahkan' },
+    { value: 'pending', label: 'Tracking berjalan' },
+    { value: 'vehicle_delivered', label: 'Unit sudah diserahkan' },
+    { value: 'completed', label: 'Selesai lengkap' },
 ];
 
 export const handoverColumnLabels: Record<string, string> = {
-    occurred_at: 'Tanggal dan waktu',
-    transaction: 'Transaksi dan unit',
-    items: 'Yang diserahkan',
-    recipient: 'Penerima',
-    officer: 'Petugas dan lokasi',
+    transaction: 'Penjualan dan unit',
+    status: 'Status penyerahan',
+    summary: 'Ringkasan tracking',
+    items: 'Sudah diserahkan',
+    recipient: 'Penerima terakhir',
     photos: 'Bukti foto',
-    event_type: 'Jenis penyerahan',
 };
 
 export const handoverTableFeatures = tableFeatures({
@@ -115,38 +122,78 @@ const relationLabels = {
     other: 'Pihak lainnya',
 };
 
-const eventTypeConfig = {
-    vehicle_delivery: {
-        label: 'Penyerahan unit',
-        className:
-            'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+const statusConfig: Record<
+    HandoverFilterStatus,
+    { label: string; className: string }
+> = {
+    locked: {
+        label: 'Masih terkunci',
+        className: 'border-red-500/30 bg-red-500/10 text-red-500',
     },
-    document_delivery: {
-        label: 'Penyerahan dokumen',
-        className:
-            'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    },
-    item_delivery: {
-        label: 'Penyerahan barang',
+    ready: {
+        label: 'Siap diserahkan',
         className:
             'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
     },
+    pending: {
+        label: 'Tracking berjalan',
+        className:
+            'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    },
+    vehicle_delivered: {
+        label: 'Unit diserahkan',
+        className:
+            'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+    },
+    completed: {
+        label: 'Selesai lengkap',
+        className:
+            'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    },
 };
 
+function resolveStatus(
+    sale: Sale,
+    handover: VehicleHandover | null,
+): HandoverFilterStatus {
+    if (handover?.status === 'completed') {
+        return 'completed';
+    }
+
+    if (handover?.status === 'vehicle_delivered') {
+        return 'vehicle_delivered';
+    }
+
+    if (handover && handover.events.length > 0) {
+        return 'pending';
+    }
+
+    const remainingBill = sale.remaining_bill ?? sale.deal_price;
+    const canDeliverVehicle =
+        sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
+
+    return canDeliverVehicle ? 'ready' : 'locked';
+}
+
 export function createHandoverRecords(sales: Sale[]): HandoverRecord[] {
-    return sales.flatMap((sale) => {
-        const handover = sale.handover;
+    return sales.map((sale) => {
+        const handover = sale.handover ?? null;
+        const events = [...(handover?.events ?? [])].sort(
+            (left, right) =>
+                new Date(right.occurred_at).getTime() -
+                new Date(left.occurred_at).getTime(),
+        );
 
-        if (!handover) {
-            return [];
-        }
-
-        return handover.events.map((event) => ({
-            id: event.id,
+        return {
+            id: sale.id,
             sale,
             handover,
-            event,
-        }));
+            events,
+            latestEvent: events[0] ?? null,
+            items: events.flatMap((event) => event.items),
+            photos: events.flatMap((event) => event.photos),
+            status: resolveStatus(sale, handover),
+        };
     });
 }
 
@@ -186,7 +233,7 @@ function SortableHeader({
     );
 }
 
-export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
+export function createHandoverColumns() {
     return columnHelper.columns([
         columnHelper.display({
             id: 'select',
@@ -201,7 +248,7 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
                     onCheckedChange={(value) =>
                         table.toggleAllPageRowsSelected(value === true)
                     }
-                    aria-label="Pilih semua riwayat pada halaman ini"
+                    aria-label="Pilih semua penjualan pada halaman ini"
                 />
             ),
             cell: ({ row }) => (
@@ -210,76 +257,53 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
                     onCheckedChange={(value) =>
                         row.toggleSelected(value === true)
                     }
-                    aria-label={`Pilih penyerahan kepada ${row.original.event.recipient_name}`}
+                    aria-label={`Pilih penjualan ${row.original.sale.invoice_number}`}
                 />
             ),
         }),
-        columnHelper.accessor((record) => record.event.occurred_at, {
-            id: 'number',
-            header: ({ column }) => (
-                <SortableHeader
-                    label="No."
-                    isSorted={column.getIsSorted()}
-                    onToggle={column.getToggleSortingHandler()}
-                />
-            ),
-            enableHiding: false,
-            enableSorting: true,
-            sortDescFirst: true,
-            cell: ({ row }) => {
-                const index = row.getDisplayIndex();
+        columnHelper.accessor(
+            (record) => record.latestEvent?.occurred_at ?? record.sale.id,
+            {
+                id: 'number',
+                header: ({ column }) => (
+                    <SortableHeader
+                        label="No."
+                        isSorted={column.getIsSorted()}
+                        onToggle={column.getToggleSortingHandler()}
+                    />
+                ),
+                enableHiding: false,
+                enableSorting: true,
+                sortDescFirst: true,
+                cell: ({ row }) => {
+                    const index = row.getDisplayIndex();
 
-                return index === -1 ? '—' : index + 1;
-            },
-            sortFn: (rowA, rowB) => {
-                const timeA = new Date(
-                    rowA.original.event.occurred_at,
-                ).getTime();
-                const timeB = new Date(
-                    rowB.original.event.occurred_at,
-                ).getTime();
+                    return index === -1 ? '—' : index + 1;
+                },
+                sortFn: (rowA, rowB) => {
+                    const latestA = rowA.original.latestEvent;
+                    const latestB = rowB.original.latestEvent;
+                    const timeA = latestA
+                        ? new Date(latestA.occurred_at).getTime()
+                        : rowA.original.sale.id;
+                    const timeB = latestB
+                        ? new Date(latestB.occurred_at).getTime()
+                        : rowB.original.sale.id;
 
-                return timeA === timeB
-                    ? rowA.original.id - rowB.original.id
-                    : timeA - timeB;
+                    return timeA - timeB;
+                },
             },
-        }),
-        columnHelper.accessor((record) => record.event.occurred_at, {
-            id: 'occurred_at',
-            header: ({ column }) => (
-                <SortableHeader
-                    label="Tanggal & Waktu"
-                    isSorted={column.getIsSorted()}
-                    onToggle={column.getToggleSortingHandler()}
-                />
-            ),
-            cell: ({ row }) => {
-                const config = eventTypeConfig[row.original.event.event_type];
-
-                return (
-                    <div className="min-w-40 space-y-1.5">
-                        <div className="flex items-center gap-1.5 font-medium">
-                            <CalendarBlankIcon className="size-4 text-muted-foreground" />
-                            {dateTimeFormatter.format(
-                                new Date(row.original.event.occurred_at),
-                            )}
-                        </div>
-                        <Badge variant="outline" className={config.className}>
-                            {config.label}
-                        </Badge>
-                    </div>
-                );
-            },
-        }),
+        ),
         columnHelper.accessor(
             (record) =>
                 [
                     record.sale.invoice_number,
-                    record.handover.handover_number,
+                    record.handover?.handover_number,
                     record.sale.car?.brand?.name,
                     record.sale.car?.name,
                     record.sale.car?.license_plate,
                     record.sale.customer?.name,
+                    record.sale.customer?.phone,
                 ]
                     .filter(Boolean)
                     .join(' '),
@@ -287,7 +311,7 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
                 id: 'transaction',
                 header: ({ column }) => (
                     <SortableHeader
-                        label="Transaksi & Unit"
+                        label="Penjualan & Unit"
                         isSorted={column.getIsSorted()}
                         onToggle={column.getToggleSortingHandler()}
                     />
@@ -296,24 +320,88 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
                     const { sale, handover } = row.original;
 
                     return (
-                        <div className="min-w-56">
+                        <div className="min-w-60 space-y-0.5">
                             <Link
                                 href={salesShow(sale.id)}
                                 className="block font-mono text-xs font-semibold text-primary hover:underline"
                             >
                                 {sale.invoice_number}
                             </Link>
-                            <div className="pt-0.5 font-semibold text-foreground">
+                            <div className="font-semibold text-foreground">
                                 {sale.car?.brand?.name} {sale.car?.name}
                             </div>
-                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-xs text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                                 <span className="rounded bg-muted px-1.5 py-0.5 font-mono font-medium text-foreground">
                                     {sale.car?.license_plate ?? 'Tanpa plat'}
                                 </span>
                                 <span>•</span>
-                                <span className="font-mono">
+                                <span>{sale.customer?.name ?? '—'}</span>
+                            </div>
+                            {handover && (
+                                <div className="font-mono text-[11px] text-muted-foreground">
                                     {handover.handover_number}
-                                </span>
+                                </div>
+                            )}
+                        </div>
+                    );
+                },
+            },
+        ),
+        columnHelper.accessor((record) => record.status, {
+            id: 'status',
+            header: 'Status Penyerahan',
+            filterFn: 'equals',
+            enableSorting: true,
+            cell: ({ getValue }) => {
+                const config = statusConfig[getValue()];
+
+                return (
+                    <Badge variant="outline" className={config.className}>
+                        {config.label}
+                    </Badge>
+                );
+            },
+        }),
+        columnHelper.accessor(
+            (record) =>
+                [
+                    `${record.events.length} tracking`,
+                    record.latestEvent?.occurred_at,
+                    record.latestEvent?.officer_name,
+                    record.latestEvent?.handover_location,
+                ]
+                    .filter(Boolean)
+                    .join(' '),
+            {
+                id: 'summary',
+                header: 'Ringkasan Tracking',
+                enableSorting: false,
+                cell: ({ row }) => {
+                    const { events, latestEvent } = row.original;
+
+                    if (!latestEvent) {
+                        return (
+                            <span className="text-sm text-muted-foreground">
+                                Belum ada tracking
+                            </span>
+                        );
+                    }
+
+                    return (
+                        <div className="min-w-44 space-y-1">
+                            <div className="flex items-center gap-1.5 text-sm font-semibold">
+                                <ClockCounterClockwiseIcon className="size-4 text-muted-foreground" />
+                                {events.length} kejadian
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <CalendarBlankIcon className="size-3.5" />
+                                {dateTimeFormatter.format(
+                                    new Date(latestEvent.occurred_at),
+                                )}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                                {latestEvent.officer_name} ·{' '}
+                                {latestEvent.handover_location}
                             </div>
                         </div>
                     );
@@ -322,46 +410,75 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
         ),
         columnHelper.accessor(
             (record) =>
-                record.event.items
+                record.items
                     .map((item) => `${item.item_name} ${item.quantity}`)
                     .join(' '),
             {
                 id: 'items',
-                header: 'Yang Diserahkan',
-                cell: ({ row }) => (
-                    <div className="flex max-w-72 min-w-52 flex-wrap gap-1.5">
-                        {row.original.event.items.map((item) => (
-                            <Badge key={item.id} variant="secondary">
-                                <PackageIcon />
-                                {item.item_name}
-                                {item.quantity > 1 ? ` (${item.quantity})` : ''}
-                            </Badge>
-                        ))}
-                    </div>
-                ),
+                header: 'Sudah Diserahkan',
+                enableSorting: false,
+                cell: ({ row }) => {
+                    const visibleItems = row.original.items.slice(0, 4);
+                    const remainingItems =
+                        row.original.items.length - visibleItems.length;
+
+                    if (visibleItems.length === 0) {
+                        return (
+                            <span className="text-sm text-muted-foreground">
+                                Belum ada
+                            </span>
+                        );
+                    }
+
+                    return (
+                        <div className="flex max-w-72 min-w-52 flex-wrap gap-1.5">
+                            {visibleItems.map((item) => (
+                                <Badge key={item.id} variant="secondary">
+                                    <PackageIcon />
+                                    {item.item_name}
+                                    {item.quantity > 1
+                                        ? ` (${item.quantity})`
+                                        : ''}
+                                </Badge>
+                            ))}
+                            {remainingItems > 0 && (
+                                <Badge variant="outline">
+                                    +{remainingItems} lainnya
+                                </Badge>
+                            )}
+                        </div>
+                    );
+                },
             },
         ),
         columnHelper.accessor(
-            (record) =>
-                [
-                    record.event.recipient_name,
-                    record.event.recipient_phone,
-                    record.event.recipient_id_card,
-                    relationLabels[record.event.recipient_relation],
-                ]
-                    .filter(Boolean)
-                    .join(' '),
+            (record) => {
+                const event = record.latestEvent;
+
+                return event
+                    ? [
+                          event.recipient_name,
+                          event.recipient_phone,
+                          relationLabels[event.recipient_relation],
+                      ]
+                          .filter(Boolean)
+                          .join(' ')
+                    : '';
+            },
             {
                 id: 'recipient',
-                header: ({ column }) => (
-                    <SortableHeader
-                        label="Penerima"
-                        isSorted={column.getIsSorted()}
-                        onToggle={column.getToggleSortingHandler()}
-                    />
-                ),
+                header: 'Penerima Terakhir',
+                enableSorting: true,
                 cell: ({ row }) => {
-                    const event = row.original.event;
+                    const event = row.original.latestEvent;
+
+                    if (!event) {
+                        return (
+                            <span className="text-sm text-muted-foreground">
+                                Belum ada
+                            </span>
+                        );
+                    }
 
                     return (
                         <div className="min-w-44 space-y-0.5">
@@ -377,87 +494,23 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
                                     {event.recipient_phone}
                                 </div>
                             )}
-                            {event.recipient_id_card && (
-                                <div className="font-mono text-xs text-muted-foreground">
-                                    NIK {event.recipient_id_card}
-                                </div>
-                            )}
                         </div>
                     );
                 },
             },
         ),
-        columnHelper.accessor(
-            (record) =>
-                [
-                    record.event.officer_name,
-                    record.event.handover_location,
-                    record.event.handover_address,
-                ]
-                    .filter(Boolean)
-                    .join(' '),
-            {
-                id: 'officer',
-                header: 'Petugas & Lokasi',
-                cell: ({ row }) => {
-                    const event = row.original.event;
-
-                    return (
-                        <div className="min-w-48 space-y-1 text-sm">
-                            <div className="font-medium">
-                                {event.officer_name}
-                            </div>
-                            <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                                <MapPinIcon className="mt-0.5 size-3.5 shrink-0" />
-                                <span>
-                                    {event.handover_location}
-                                    {event.handover_address
-                                        ? `, ${event.handover_address}`
-                                        : ''}
-                                </span>
-                            </div>
-                        </div>
-                    );
-                },
-            },
-        ),
-        columnHelper.accessor((record) => record.event.photos.length, {
+        columnHelper.accessor((record) => record.photos.length, {
             id: 'photos',
             header: 'Bukti Foto',
             enableSorting: true,
-            cell: ({ row }) => {
-                const photos = row.original.event.photos;
-
-                if (photos.length === 0) {
-                    return (
-                        <span className="text-sm text-muted-foreground">
-                            Tidak ada
-                        </span>
-                    );
-                }
-
-                return (
-                    <div className="min-w-24 space-y-1">
-                        <div className="text-sm font-medium">
-                            {photos.length} foto
-                        </div>
-                        <a
-                            href={`/handover-photos/${photos[0].id}`}
-                            className="text-xs font-medium text-primary hover:underline"
-                        >
-                            Unduh foto pertama
-                        </a>
-                    </div>
-                );
-            },
-        }),
-        columnHelper.accessor((record) => record.event.event_type, {
-            id: 'event_type',
-            header: 'Jenis Penyerahan',
-            filterFn: 'equals',
-            enableSorting: false,
-            enableHiding: true,
-            cell: ({ getValue }) => eventTypeConfig[getValue()].label,
+            cell: ({ row }) =>
+                row.original.photos.length > 0 ? (
+                    <HandoverPhotoPreview photos={row.original.photos} />
+                ) : (
+                    <span className="text-sm text-muted-foreground">
+                        Belum ada
+                    </span>
+                ),
         }),
         columnHelper.display({
             id: 'actions',
@@ -465,7 +518,14 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
             enableHiding: false,
             enableSorting: false,
             cell: ({ row }) => {
-                const { sale, handover, event } = row.original;
+                const { sale, handover, photos } = row.original;
+                const remainingBill = sale.remaining_bill ?? sale.deal_price;
+                const canDeliverVehicle =
+                    sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
+                const canAddTracking =
+                    sale.status !== 'cancelled' &&
+                    (canDeliverVehicle ||
+                        handover?.vehicle_delivered_at != null);
 
                 return (
                     <div className="flex justify-end">
@@ -475,7 +535,7 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
                                     variant="ghost"
                                     size="icon"
                                     className="size-8"
-                                    aria-label={`Buka aksi penyerahan kepada ${event.recipient_name}`}
+                                    aria-label={`Buka aksi penyerahan ${sale.invoice_number}`}
                                 >
                                     <DotsThreeVerticalIcon className="size-4" />
                                 </Button>
@@ -491,13 +551,34 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
                                         Detail penjualan
                                     </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onSelect={() => onManageHandover(sale)}
-                                >
-                                    <PencilSimpleIcon />
-                                    Lihat / tambah tracking
+                                <DropdownMenuItem asChild>
+                                    <Link
+                                        href={VehicleHandoverController.show.url(
+                                            sale.id,
+                                        )}
+                                    >
+                                        <ClockCounterClockwiseIcon />
+                                        Lihat tracking
+                                    </Link>
                                 </DropdownMenuItem>
-                                {handover.vehicle_delivered_at && (
+                                {canAddTracking ? (
+                                    <DropdownMenuItem asChild>
+                                        <Link
+                                            href={VehicleHandoverController.create.url(
+                                                sale.id,
+                                            )}
+                                        >
+                                            <PlusIcon />
+                                            Tambah tracking
+                                        </Link>
+                                    </DropdownMenuItem>
+                                ) : (
+                                    <DropdownMenuItem disabled>
+                                        <PlusIcon />
+                                        Tambah tracking (terkunci)
+                                    </DropdownMenuItem>
+                                )}
+                                {handover?.vehicle_delivered_at && (
                                     <DropdownMenuItem asChild>
                                         <Link
                                             href={VehicleHandoverController.printBast.url(
@@ -509,13 +590,17 @@ export function createHandoverColumns(onManageHandover: (sale: Sale) => void) {
                                         </Link>
                                     </DropdownMenuItem>
                                 )}
-                                {event.photos[0] && (
+                                {photos[0] && (
                                     <DropdownMenuItem asChild>
                                         <a
-                                            href={`/handover-photos/${event.photos[0].id}`}
+                                            href={VehicleHandoverController.showPhoto.url(
+                                                photos[0].id,
+                                            )}
+                                            target="_blank"
+                                            rel="noreferrer"
                                         >
-                                            <FileArrowDownIcon />
-                                            Unduh foto pertama
+                                            <EyeIcon />
+                                            Lihat foto pertama
                                         </a>
                                     </DropdownMenuItem>
                                 )}

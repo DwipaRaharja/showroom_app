@@ -55,19 +55,14 @@ import type { Sale } from '@/pages/sales/types';
 
 type Props = {
     sales: Sale[];
-    onManageHandover: (sale: Sale) => void;
     onAddHandover: () => void;
 };
 
 const initialSorting: SortingState = [{ id: 'number', desc: true }];
 const initialPagination: PaginationState = { pageIndex: 0, pageSize: 10 };
-const initialColumnVisibility: ColumnVisibilityState = { event_type: false };
+const initialColumnVisibility: ColumnVisibilityState = {};
 
-export function HandoverDataTable({
-    sales,
-    onManageHandover,
-    onAddHandover,
-}: Props) {
+export function HandoverDataTable({ sales, onAddHandover }: Props) {
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
@@ -76,10 +71,7 @@ export function HandoverDataTable({
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const [columnVisibility, setColumnVisibility] =
         useState<ColumnVisibilityState>(initialColumnVisibility);
-    const columns = useMemo(
-        () => createHandoverColumns(onManageHandover),
-        [onManageHandover],
-    );
+    const columns = useMemo(() => createHandoverColumns(), []);
     const records = useMemo(() => createHandoverRecords(sales), [sales]);
 
     const table = useTable({
@@ -88,7 +80,7 @@ export function HandoverDataTable({
         columns,
         getRowId: (row) => String(row.id),
         getColumnCanGlobalFilter: (column) =>
-            ['transaction', 'items', 'recipient', 'officer'].includes(
+            ['transaction', 'summary', 'items', 'recipient'].includes(
                 column.id,
             ),
         globalFilterFn: 'includesString',
@@ -114,7 +106,7 @@ export function HandoverDataTable({
         },
     });
 
-    const statusFilter = table.getColumn('event_type')?.getFilterValue() as
+    const statusFilter = table.getColumn('status')?.getFilterValue() as
         HandoverFilterStatus | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
     const selectedCount = table.getSelectedRowIds().length;
@@ -135,17 +127,17 @@ export function HandoverDataTable({
             <CardHeader className="gap-4 border-b px-4 py-5 sm:px-6">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <CardTitle>Riwayat Penyerahan</CardTitle>
+                        <CardTitle>Penyerahan per Penjualan</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            {filteredCount} dari {records.length} kejadian
-                            penyerahan ditampilkan
+                            {filteredCount} dari {records.length} penjualan
+                            ditampilkan sebagai satu baris per transaksi
                         </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
                         {selectedCount > 0 && (
                             <p className="text-sm font-medium">
-                                {selectedCount} baris dipilih
+                                {selectedCount} penjualan dipilih
                             </p>
                         )}
                         <Button
@@ -168,7 +160,7 @@ export function HandoverDataTable({
                                 table.setGlobalFilter(event.target.value);
                                 table.setPageIndex(0);
                             }}
-                            placeholder="Cari invoice, unit, penerima, barang, atau petugas..."
+                            placeholder="Cari invoice, unit, customer, penerima, atau barang..."
                             className="pl-9"
                             aria-label="Cari penyerahan unit"
                         />
@@ -179,7 +171,7 @@ export function HandoverDataTable({
                             value={statusFilter ?? 'all'}
                             onValueChange={(value) => {
                                 table
-                                    .getColumn('event_type')
+                                    .getColumn('status')
                                     ?.setFilterValue(
                                         value === 'all' ? undefined : value,
                                     );
@@ -187,11 +179,11 @@ export function HandoverDataTable({
                             }}
                         >
                             <SelectTrigger className="w-52">
-                                <SelectValue placeholder="Semua jenis" />
+                                <SelectValue placeholder="Semua status" />
                             </SelectTrigger>
                             <SelectContent align="end">
                                 <SelectItem value="all">
-                                    Semua jenis penyerahan
+                                    Semua status penyerahan
                                 </SelectItem>
                                 {handoverStatusOptions.map((option) => (
                                     <SelectItem
@@ -292,12 +284,11 @@ export function HandoverDataTable({
                                     >
                                         <div className="space-y-1">
                                             <p className="font-medium">
-                                                Riwayat penyerahan tidak
-                                                ditemukan
+                                                Data penyerahan tidak ditemukan
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                Tambahkan penyerahan baru atau
-                                                ubah pencarian dan filter.
+                                                Ubah pencarian atau filter untuk
+                                                menemukan penjualan.
                                             </p>
                                         </div>
                                     </TableCell>

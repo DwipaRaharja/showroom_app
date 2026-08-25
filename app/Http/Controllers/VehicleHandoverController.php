@@ -63,6 +63,25 @@ class VehicleHandoverController extends Controller
     }
 
     /**
+     * Display the form for recording a new handover tracking event.
+     */
+    public function create(Sale $sale): Response
+    {
+        $sale->load([
+            'car' => fn ($query) => $query->with('brand:id,name'),
+            'customer',
+            'financeCompany',
+            'payments',
+            'handover.events.items',
+            'handover.events.photos',
+        ]);
+
+        return Inertia::render('handovers/create', [
+            'sale' => $sale,
+        ]);
+    }
+
+    /**
      * Display the tracking detail page for a specific sale's handover.
      */
     public function show(Sale $sale): Response
@@ -185,7 +204,7 @@ class VehicleHandoverController extends Controller
             'message' => 'Tracking penyerahan berhasil ditambahkan.',
         ]);
 
-        return back();
+        return to_route('handovers.show', $validated['sale_id']);
     }
 
     public function printBast(Sale $sale): Response
@@ -229,6 +248,18 @@ class VehicleHandoverController extends Controller
     public function downloadPhoto(VehicleHandoverPhoto $photo): StreamedResponse
     {
         return $this->downloadStoredPhoto($photo);
+    }
+
+    public function showPhoto(VehicleHandoverPhoto $photo): StreamedResponse
+    {
+        abort_unless(Storage::disk('local')->exists($photo->file_path), 404);
+
+        return Storage::disk('local')->response(
+            $photo->file_path,
+            $photo->file_name,
+            ['Content-Type' => $photo->file_mime ?? 'application/octet-stream'],
+            'inline',
+        );
     }
 
     /** @param array<string, mixed> $validated */

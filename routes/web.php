@@ -71,6 +71,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('payments.destroy');
     Route::get('handovers', [VehicleHandoverController::class, 'index'])
         ->name('handovers.index');
+    Route::get('handovers/{sale}/create', [VehicleHandoverController::class, 'create'])
+        ->name('handovers.create');
     Route::post('handovers', [VehicleHandoverController::class, 'store'])
         ->name('handovers.store');
     Route::get('handovers/{sale}', [VehicleHandoverController::class, 'show'])
@@ -79,10 +81,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('sales.bast.print');
     Route::get('handovers/{handover}/proof', [VehicleHandoverController::class, 'downloadProof'])
         ->name('handovers.proof.download');
-    Route::get('handover-photos/{photo}', [VehicleHandoverController::class, 'downloadPhoto'])
+    Route::get('handover-photos/{photo}/download', [VehicleHandoverController::class, 'downloadPhoto'])
         ->name('handover-photos.download');
+    Route::get('handover-photos/{photo}', [VehicleHandoverController::class, 'showPhoto'])
+        ->name('handover-photos.show');
     Route::get('document-processes', [DocumentProcessController::class, 'index'])
         ->name('document-processes.index');
+    Route::get('document-processes/create', [DocumentProcessController::class, 'create'])
+        ->name('document-processes.create');
     Route::post('document-processes', [DocumentProcessController::class, 'store'])
         ->name('document-processes.store');
     Route::get('document-processes/{documentProcess}', [DocumentProcessController::class, 'show'])

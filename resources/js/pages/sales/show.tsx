@@ -53,7 +53,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { HandoverDialog } from '@/pages/sales/handover-dialog';
 import { PaymentDialog } from '@/pages/sales/payment-dialog';
 import { getPaymentTypeBadge } from '@/pages/sales/table-config';
 import type { Payment, Sale } from '@/pages/sales/types';
@@ -103,7 +102,6 @@ function getPaymentCategoryLabel(category: string) {
 
 export default function SalesShow({ sale }: Props) {
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-    const [isHandoverOpen, setIsHandoverOpen] = useState(false);
     const [deletingPayment, setDeletingPayment] = useState<Payment | null>(
         null,
     );
@@ -143,6 +141,9 @@ export default function SalesShow({ sale }: Props) {
     const isSettled = remainingBill <= 0;
     const canDeliverVehicle =
         sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
+    const canAddTracking =
+        sale.status !== 'cancelled' &&
+        (canDeliverVehicle || sale.handover?.vehicle_delivered_at != null);
     const canAcceptPayment =
         sale.can_accept_payment ??
         (remainingBill > 0 ||
@@ -829,26 +830,46 @@ export default function SalesShow({ sale }: Props) {
                                 )}
 
                                 {/* Action Buttons */}
-                                <div className="flex items-center gap-2 pt-1">
-                                    <Button
-                                        variant={
-                                            sale.handover
-                                                ? 'outline'
-                                                : 'default'
-                                        }
-                                        size="sm"
-                                        className="flex-1 text-xs"
-                                        disabled={
-                                            !sale.handover && !canDeliverVehicle
-                                        }
-                                        onClick={() => setIsHandoverOpen(true)}
-                                    >
-                                        {sale.handover
-                                            ? 'Perbarui Penyerahan'
-                                            : canDeliverVehicle
-                                              ? 'Catat Penyerahan'
-                                              : 'Menunggu Pembayaran'}
-                                    </Button>
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                    {sale.handover && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            asChild
+                                            className="flex-1 text-xs"
+                                        >
+                                            <Link
+                                                href={VehicleHandoverController.show.url(
+                                                    sale.id,
+                                                )}
+                                            >
+                                                Lihat Tracking
+                                            </Link>
+                                        </Button>
+                                    )}
+                                    {canAddTracking ? (
+                                        <Button
+                                            size="sm"
+                                            asChild
+                                            className="flex-1 text-xs"
+                                        >
+                                            <Link
+                                                href={VehicleHandoverController.create.url(
+                                                    sale.id,
+                                                )}
+                                            >
+                                                Tambah Tracking
+                                            </Link>
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            size="sm"
+                                            className="flex-1 text-xs"
+                                            disabled
+                                        >
+                                            Menunggu Pembayaran
+                                        </Button>
+                                    )}
                                     {sale.handover?.vehicle_delivered_at && (
                                         <Button
                                             variant="outline"
@@ -872,14 +893,6 @@ export default function SalesShow({ sale }: Props) {
                     </div>
                 </div>
             </div>
-
-            {isHandoverOpen && (
-                <HandoverDialog
-                    open={isHandoverOpen}
-                    sale={sale}
-                    onOpenChange={setIsHandoverOpen}
-                />
-            )}
 
             {/* Payment Dialog */}
             <PaymentDialog
