@@ -180,6 +180,41 @@ test('completed annual tax process updates stnk data and records document custod
     ]);
 });
 
+test('received documents must belong to the selected document process', function () {
+    $user = User::factory()->create();
+    $firstCar = createCarWithCapital();
+    $secondCar = createCarWithCapital();
+
+    $this->actingAs($user)
+        ->post(
+            route('document-processes.store'),
+            validDocumentProcessPayload($firstCar),
+        );
+    $this->actingAs($user)
+        ->post(
+            route('document-processes.store'),
+            validDocumentProcessPayload($secondCar),
+        );
+
+    [$firstProcess, $secondProcess] = DocumentProcess::query()
+        ->with('items')
+        ->orderBy('id')
+        ->get();
+    $foreignItem = $secondProcess->items->first();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.events.store', $firstProcess), [
+            'status' => 'documents_ready',
+            'occurred_at' => now()->subHour()->format('Y-m-d\TH:i'),
+            'description' => 'Dokumen sudah diterima.',
+            'received_items' => [$foreignItem?->id],
+        ])
+        ->assertSessionHasErrors('received_items');
+
+    expect($firstProcess->events()->count())->toBe(1)
+        ->and($firstProcess->fresh()->status)->toBe('waiting_documents');
+});
+
 test('cancelling a process removes its showroom costs from vehicle capital', function () {
     $user = User::factory()->create();
     $car = createCarWithCapital();

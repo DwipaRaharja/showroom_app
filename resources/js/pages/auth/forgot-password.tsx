@@ -25,7 +25,9 @@ export default function ForgotPassword({ status }: { status?: string }) {
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Alamat Email</Label>
+                                <Label htmlFor="email">
+                                    Alamat Email <span className="text-red-500">*</span>
+                                </Label>
                                 <Input
                                     id="email"
                                     type="email"

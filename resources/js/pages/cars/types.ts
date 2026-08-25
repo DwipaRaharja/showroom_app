@@ -2,6 +2,16 @@ import type { Brand } from '@/pages/brands/types';
 
 export type CarStatus = 'available' | 'booked' | 'sold' | 'maintenance';
 export type CarCapitalStatus = 'draft' | 'completed' | 'cancelled';
+
+export type CarSummary = {
+    total_active: number;
+    available: number;
+    booked: number;
+    maintenance: number;
+    sold: number;
+    total_active_capital: number;
+    potential_selling_turnover: number;
+};
 export type Transmission = 'manual' | 'automatic' | 'cvt';
 export type FuelType = 'bensin' | 'diesel' | 'hybrid' | 'electric';
 export type VehicleDocumentType =
@@ -75,6 +85,7 @@ export type Car = {
     image: string | null;
     deleted_at?: string | null;
     created_at: string;
+    updated_at: string;
     capital?: CarCapital | null;
     documents?: VehicleDocument[];
     document_attachment?: VehicleDocumentAttachment | null;

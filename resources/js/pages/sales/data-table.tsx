@@ -307,7 +307,7 @@ export function SaleDataTable({ data, summary }: Props) {
 
                 <CardContent className="p-0">
                     <div>
-                        <Table className="min-w-240">
+                        <Table className="min-w-320">
                             <TableHeader className="bg-muted/40">
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id}>

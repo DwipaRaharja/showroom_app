@@ -62,7 +62,9 @@ function CustomerFormContent({ customer, onOpenChange }: Omit<Props, 'open'>) {
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-2">
-                            <Label htmlFor="customer-name">Nama lengkap</Label>
+                            <Label htmlFor="customer-name">
+                                Nama lengkap <span className="text-red-500">*</span>
+                            </Label>
                             <Input
                                 id="customer-name"
                                 name="name"

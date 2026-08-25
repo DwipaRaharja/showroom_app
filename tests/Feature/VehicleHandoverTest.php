@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Brand;
 use App\Models\Car;
 use App\Models\Customer;
+use App\Models\FinanceCompany;
 use App\Models\Sale;
 use App\Models\User;
 use App\Models\VehicleHandover;
@@ -60,6 +61,23 @@ function createSaleForHandover(int $dealPrice = 100_000_000): Sale
     ]);
 }
 
+function createCreditSaleForHandover(
+    int $dealPrice = 100_000_000,
+    int $financeAmount = 80_000_000,
+): Sale {
+    $sale = createSaleForHandover($dealPrice);
+
+    $sale->update([
+        'finance_company_id' => FinanceCompany::factory()->create()->id,
+        'payment_type' => 'credit',
+        'down_payment' => max(0, $dealPrice - $financeAmount),
+        'finance_amount' => $financeAmount,
+        'disbursement_estimated_date' => now()->addDays(3)->toDateString(),
+    ]);
+
+    return $sale->fresh(['payments']);
+}
+
 /**
  * @param  array<int, string>  $items
  * @param  array<int, UploadedFile>|null  $photos
@@ -111,6 +129,20 @@ function paySaleForHandover(Sale $sale, int $amount): void
         'status' => 'confirmed',
     ]);
 }
+
+test('a new sale automatically appears in handover management', function () {
+    $sale = createSaleForHandover();
+
+    $this->get(route('handovers.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('handovers/index')
+            ->where('sales.0.id', $sale->id)
+            ->where('sales.0.handover', null));
+
+    expect(VehicleHandover::query()->whereBelongsTo($sale)->exists())
+        ->toBeFalse();
+});
 
 test('tracking history and tracking form use separate pages', function () {
     $sale = createSaleForHandover(8_000_000);
@@ -261,6 +293,119 @@ test('a settled sale can record separate vehicle and document timeline events', 
             ->component('sales/bast-print')
             ->where('handover.id', $handover->id)
             ->has('handover.events', 2));
+});
+
+test('credit sale becomes sold when BPKB handover confirms the leasing disbursement', function () {
+    $sale = createCreditSaleForHandover();
+    paySaleForHandover($sale, 20_000_000);
+
+    $sale = $sale->fresh(['payments', 'car']);
+
+    expect($sale->status)->toBe('partial')
+        ->and($sale->car->status)->toBe('booked')
+        ->and($sale->remaining_bill)->toBe(80_000_000)
+        ->and($sale->remaining_finance_disbursement)->toBe(80_000_000)
+        ->and($sale->customer_payment_shortfall)->toBe(0)
+        ->and($sale->can_deliver_vehicle)->toBeTrue()
+        ->and($sale->can_deliver_bpkb)->toBeTrue();
+
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload(
+            $sale,
+            ['vehicle', 'stnk', 'keys'],
+            null,
+            now()->subMinute()->format('Y-m-d H:i:s'),
+        ),
+    )->assertSessionHasNoErrors();
+
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale, ['bpkb', 'invoice']),
+    )->assertSessionHasErrors('recipient_relation');
+
+    expect($sale->payments()->where(
+        'payment_category',
+        'finance_disbursement',
+    )->exists())->toBeFalse();
+
+    $documentPayload = validHandoverTrackingPayload($sale, [
+        'bpkb',
+        'invoice',
+    ]);
+    $documentPayload['recipient_name'] = 'Andi Petugas Leasing';
+    $documentPayload['recipient_relation'] = 'leasing_officer';
+    $documentPayload['handover_location'] = 'Kantor leasing';
+
+    $this->post(route('handovers.store'), $documentPayload)
+        ->assertSessionHasNoErrors();
+
+    $sale = $sale->fresh(['payments', 'car', 'handover.events.items']);
+    $financePayment = $sale->payments
+        ->where('payment_category', 'finance_disbursement')
+        ->sole();
+
+    expect($financePayment->payer_type)->toBe('finance')
+        ->and($financePayment->amount)->toBe(80_000_000)
+        ->and($financePayment->status)->toBe('confirmed')
+        ->and($financePayment->reference_number)->toStartWith('BPKB-')
+        ->and($sale->remaining_bill)->toBe(0)
+        ->and($sale->status)->toBe('completed')
+        ->and($sale->car->status)->toBe('sold')
+        ->and($sale->disbursement_actual_date)->not->toBeNull()
+        ->and($sale->handover?->hasDeliveredItem('bpkb'))->toBeTrue();
+
+    $this->delete(route('payments.destroy', $financePayment))
+        ->assertSessionHasErrors('payment');
+
+    $sale = $sale->fresh(['payments', 'car']);
+
+    expect($sale->payments->contains($financePayment))->toBeTrue()
+        ->and($sale->status)->toBe('completed')
+        ->and($sale->car->status)->toBe('sold');
+});
+
+test('credit handover stays blocked while the customer portion is unpaid', function () {
+    $sale = createCreditSaleForHandover();
+
+    expect($sale->remaining_bill)->toBe(100_000_000)
+        ->and($sale->remaining_finance_disbursement)->toBe(80_000_000)
+        ->and($sale->customer_payment_shortfall)->toBe(20_000_000)
+        ->and($sale->can_deliver_vehicle)->toBeFalse()
+        ->and($sale->car->status)->toBe('booked');
+
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale),
+    )->assertSessionHasErrors('items');
+
+    expect($sale->payments()->where(
+        'payment_category',
+        'finance_disbursement',
+    )->exists())->toBeFalse();
+});
+
+test('leasing principal cannot be recorded manually before BPKB handover', function () {
+    $sale = createCreditSaleForHandover();
+    paySaleForHandover($sale, 20_000_000);
+
+    $this->post(route('payments.store', $sale), [
+        'payment_date' => now()->toDateString(),
+        'payer_type' => 'finance',
+        'payment_category' => 'finance_disbursement',
+        'amount' => 80_000_000,
+        'payment_method' => 'transfer',
+        'destination_account' => 'BCA Showroom',
+    ])->assertSessionHasErrors('payment_category');
+
+    $sale = $sale->fresh(['payments', 'car']);
+
+    expect($sale->payments()->where(
+        'payment_category',
+        'finance_disbursement',
+    )->exists())->toBeFalse()
+        ->and($sale->status)->toBe('partial')
+        ->and($sale->car->status)->toBe('booked');
 });
 
 test('an item that has already been handed over cannot be recorded twice', function () {

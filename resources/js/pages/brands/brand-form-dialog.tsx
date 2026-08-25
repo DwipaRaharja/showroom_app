@@ -60,7 +60,9 @@ function BrandFormContent({ brand, onOpenChange }: Omit<Props, 'open'>) {
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-2">
-                            <Label htmlFor="brand-name">Nama merek</Label>
+                            <Label htmlFor="brand-name">
+                                Nama merek <span className="text-red-500">*</span>
+                            </Label>
                             <Input
                                 id="brand-name"
                                 name="name"

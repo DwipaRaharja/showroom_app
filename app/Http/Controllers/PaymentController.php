@@ -31,11 +31,19 @@ class PaymentController extends Controller
             $isBonus = $category === 'leasing_bonus';
             $remaining = $isBonus
                 ? max(0, $lockedSale->leasing_bonus - $lockedSale->total_bonus_paid)
-                : $lockedSale->remaining_bill;
+                : ($lockedSale->payment_type === 'credit'
+                    ? $lockedSale->customer_payment_shortfall
+                    : $lockedSale->remaining_bill);
 
             if ($lockedSale->status === 'cancelled') {
                 throw ValidationException::withMessages([
                     'payment_category' => 'Penjualan yang dibatalkan tidak dapat menerima pembayaran.',
+                ]);
+            }
+
+            if ($category === 'finance_disbursement') {
+                throw ValidationException::withMessages([
+                    'payment_category' => 'Pencairan pokok leasing dicatat otomatis saat BPKB diserahkan kepada petugas leasing.',
                 ]);
             }
 
@@ -59,13 +67,19 @@ class PaymentController extends Controller
                 throw ValidationException::withMessages([
                     'amount' => $isBonus
                         ? 'Bonus leasing sudah diterima seluruhnya.'
-                        : 'Penjualan ini sudah lunas dan tidak dapat menerima pembayaran lagi.',
+                        : ($lockedSale->payment_type === 'credit'
+                            ? 'Kewajiban pembayaran customer sudah terpenuhi. Pokok leasing akan dicatat otomatis saat BPKB diserahkan.'
+                            : 'Penjualan ini sudah lunas dan tidak dapat menerima pembayaran lagi.'),
                 ]);
             }
 
             if ($amount > $remaining) {
                 throw ValidationException::withMessages([
-                    'amount' => 'Nominal pembayaran tidak boleh melebihi sisa tagihan sebesar Rp '.number_format($remaining, 0, ',', '.').'.',
+                    'amount' => 'Nominal pembayaran tidak boleh melebihi '.
+                        ($lockedSale->payment_type === 'credit' && ! $isBonus
+                            ? 'kekurangan customer'
+                            : 'sisa tagihan').
+                        ' sebesar Rp '.number_format($remaining, 0, ',', '.').'.',
                 ]);
             }
 
@@ -81,11 +95,6 @@ class PaymentController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'status' => 'confirmed',
             ]);
-
-            // If this payment was a finance disbursement, record actual disbursement date
-            if ($validated['payment_category'] === 'finance_disbursement') {
-                $lockedSale->update(['disbursement_actual_date' => $validated['payment_date']]);
-            }
 
             $lockedSale->refreshSettlementStatus();
         });
@@ -104,6 +113,17 @@ class PaymentController extends Controller
     public function destroy(Payment $payment): RedirectResponse
     {
         $sale = $payment->sale;
+
+        $sale?->loadMissing('handover.events.items');
+
+        if (
+            $payment->payment_category !== 'leasing_bonus'
+            && $sale?->handover?->hasDeliveredItem('bpkb')
+        ) {
+            throw ValidationException::withMessages([
+                'payment' => 'Pembayaran tidak dapat dihapus karena BPKB sudah diserahkan. Koreksi transaksi memerlukan pembatalan penyerahan terlebih dahulu.',
+            ]);
+        }
 
         DB::transaction(function () use ($payment, $sale) {
             $payment->delete();

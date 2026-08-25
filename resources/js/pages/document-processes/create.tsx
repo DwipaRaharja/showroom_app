@@ -27,24 +27,14 @@ export default function DocumentProcessesCreate({
             <Head title="Tambah Proses Berkas" />
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6">
-                <div className="flex items-start gap-3">
-                    <Button variant="outline" size="icon" asChild>
-                        <Link
-                            href={DocumentProcessController.index.url()}
-                            aria-label="Kembali ke proses berkas"
-                        >
-                            <ArrowLeftIcon />
-                        </Link>
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Tambah Proses Berkas
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Catat pengurusan pajak, balik nama, mutasi, atau
-                            pekerjaan dokumen kendaraan lainnya.
-                        </p>
-                    </div>
+                <div>
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                        Tambah proses berkas
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        Catat pengurusan pajak, balik nama, mutasi, atau
+                        pekerjaan dokumen kendaraan lainnya.
+                    </p>
                 </div>
 
                 <ProcessForm

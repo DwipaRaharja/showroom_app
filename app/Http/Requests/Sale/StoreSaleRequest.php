@@ -51,16 +51,28 @@ class StoreSaleRequest extends FormRequest
                 'nullable',
                 'numeric',
                 'min:0',
+                'lte:deal_price',
             ],
             'finance_company_id' => [
                 'nullable',
                 Rule::requiredIf($this->input('payment_type') === 'credit'),
-                Rule::exists(FinanceCompany::class, 'id'),
+                Rule::exists(FinanceCompany::class, 'id')
+                    ->where('is_active', true),
             ],
             'finance_amount' => [
                 'nullable',
                 'numeric',
                 'min:0',
+                'lte:deal_price',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (
+                        $this->input('payment_type') === 'credit'
+                        && (int) $this->input('down_payment', 0) + (int) $value
+                            > (int) $this->input('deal_price', 0)
+                    ) {
+                        $fail('Jumlah DP dan pokok leasing tidak boleh melebihi harga deal.');
+                    }
+                },
             ],
             'disbursement_estimated_date' => [
                 'nullable',

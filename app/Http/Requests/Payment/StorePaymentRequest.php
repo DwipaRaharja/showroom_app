@@ -93,6 +93,15 @@ class StorePaymentRequest extends FormRequest
                 return;
             }
 
+            if ($category === 'finance_disbursement') {
+                $validator->errors()->add(
+                    'payment_category',
+                    'Pencairan pokok leasing dicatat otomatis saat BPKB diserahkan kepada petugas leasing.'
+                );
+
+                return;
+            }
+
             if ($category === 'down_payment' && $sale->has_down_payment) {
                 $validator->errors()->add(
                     'payment_category',
@@ -130,14 +139,18 @@ class StorePaymentRequest extends FormRequest
 
             $remaining = $isBonus
                 ? max(0, $sale->leasing_bonus - $sale->total_bonus_paid)
-                : $sale->remaining_bill;
+                : ($sale->payment_type === 'credit'
+                    ? $sale->customer_payment_shortfall
+                    : $sale->remaining_bill);
 
             if ($remaining <= 0) {
                 $validator->errors()->add(
                     'amount',
                     $isBonus
                         ? 'Bonus leasing sudah diterima seluruhnya.'
-                        : 'Penjualan ini sudah lunas dan tidak dapat menerima pembayaran lagi.'
+                        : ($sale->payment_type === 'credit'
+                            ? 'Kewajiban pembayaran customer sudah terpenuhi. Pokok leasing akan dicatat otomatis saat BPKB diserahkan.'
+                            : 'Penjualan ini sudah lunas dan tidak dapat menerima pembayaran lagi.')
                 );
 
                 return;
@@ -146,7 +159,11 @@ class StorePaymentRequest extends FormRequest
             if ($amount > $remaining) {
                 $validator->errors()->add(
                     'amount',
-                    'Nominal pembayaran tidak boleh melebihi sisa tagihan sebesar Rp '.number_format($remaining, 0, ',', '.').'.'
+                    'Nominal pembayaran tidak boleh melebihi '.
+                    ($sale->payment_type === 'credit' && ! $isBonus
+                        ? 'kekurangan customer'
+                        : 'sisa tagihan').
+                    ' sebesar Rp '.number_format($remaining, 0, ',', '.').'.'
                 );
             }
         });

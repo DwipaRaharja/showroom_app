@@ -221,6 +221,17 @@ export default function CarsShow({ car }: Props) {
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.85fr)]">
                     <div className="space-y-6">
                         <Card className="overflow-hidden border-primary/20 p-0">
+                            {car.image && (
+                                <div className="overflow-hidden border-b bg-muted">
+                                    <img
+                                        src={CarController.image.url(car.id, {
+                                            query: { v: car.updated_at },
+                                        })}
+                                        alt={`${car.brand?.name ?? ''} ${car.name}`.trim()}
+                                        className="aspect-[16/7] w-full object-cover"
+                                    />
+                                </div>
+                            )}
                             <div className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6">
                                 <div className="flex items-center gap-4">
                                     <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">

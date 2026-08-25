@@ -86,7 +86,7 @@ function SortableHeader({
         <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8"
+            className="-ml-2 h-8 px-2"
             onClick={onToggle}
             aria-label={`Urutkan berdasarkan ${label}`}
             aria-sort={
@@ -163,25 +163,29 @@ export function createSaleColumns({
             enableHiding: false,
             enableSorting: false,
             header: ({ table }) => (
-                <Checkbox
-                    checked={
-                        table.getIsAllPageRowsSelected() ||
-                        (table.getIsSomePageRowsSelected() && 'indeterminate')
-                    }
-                    onCheckedChange={(value) =>
-                        table.toggleAllPageRowsSelected(value === true)
-                    }
-                    aria-label="Pilih semua penjualan pada halaman ini"
-                />
+                <div className="flex w-4 items-center justify-center">
+                    <Checkbox
+                        checked={
+                            table.getIsAllPageRowsSelected() ||
+                            (table.getIsSomePageRowsSelected() && 'indeterminate')
+                        }
+                        onCheckedChange={(value) =>
+                            table.toggleAllPageRowsSelected(value === true)
+                        }
+                        aria-label="Pilih semua penjualan pada halaman ini"
+                    />
+                </div>
             ),
             cell: ({ row }) => (
-                <Checkbox
-                    checked={row.getIsSelected()}
-                    onCheckedChange={(value) =>
-                        row.toggleSelected(value === true)
-                    }
-                    aria-label={`Pilih penjualan ${row.original.invoice_number}`}
-                />
+                <div className="flex w-4 items-center justify-center">
+                    <Checkbox
+                        checked={row.getIsSelected()}
+                        onCheckedChange={(value) =>
+                            row.toggleSelected(value === true)
+                        }
+                        aria-label={`Pilih penjualan ${row.original.invoice_number}`}
+                    />
+                </div>
             ),
         }),
         columnHelper.accessor('created_at', {
@@ -199,7 +203,11 @@ export function createSaleColumns({
             cell: ({ row }) => {
                 const index = row.getDisplayIndex();
 
-                return index === -1 ? '—' : index + 1;
+                return (
+                    <span className="font-mono text-xs text-muted-foreground">
+                        {index === -1 ? '—' : index + 1}
+                    </span>
+                );
             },
             sortFn: (rowA, rowB) => {
                 const timeA = new Date(rowA.original.created_at).getTime();
@@ -221,13 +229,15 @@ export function createSaleColumns({
                 />
             ),
             cell: ({ row }) => (
-                <button
-                    type="button"
-                    onClick={() => onShow(row.original)}
-                    className="font-mono text-xs font-semibold text-primary hover:underline"
-                >
-                    {row.original.invoice_number}
-                </button>
+                <div className="min-w-32">
+                    <button
+                        type="button"
+                        onClick={() => onShow(row.original)}
+                        className="font-mono text-xs font-semibold text-primary hover:underline"
+                    >
+                        {row.original.invoice_number}
+                    </button>
+                </div>
             ),
             filterFn: 'includesString',
             sortFn: 'text',
@@ -243,11 +253,11 @@ export function createSaleColumns({
                 }
 
                 return (
-                    <div className="min-w-44">
+                    <div className="min-w-56 space-y-1">
                         <div className="font-semibold text-foreground">
                             {car.name}
                         </div>
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                             {car.brand && (
                                 <span className="font-medium text-primary">
                                     {car.brand.name}
@@ -279,7 +289,7 @@ export function createSaleColumns({
                 }
 
                 return (
-                    <div className="min-w-36">
+                    <div className="min-w-44 space-y-0.5">
                         <div className="font-medium text-foreground">
                             {customer.name}
                         </div>
@@ -294,11 +304,14 @@ export function createSaleColumns({
         }),
         columnHelper.accessor('payment_type', {
             header: 'Skema Bayar',
-            cell: ({ row }) =>
-                getPaymentTypeBadge(
-                    row.original.payment_type,
-                    row.original.finance_company?.name,
-                ),
+            cell: ({ row }) => (
+                <div className="min-w-36">
+                    {getPaymentTypeBadge(
+                        row.original.payment_type,
+                        row.original.finance_company?.name,
+                    )}
+                </div>
+            ),
         }),
         columnHelper.accessor('deal_price', {
             header: ({ column }) => (
@@ -309,7 +322,7 @@ export function createSaleColumns({
                 />
             ),
             cell: ({ getValue }) => (
-                <div className="font-semibold text-foreground">
+                <div className="min-w-40 font-semibold text-foreground">
                     {currencyFormatter.format(getValue())}
                 </div>
             ),
@@ -330,7 +343,7 @@ export function createSaleColumns({
                     const isSettled = remaining <= 0;
 
                     return (
-                        <div className="min-w-28">
+                        <div className="min-w-36 space-y-0.5">
                             <div
                                 className={`text-sm font-semibold ${isSettled ? 'text-emerald-600 dark:text-emerald-500' : 'text-amber-600 dark:text-amber-500'}`}
                             >
@@ -367,7 +380,7 @@ export function createSaleColumns({
                 const targetDate = new Date(dateStr);
 
                 return (
-                    <div className="min-w-28 space-y-0.5 text-xs">
+                    <div className="min-w-36 space-y-1 text-xs">
                         <div className="flex items-center gap-1 font-medium">
                             <CalendarBlankIcon className="size-3.5 text-muted-foreground" />
                             {dateFormatter.format(targetDate)}
@@ -387,7 +400,11 @@ export function createSaleColumns({
                     onToggle={column.getToggleSortingHandler()}
                 />
             ),
-            cell: ({ getValue }) => <StatusBadge status={getValue()} />,
+            cell: ({ getValue }) => (
+                <div className="min-w-32">
+                    <StatusBadge status={getValue()} />
+                </div>
+            ),
             filterFn: 'equals',
         }),
         columnHelper.display({
@@ -410,7 +427,7 @@ export function createSaleColumns({
                     (remaining > 0 || hasUnpaidBonus);
 
                 return (
-                    <div className="flex justify-end">
+                    <div className="flex w-12 justify-end">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button

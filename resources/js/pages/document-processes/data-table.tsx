@@ -14,6 +14,7 @@ import type {
     ColumnFiltersState,
     ColumnVisibilityState,
     PaginationState,
+    RowSelectionState,
     SortingState,
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
@@ -76,6 +77,7 @@ export function ProcessDataTable({
         useState<PaginationState>(initialPagination);
     const [columnVisibility, setColumnVisibility] =
         useState<ColumnVisibilityState>(initialColumnVisibility);
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const columns = useMemo(
         () => createProcessColumns(typeOptions, statusOptions),
         [statusOptions, typeOptions],
@@ -96,12 +98,14 @@ export function ProcessDataTable({
             sorting,
             pagination,
             columnVisibility,
+            rowSelection,
         },
         onGlobalFilterChange: setGlobalFilter,
         onColumnFiltersChange: setColumnFilters,
         onSortingChange: setSorting,
         onPaginationChange: setPagination,
         onColumnVisibilityChange: setColumnVisibility,
+        onRowSelectionChange: setRowSelection,
         initialState: {
             sorting: initialSorting,
             pagination: initialPagination,
@@ -114,6 +118,7 @@ export function ProcessDataTable({
     const statusFilter = table.getColumn('status')?.getFilterValue() as
         string | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
+    const selectedCount = table.getSelectedRowIds().length;
     const { pageIndex, pageSize } = pagination;
     const pageCount = Math.max(table.getPageCount(), 1);
     const firstVisibleRow = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
@@ -147,16 +152,23 @@ export function ProcessDataTable({
                             ditampilkan
                         </p>
                     </div>
-                    <Button asChild>
-                        <Link href={DocumentProcessController.create.url()}>
-                            <PlusIcon />
-                            Tambah Proses Berkas
-                        </Link>
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-3">
+                        {selectedCount > 0 && (
+                            <p className="text-sm font-medium">
+                                {selectedCount} baris dipilih
+                            </p>
+                        )}
+                        <Button asChild>
+                            <Link href={DocumentProcessController.create.url()}>
+                                <PlusIcon className="size-4" />
+                                Tambah Proses Berkas
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
-                    <div className="relative flex-1 xl:max-w-sm">
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+                    <div className="relative flex-1 lg:max-w-sm">
                         <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={globalFilter}
@@ -222,7 +234,7 @@ export function ProcessDataTable({
                                     Kolom
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuContent align="end" className="w-48">
                                 <DropdownMenuLabel>
                                     Tampilkan kolom
                                 </DropdownMenuLabel>
@@ -258,8 +270,8 @@ export function ProcessDataTable({
             </CardHeader>
 
             <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                    <Table className="min-w-280">
+                <div>
+                    <Table className="min-w-250">
                         <TableHeader className="bg-muted/40">
                             {table.getHeaderGroups().map((headerGroup) => (
                                 <TableRow key={headerGroup.id}>
@@ -278,7 +290,14 @@ export function ProcessDataTable({
                         <TableBody>
                             {table.getRowModel().rows.length > 0 ? (
                                 table.getRowModel().rows.map((row) => (
-                                    <TableRow key={row.id}>
+                                    <TableRow
+                                        key={row.id}
+                                        data-state={
+                                            row.getIsSelected()
+                                                ? 'selected'
+                                                : undefined
+                                        }
+                                    >
                                         {row.getVisibleCells().map((cell) => (
                                             <TableCell key={cell.id}>
                                                 <table.FlexRender cell={cell} />
@@ -299,8 +318,8 @@ export function ProcessDataTable({
                                                 Proses berkas tidak ditemukan
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                Tambahkan proses baru atau ubah
-                                                filter yang digunakan.
+                                                Ubah kata pencarian atau filter
+                                                yang digunakan.
                                             </p>
                                         </div>
                                     </TableCell>

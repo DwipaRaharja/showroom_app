@@ -22,6 +22,7 @@ import {
     filterFn_includesString,
     globalFilteringFeature,
     rowPaginationFeature,
+    rowSelectionFeature,
     rowSortingFeature,
     sortFn_text,
     tableFeatures,
@@ -30,6 +31,7 @@ import { toast } from 'sonner';
 import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -55,6 +57,7 @@ export const financeCompanyTableFeatures = tableFeatures({
     },
     rowPaginationFeature,
     paginatedRowModel: createPaginatedRowModel(),
+    rowSelectionFeature,
     columnVisibilityFeature,
 });
 
@@ -82,7 +85,7 @@ function SortableHeader({
         <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8"
+            className="-ml-2 h-8 px-2"
             onClick={onToggle}
             aria-label={`Urutkan berdasarkan ${label}`}
             aria-sort={
@@ -112,9 +115,13 @@ function whatsappUrl(phone: string | null): string | null {
         return null;
     }
 
-    return `https://wa.me/${
-        normalized.startsWith('0') ? `62${normalized.slice(1)}` : normalized
-    }`;
+    const internationalNumber = normalized.startsWith('0')
+        ? `62${normalized.slice(1)}`
+        : normalized.startsWith('8')
+          ? `62${normalized}`
+          : normalized;
+
+    return `https://wa.me/${internationalNumber}`;
 }
 
 async function copyText(value: string, label: string) {
@@ -139,18 +146,61 @@ export function createFinanceCompanyColumns({
 }: FinanceCompanyColumnActions) {
     return columnHelper.columns([
         columnHelper.display({
-            id: 'number',
-            header: 'No.',
+            id: 'select',
             enableHiding: false,
             enableSorting: false,
+            header: ({ table }) => (
+                <Checkbox
+                    checked={
+                        table.getIsAllPageRowsSelected() ||
+                        (table.getIsSomePageRowsSelected() && 'indeterminate')
+                    }
+                    onCheckedChange={(value) =>
+                        table.toggleAllPageRowsSelected(value === true)
+                    }
+                    aria-label="Pilih semua leasing pada halaman ini"
+                />
+            ),
+            cell: ({ row }) => (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={(value) =>
+                        row.toggleSelected(value === true)
+                    }
+                    aria-label={`Pilih leasing ${row.original.name}`}
+                />
+            ),
+        }),
+        columnHelper.accessor('created_at', {
+            id: 'number',
+            header: ({ column }) => (
+                <SortableHeader
+                    label="No."
+                    isSorted={column.getIsSorted()}
+                    onToggle={column.getToggleSortingHandler()}
+                />
+            ),
+            enableHiding: false,
+            enableSorting: true,
+            sortDescFirst: true,
             cell: ({ row }) => {
                 const index = row.getDisplayIndex();
 
-                return (
-                    <span className="text-xs font-medium text-muted-foreground tabular-nums">
-                        {index === -1 ? '—' : index + 1}
-                    </span>
-                );
+                return index === -1 ? '—' : index + 1;
+            },
+            sortFn: (rowA, rowB) => {
+                const timeA = rowA.original.created_at
+                    ? new Date(rowA.original.created_at).getTime()
+                    : 0;
+                const timeB = rowB.original.created_at
+                    ? new Date(rowB.original.created_at).getTime()
+                    : 0;
+
+                if (timeA === timeB) {
+                    return rowA.original.id - rowB.original.id;
+                }
+
+                return timeA - timeB;
             },
         }),
         columnHelper.accessor(
@@ -352,10 +402,8 @@ export function createFinanceCompanyColumns({
                                     <DotsThreeVerticalIcon className="size-4" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52">
-                                <DropdownMenuLabel>
-                                    Aksi leasing
-                                </DropdownMenuLabel>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel>Aksi</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     onSelect={() =>
@@ -391,13 +439,13 @@ export function createFinanceCompanyColumns({
                                 <DropdownMenuItem
                                     className={
                                         company.is_active
-                                            ? 'text-amber-600 focus:text-amber-600 dark:text-amber-500 dark:focus:text-amber-500'
+                                            ? 'text-red-500 focus:text-red-500'
                                             : 'text-emerald-600 focus:text-emerald-600 dark:text-emerald-500 dark:focus:text-emerald-500'
                                     }
                                     onSelect={() => onToggleStatus(company)}
                                 >
                                     {company.is_active ? (
-                                        <PowerIcon />
+                                        <PowerIcon className="text-red-500" />
                                     ) : (
                                         <CheckCircleIcon />
                                     )}
@@ -408,9 +456,9 @@ export function createFinanceCompanyColumns({
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     onSelect={() => onDelete(company)}
-                                    className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+                                    className="text-red-500 focus:text-red-500"
                                 >
-                                    <TrashIcon />
+                                    <TrashIcon className="text-red-500" />
                                     Hapus leasing
                                 </DropdownMenuItem>
                             </DropdownMenuContent>

@@ -1,5 +1,4 @@
 import {
-    BankIcon,
     CaretDoubleLeftIcon,
     CaretDoubleRightIcon,
     CaretLeftIcon,
@@ -14,6 +13,7 @@ import type {
     ColumnFiltersState,
     ColumnVisibilityState,
     PaginationState,
+    RowSelectionState,
     SortingState,
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
@@ -57,7 +57,7 @@ type Props = {
     data: FinanceCompany[];
 };
 
-const initialSorting: SortingState = [{ id: 'company', desc: false }];
+const initialSorting: SortingState = [{ id: 'number', desc: true }];
 const initialPagination: PaginationState = {
     pageIndex: 0,
     pageSize: 10,
@@ -83,6 +83,7 @@ export function FinanceCompanyDataTable({ data }: Props) {
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
     const [pagination, setPagination] =
         useState<PaginationState>(initialPagination);
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const [columnVisibility, setColumnVisibility] =
         useState<ColumnVisibilityState>(initialColumnVisibility);
 
@@ -110,12 +111,14 @@ export function FinanceCompanyDataTable({ data }: Props) {
             columnFilters,
             sorting,
             pagination,
+            rowSelection,
             columnVisibility,
         },
         onGlobalFilterChange: setGlobalFilter,
         onColumnFiltersChange: setColumnFilters,
         onSortingChange: setSorting,
         onPaginationChange: setPagination,
+        onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
         initialState: {
             sorting: initialSorting,
@@ -127,10 +130,11 @@ export function FinanceCompanyDataTable({ data }: Props) {
     const statusFilter = table.getColumn('is_active')?.getFilterValue() as
         boolean | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
+    const selectedCount = table.getSelectedRowIds().length;
     const { pageIndex, pageSize } = pagination;
     const pageCount = Math.max(table.getPageCount(), 1);
-    const firstRow = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
-    const lastRow = Math.min((pageIndex + 1) * pageSize, filteredCount);
+    const firstVisibleRow = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
+    const lastVisibleRow = Math.min((pageIndex + 1) * pageSize, filteredCount);
     const hasFilters = globalFilter.length > 0 || statusFilter !== undefined;
 
     function resetFilters() {
@@ -140,260 +144,277 @@ export function FinanceCompanyDataTable({ data }: Props) {
     }
 
     return (
-        <Card className="min-w-0 gap-0 overflow-hidden py-0">
-            <CardHeader className="gap-4 border-b px-4 py-5 sm:px-6">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <CardTitle>Daftar Perusahaan Leasing</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            {filteredCount} dari {data.length} rekanan
-                            ditampilkan
-                        </p>
-                    </div>
+        <>
+            <Card className="min-w-0 gap-0 overflow-hidden py-0">
+                <CardHeader className="gap-4 border-b px-4 py-5 sm:px-6">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <CardTitle>Daftar Perusahaan Leasing</CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                                {filteredCount} dari {data.length} rekanan
+                                ditampilkan
+                            </p>
+                        </div>
 
-                    <Button onClick={() => setIsCreateOpen(true)}>
-                        <PlusIcon className="size-4" />
-                        Tambah Leasing
-                    </Button>
-                </div>
-
-                <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
-                    <div className="relative flex-1 xl:max-w-sm">
-                        <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            value={globalFilter}
-                            onChange={(event) => {
-                                table.setGlobalFilter(event.target.value);
-                                table.setPageIndex(0);
-                            }}
-                            placeholder="Cari nama, kode, PIC, atau no HP..."
-                            className="pl-9"
-                            aria-label="Cari perusahaan leasing"
-                        />
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Select
-                            value={
-                                statusFilter === undefined
-                                    ? 'all'
-                                    : statusFilter
-                                      ? 'active'
-                                      : 'inactive'
-                            }
-                            onValueChange={(value) => {
-                                table
-                                    .getColumn('is_active')
-                                    ?.setFilterValue(
-                                        value === 'all'
-                                            ? undefined
-                                            : value === 'active',
-                                    );
-                                table.setPageIndex(0);
-                            }}
-                        >
-                            <SelectTrigger className="w-40">
-                                <SelectValue placeholder="Semua status" />
-                            </SelectTrigger>
-                            <SelectContent align="end">
-                                <SelectItem value="all">
-                                    Semua status
-                                </SelectItem>
-                                <SelectItem value="active">Aktif</SelectItem>
-                                <SelectItem value="inactive">
-                                    Tidak aktif
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline">
-                                    <ColumnsIcon className="mr-1.5 size-4" />
-                                    Kolom
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuLabel>
-                                    Pilih kolom
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {table
-                                    .getAllLeafColumns()
-                                    .filter((column) => column.getCanHide())
-                                    .map((column) => (
-                                        <DropdownMenuCheckboxItem
-                                            key={column.id}
-                                            checked={column.getIsVisible()}
-                                            onCheckedChange={(value) =>
-                                                column.toggleVisibility(
-                                                    Boolean(value),
-                                                )
-                                            }
-                                        >
-                                            {financeCompanyColumnLabels[
-                                                column.id
-                                            ] ?? column.id}
-                                        </DropdownMenuCheckboxItem>
-                                    ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        {hasFilters && (
-                            <Button variant="ghost" onClick={resetFilters}>
-                                <XIcon className="mr-1 size-4" />
-                                Reset
+                        <div className="flex flex-wrap items-center gap-3">
+                            {selectedCount > 0 && (
+                                <p className="text-sm font-medium">
+                                    {selectedCount} baris dipilih
+                                </p>
+                            )}
+                            <Button onClick={() => setIsCreateOpen(true)}>
+                                <PlusIcon className="size-4" />
+                                Tambah Leasing
                             </Button>
-                        )}
+                        </div>
                     </div>
-                </div>
-            </CardHeader>
 
-            <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                    <Table className="min-w-250">
-                        <TableHeader className="bg-muted/40">
-                            {table.getHeaderGroups().map((group) => (
-                                <TableRow key={group.id}>
-                                    {group.headers.map((header) => (
-                                        <TableHead
-                                            key={header.id}
-                                            className="text-xs font-semibold whitespace-nowrap"
-                                        >
-                                            {header.isPlaceholder ? null : (
-                                                <table.FlexRender
-                                                    header={header}
-                                                />
-                                            )}
-                                        </TableHead>
-                                    ))}
-                                </TableRow>
-                            ))}
-                        </TableHeader>
-                        <TableBody>
-                            {table.getRowModel().rows.length > 0 ? (
-                                table.getRowModel().rows.map((row) => (
-                                    <TableRow
-                                        key={row.id}
-                                        className="transition-colors hover:bg-muted/30"
-                                    >
-                                        {row.getVisibleCells().map((cell) => (
-                                            <TableCell
-                                                key={cell.id}
-                                                className="py-3.5 align-middle"
+                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+                        <div className="relative flex-1 lg:max-w-sm">
+                            <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={globalFilter}
+                                onChange={(event) => {
+                                    table.setGlobalFilter(event.target.value);
+                                    table.setPageIndex(0);
+                                }}
+                                placeholder="Cari nama, kode, PIC, atau no HP..."
+                                className="pl-9"
+                                aria-label="Cari perusahaan leasing"
+                            />
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Select
+                                value={
+                                    statusFilter === undefined
+                                        ? 'all'
+                                        : statusFilter
+                                          ? 'active'
+                                          : 'inactive'
+                                }
+                                onValueChange={(value) => {
+                                    table
+                                        .getColumn('is_active')
+                                        ?.setFilterValue(
+                                            value === 'all'
+                                                ? undefined
+                                                : value === 'active',
+                                        );
+                                    table.setPageIndex(0);
+                                }}
+                            >
+                                <SelectTrigger className="w-40">
+                                    <SelectValue placeholder="Semua status" />
+                                </SelectTrigger>
+                                <SelectContent align="end">
+                                    <SelectItem value="all">
+                                        Semua status
+                                    </SelectItem>
+                                    <SelectItem value="active">
+                                        Aktif
+                                    </SelectItem>
+                                    <SelectItem value="inactive">
+                                        Tidak aktif
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline">
+                                        <ColumnsIcon />
+                                        Kolom
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="w-48"
+                                >
+                                    <DropdownMenuLabel>
+                                        Tampilkan kolom
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {table
+                                        .getAllLeafColumns()
+                                        .filter((column) => column.getCanHide())
+                                        .map((column) => (
+                                            <DropdownMenuCheckboxItem
+                                                key={column.id}
+                                                checked={column.getIsVisible()}
+                                                onCheckedChange={(value) =>
+                                                    column.toggleVisibility(
+                                                        value === true,
+                                                    )
+                                                }
                                             >
-                                                <table.FlexRender cell={cell} />
-                                            </TableCell>
+                                                {financeCompanyColumnLabels[
+                                                    column.id
+                                                ] ?? column.id}
+                                            </DropdownMenuCheckboxItem>
+                                        ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            {hasFilters && (
+                                <Button variant="ghost" onClick={resetFilters}>
+                                    <XIcon />
+                                    Reset
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </CardHeader>
+
+                <CardContent className="p-0">
+                    <div>
+                        <Table className="min-w-250">
+                            <TableHeader className="bg-muted/40">
+                                {table.getHeaderGroups().map((group) => (
+                                    <TableRow key={group.id}>
+                                        {group.headers.map((header) => (
+                                            <TableHead key={header.id}>
+                                                {header.isPlaceholder ? null : (
+                                                    <table.FlexRender
+                                                        header={header}
+                                                    />
+                                                )}
+                                            </TableHead>
                                         ))}
                                     </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={
-                                            table.getVisibleLeafColumns().length
-                                        }
-                                        className="h-32 text-center"
-                                    >
-                                        <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
-                                            <div className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                                                <BankIcon className="size-5" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium">
+                                ))}
+                            </TableHeader>
+                            <TableBody>
+                                {table.getRowModel().rows.length > 0 ? (
+                                    table.getRowModel().rows.map((row) => (
+                                        <TableRow
+                                            key={row.id}
+                                            data-state={
+                                                row.getIsSelected()
+                                                    ? 'selected'
+                                                    : undefined
+                                            }
+                                        >
+                                            {row
+                                                .getVisibleCells()
+                                                .map((cell) => (
+                                                    <TableCell key={cell.id}>
+                                                        <table.FlexRender
+                                                            cell={cell}
+                                                        />
+                                                    </TableCell>
+                                                ))}
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={
+                                                table.getVisibleLeafColumns()
+                                                    .length
+                                            }
+                                            className="h-32 text-center"
+                                        >
+                                            <div className="space-y-1">
+                                                <p className="font-medium">
                                                     Perusahaan leasing tidak
                                                     ditemukan
                                                 </p>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    Ubah kata kunci atau filter,
-                                                    atau tambahkan rekanan baru.
+                                                <p className="text-sm text-muted-foreground">
+                                                    Ubah kata pencarian atau
+                                                    filter yang digunakan.
                                                 </p>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
 
-                <div className="flex flex-col gap-3 border-t px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-                    <p className="text-xs text-muted-foreground">
-                        Menampilkan {firstRow}–{lastRow} dari {filteredCount}{' '}
-                        data
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs">Baris per halaman</span>
-                            <Select
-                                value={String(pageSize)}
-                                onValueChange={(value) =>
-                                    table.setPageSize(Number(value))
-                                }
-                            >
-                                <SelectTrigger size="sm" className="w-18">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent align="end" className="min-w-18">
-                                    {[10, 20, 50].map((size) => (
-                                        <SelectItem
-                                            key={size}
-                                            value={String(size)}
-                                        >
-                                            {size}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <span className="min-w-24 text-center text-xs font-medium">
-                            Halaman {pageIndex + 1} dari {pageCount}
-                        </span>
-                        <div className="flex items-center gap-1">
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="size-8"
-                                onClick={() => table.firstPage()}
-                                disabled={!table.getCanPreviousPage()}
-                                aria-label="Halaman pertama"
-                            >
-                                <CaretDoubleLeftIcon className="size-3.5" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="size-8"
-                                onClick={() => table.previousPage()}
-                                disabled={!table.getCanPreviousPage()}
-                                aria-label="Halaman sebelumnya"
-                            >
-                                <CaretLeftIcon className="size-3.5" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="size-8"
-                                onClick={() => table.nextPage()}
-                                disabled={!table.getCanNextPage()}
-                                aria-label="Halaman berikutnya"
-                            >
-                                <CaretRightIcon className="size-3.5" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="size-8"
-                                onClick={() => table.lastPage()}
-                                disabled={!table.getCanNextPage()}
-                                aria-label="Halaman terakhir"
-                            >
-                                <CaretDoubleRightIcon className="size-3.5" />
-                            </Button>
+                    <div className="flex flex-col gap-3 border-t px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+                        <p className="text-sm text-muted-foreground">
+                            Menampilkan {firstVisibleRow}–{lastVisibleRow} dari{' '}
+                            {filteredCount} data
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm">
+                                    Baris per halaman
+                                </span>
+                                <Select
+                                    value={String(pageSize)}
+                                    onValueChange={(value) =>
+                                        table.setPageSize(Number(value))
+                                    }
+                                >
+                                    <SelectTrigger size="sm" className="w-18">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent
+                                        align="end"
+                                        className="min-w-18"
+                                    >
+                                        {[10, 20, 50].map((size) => (
+                                            <SelectItem
+                                                key={size}
+                                                value={String(size)}
+                                            >
+                                                {size}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <span className="min-w-28 text-center text-sm font-medium">
+                                Halaman {pageIndex + 1} dari {pageCount}
+                            </span>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-8"
+                                    onClick={() => table.firstPage()}
+                                    disabled={!table.getCanPreviousPage()}
+                                    aria-label="Halaman pertama"
+                                >
+                                    <CaretDoubleLeftIcon />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-8"
+                                    onClick={() => table.previousPage()}
+                                    disabled={!table.getCanPreviousPage()}
+                                    aria-label="Halaman sebelumnya"
+                                >
+                                    <CaretLeftIcon />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-8"
+                                    onClick={() => table.nextPage()}
+                                    disabled={!table.getCanNextPage()}
+                                    aria-label="Halaman berikutnya"
+                                >
+                                    <CaretRightIcon />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-8"
+                                    onClick={() => table.lastPage()}
+                                    disabled={!table.getCanNextPage()}
+                                    aria-label="Halaman terakhir"
+                                >
+                                    <CaretDoubleRightIcon />
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </CardContent>
+                </CardContent>
+            </Card>
 
             <FinanceCompanyFormDialog
                 open={isCreateOpen || editingCompany !== null}
@@ -423,6 +444,6 @@ export function FinanceCompanyDataTable({ data }: Props) {
                     }
                 }}
             />
-        </Card>
+        </>
     );
 }

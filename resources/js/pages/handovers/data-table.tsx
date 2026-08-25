@@ -5,7 +5,6 @@ import {
     CaretRightIcon,
     ColumnsIcon,
     MagnifyingGlassIcon,
-    PlusIcon,
     XIcon,
 } from '@phosphor-icons/react';
 import { useTable } from '@tanstack/react-table';
@@ -55,14 +54,13 @@ import type { Sale } from '@/pages/sales/types';
 
 type Props = {
     sales: Sale[];
-    onAddHandover: () => void;
 };
 
 const initialSorting: SortingState = [{ id: 'number', desc: true }];
 const initialPagination: PaginationState = { pageIndex: 0, pageSize: 10 };
 const initialColumnVisibility: ColumnVisibilityState = {};
 
-export function HandoverDataTable({ sales, onAddHandover }: Props) {
+export function HandoverDataTable({ sales }: Props) {
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
@@ -134,21 +132,11 @@ export function HandoverDataTable({ sales, onAddHandover }: Props) {
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                        {selectedCount > 0 && (
-                            <p className="text-sm font-medium">
-                                {selectedCount} penjualan dipilih
-                            </p>
-                        )}
-                        <Button
-                            type="button"
-                            onClick={onAddHandover}
-                            disabled={sales.length === 0}
-                        >
-                            <PlusIcon className="size-4" />
-                            Tambah Penyerahan
-                        </Button>
-                    </div>
+                    {selectedCount > 0 && (
+                        <p className="text-sm font-medium">
+                            {selectedCount} penjualan dipilih
+                        </p>
+                    )}
                 </div>
 
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center">

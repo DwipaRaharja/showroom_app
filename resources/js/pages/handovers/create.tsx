@@ -18,30 +18,15 @@ export default function HandoverCreate({ sale }: Props) {
         <>
             <Head title={`Tambah Tracking ${sale.invoice_number}`} />
 
-            <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                <div className="flex items-start gap-3">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="mt-0.5 shrink-0"
-                        asChild
-                    >
-                        <Link
-                            href={VehicleHandoverController.show.url(sale.id)}
-                            aria-label="Kembali ke riwayat tracking"
-                        >
-                            <ArrowLeftIcon />
-                        </Link>
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Tambah Tracking Penyerahan
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {sale.invoice_number} · {carName} ·{' '}
-                            {sale.car?.license_plate ?? 'Tanpa plat'}
-                        </p>
-                    </div>
+            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6">
+                <div>
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                        Tambah tracking penyerahan
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        {sale.invoice_number} · {carName} ·{' '}
+                        {sale.car?.license_plate ?? 'Tanpa plat'}
+                    </p>
                 </div>
 
                 <HandoverForm sale={sale} />

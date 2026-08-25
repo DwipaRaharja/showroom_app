@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Car;
 use App\Models\Customer;
 use App\Models\FinanceCompany;
+use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -34,12 +35,62 @@ test('authenticated user can view finance companies index with summary', functio
         );
 });
 
+test('leasing transaction totals only include credit sales', function () {
+    $user = User::factory()->create();
+    $company = FinanceCompany::factory()->create();
+
+    Sale::factory()->create([
+        'payment_type' => 'credit',
+        'finance_company_id' => $company->id,
+    ]);
+    Sale::factory()->create([
+        'payment_type' => 'cash_full',
+        'finance_company_id' => $company->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('finance-companies.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('finance_companies.0.id', $company->id)
+            ->where('finance_companies.0.sales_count', 1)
+            ->where('summary.total_sales_financed', 1)
+        );
+});
+
+test('inactive leasing cannot be used for a new credit sale', function () {
+    $user = User::factory()->create();
+    $company = FinanceCompany::factory()->create(['is_active' => false]);
+    $car = Car::factory()->create(['status' => 'available']);
+    $customer = Customer::factory()->create();
+
+    Purchase::factory()->for($car)->create(['status' => 'completed']);
+
+    $this->actingAs($user)
+        ->post(route('sales.store'), [
+            'car_id' => $car->id,
+            'customer_id' => $customer->id,
+            'payment_type' => 'credit',
+            'deal_price' => 150_000_000,
+            'down_payment' => 30_000_000,
+            'finance_company_id' => $company->id,
+            'finance_amount' => 120_000_000,
+            'leasing_bonus' => 0,
+        ])
+        ->assertSessionHasErrors('finance_company_id');
+
+    $this->assertDatabaseMissing('sales', [
+        'car_id' => $car->id,
+        'finance_company_id' => $company->id,
+    ]);
+});
+
 test('authenticated user can store a new finance company', function () {
     $user = User::factory()->create();
 
     $payload = [
         'name' => 'BCA Finance Cabang Surabaya',
-        'code' => 'BCAF',
+        'code' => 'bcaf',
         'pic_name' => 'Hendro Setiawan',
         'pic_phone' => '081234567890',
         'is_active' => true,

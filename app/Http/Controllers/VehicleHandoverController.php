@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Handover\StoreHandoverRequest;
+use App\Models\Payment;
 use App\Models\Sale;
 use App\Models\VehicleHandover;
 use App\Models\VehicleHandoverEvent;
@@ -12,6 +13,7 @@ use App\Models\VehicleHandoverItem;
 use App\Models\VehicleHandoverPhoto;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -167,6 +169,12 @@ class VehicleHandoverController extends Controller
                     ]);
                 }
 
+                $this->confirmFinanceDisbursementFromBpkbHandover(
+                    $sale,
+                    $event,
+                    $validated,
+                );
+
                 foreach ($photos as $photo) {
                     $path = $photo->store(
                         "vehicle-handovers/{$handover->id}/events/{$event->id}",
@@ -282,20 +290,101 @@ class VehicleHandoverController extends Controller
             ]);
         }
 
-        if (in_array('vehicle', $items, true) && $sale->remaining_bill > 10_000_000) {
+        if (
+            in_array('vehicle', $items, true)
+            && $sale->customer_payment_shortfall > 10_000_000
+        ) {
             throw ValidationException::withMessages([
-                'items' => 'Sisa tagihan berubah dan kembali melebihi batas Rp 10.000.000.',
+                'items' => 'Kekurangan pembayaran customer berubah dan kembali melebihi batas Rp 10.000.000.',
+            ]);
+        }
+
+        $containsBpkb = in_array('bpkb', $items, true);
+        $containsOriginalDocument = $containsBpkb
+            || in_array('invoice', $items, true);
+        $isCreditBpkbHandover = $sale->payment_type === 'credit'
+            && $containsBpkb;
+
+        if (
+            $isCreditBpkbHandover
+            && $validated['recipient_relation'] !== 'leasing_officer'
+        ) {
+            throw ValidationException::withMessages([
+                'recipient_relation' => 'BPKB penjualan kredit harus diserahkan kepada petugas leasing.',
+            ]);
+        }
+
+        if ($isCreditBpkbHandover && $sale->customer_payment_shortfall > 0) {
+            throw ValidationException::withMessages([
+                'items' => 'Masih ada kekurangan pembayaran customer sebesar Rp '
+                    .number_format($sale->customer_payment_shortfall, 0, ',', '.')
+                    .'. Lunasi kekurangan sebelum menyerahkan BPKB ke leasing.',
             ]);
         }
 
         if (
-            (in_array('bpkb', $items, true) || in_array('invoice', $items, true))
+            $containsOriginalDocument
+            && ! $isCreditBpkbHandover
             && $sale->remaining_bill > 0
         ) {
             throw ValidationException::withMessages([
                 'items' => 'Transaksi belum lunas sehingga dokumen asli belum dapat diserahkan.',
             ]);
         }
+    }
+
+    /**
+     * Treat the remaining agreed leasing principal as received only when the
+     * BPKB is actually handed to the leasing officer.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function confirmFinanceDisbursementFromBpkbHandover(
+        Sale $sale,
+        VehicleHandoverEvent $event,
+        array $validated,
+    ): void {
+        if (
+            $sale->payment_type !== 'credit'
+            || ! in_array('bpkb', $validated['items'], true)
+        ) {
+            return;
+        }
+
+        $sale->unsetRelation('payments');
+        $amount = min(
+            $sale->remaining_bill,
+            $sale->remaining_finance_disbursement,
+        );
+
+        if ($amount <= 0) {
+            $sale->refreshSettlementStatus();
+
+            return;
+        }
+
+        $paymentDate = Carbon::parse($validated['occurred_at'])
+            ->setTimezone('Asia/Makassar')
+            ->toDateString();
+
+        Payment::query()->create([
+            'sale_id' => $sale->id,
+            'payment_date' => $paymentDate,
+            'payer_type' => 'finance',
+            'payment_category' => 'finance_disbursement',
+            'amount' => $amount,
+            'payment_method' => 'transfer',
+            'destination_account' => 'Rekening showroom (penyerahan BPKB)',
+            'reference_number' => 'BPKB-'.$event->id,
+            'status' => 'confirmed',
+            'notes' => 'Otomatis dikonfirmasi saat BPKB diserahkan kepada '
+                .$validated['recipient_name'].'.',
+        ]);
+
+        $sale->update([
+            'disbursement_actual_date' => $paymentDate,
+        ]);
+        $sale->refreshSettlementStatus();
     }
 
     /** @param array<int, string> $items */

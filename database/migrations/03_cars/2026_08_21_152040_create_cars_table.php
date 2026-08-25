@@ -23,12 +23,12 @@ return new class extends Migration
             $table->enum('transmission', ['manual', 'automatic', 'cvt'])->default('automatic');
             $table->enum('fuel_type', ['bensin', 'diesel', 'hybrid', 'electric'])->default('bensin');
             $table->unsignedInteger('mileage')->default(0)->comment('Kilometer / Odometer');
-            $table->unsignedBigInteger('purchase_price')->nullable()->comment('Harga Beli');
             $table->unsignedBigInteger('selling_price')->comment('Harga Jual');
             $table->enum('status', ['available', 'booked', 'sold', 'maintenance'])->default('available');
             $table->text('description')->nullable()->comment('Deskripsi atau catatan kondisi');
             $table->string('image')->nullable()->comment('Foto utama kendaraan');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

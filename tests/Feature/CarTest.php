@@ -3,6 +3,8 @@
 use App\Models\Brand;
 use App\Models\Car;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('guest cannot access car create, detail, and edit pages', function () {
@@ -114,6 +116,8 @@ test('car edit page keeps the current inactive brand available', function () {
 });
 
 test('authenticated user can create a car from the dedicated form', function () {
+    Storage::fake('local');
+
     $user = User::factory()->create();
     $brand = Brand::factory()->create(['is_active' => true]);
 
@@ -130,6 +134,9 @@ test('authenticated user can create a car from the dedicated form', function () 
             'selling_price' => 205000000,
             'status' => 'available',
             'description' => 'Kondisi siap jual.',
+            'image' => UploadedFile::fake()
+                ->image('avanza-utama.jpg', 1200, 800)
+                ->size(1024),
             'capital' => [
                 'purchase_date' => '2026-08-24',
                 'price' => 180000000,
@@ -156,9 +163,21 @@ test('authenticated user can create a car from the dedicated form', function () 
         'transport_cost' => 1000000,
         'status' => 'completed',
     ]);
+
+    $car = Car::query()->where('license_plate', 'DD 1234 TB')->sole();
+
+    expect($car->image)->not->toBeNull();
+    Storage::disk('local')->assertExists($car->image ?? '');
+
+    $this->actingAs($user)
+        ->get(route('cars.image', $car))
+        ->assertOk()
+        ->assertHeader('content-type', 'image/jpeg');
 });
 
 test('authenticated user can update a car from the dedicated form', function () {
+    Storage::fake('local');
+
     $user = User::factory()->create();
     $brand = Brand::factory()->create(['is_active' => true]);
     $car = Car::factory()->for($brand)->create();
@@ -170,9 +189,13 @@ test('authenticated user can update a car from the dedicated form', function () 
         'other_cost' => 0,
         'status' => 'completed',
     ]);
+    $oldImagePath = "cars/{$car->id}/images/old-image.jpg";
+    Storage::disk('local')->put($oldImagePath, 'old-image');
+    $car->update(['image' => $oldImagePath]);
 
     $this->actingAs($user)
-        ->put(route('cars.update', $car), [
+        ->post(route('cars.update', $car), [
+            '_method' => 'PUT',
             'brand_id' => $brand->id,
             'name' => 'Innova Zenix 2.0 V',
             'license_plate' => $car->license_plate,
@@ -184,6 +207,9 @@ test('authenticated user can update a car from the dedicated form', function () 
             'selling_price' => 425000000,
             'status' => 'booked',
             'description' => 'Sudah dibooking customer.',
+            'image' => UploadedFile::fake()
+                ->image('innova-baru.jpg', 1200, 800)
+                ->size(1024),
             'capital' => [
                 'purchase_date' => '2026-08-21',
                 'price' => 390000000,
@@ -212,4 +238,112 @@ test('authenticated user can update a car from the dedicated form', function () 
         'repair_cost' => 2000000,
         'status' => 'completed',
     ]);
+
+    $newImagePath = $car->fresh()->image;
+
+    expect($newImagePath)->not->toBeNull()
+        ->and($newImagePath)->not->toBe($oldImagePath);
+    Storage::disk('local')->assertMissing($oldImagePath);
+    Storage::disk('local')->assertExists($newImagePath ?? '');
+
+    $this->actingAs($user)
+        ->post(route('cars.update', $car), [
+            '_method' => 'PUT',
+            'brand_id' => $brand->id,
+            'name' => 'Innova Zenix 2.0 V',
+            'license_plate' => $car->license_plate,
+            'year' => 2025,
+            'color' => 'Putih Mutiara',
+            'transmission' => 'cvt',
+            'fuel_type' => 'hybrid',
+            'mileage' => 9000,
+            'selling_price' => 425000000,
+            'status' => 'booked',
+            'description' => 'Sudah dibooking customer.',
+            'remove_image' => true,
+            'capital' => [
+                'purchase_date' => '2026-08-21',
+                'price' => 390000000,
+                'repair_cost' => 2000000,
+                'transport_cost' => 1000000,
+                'other_cost' => 500000,
+                'status' => 'completed',
+                'notes' => 'Modal diperbarui.',
+            ],
+        ])
+        ->assertRedirect(route('cars.show', $car))
+        ->assertSessionHasNoErrors();
+
+    expect($car->fresh()->image)->toBeNull();
+    Storage::disk('local')->assertMissing($newImagePath ?? '');
+});
+
+test('authenticated user can view car listing with status summary metrics', function () {
+    $user = User::factory()->create();
+    $brand = Brand::factory()->create();
+
+    $car1 = Car::factory()->for($brand)->create(['status' => 'available', 'selling_price' => 200000000]);
+    $car1->capital()->create([
+        'purchase_date' => '2026-08-01',
+        'price' => 150000000,
+        'repair_cost' => 10000000,
+        'transport_cost' => 2000000,
+        'other_cost' => 1000000,
+        'status' => 'completed',
+    ]);
+
+    $car2 = Car::factory()->for($brand)->create(['status' => 'available', 'selling_price' => 300000000]);
+    $car2->capital()->create([
+        'purchase_date' => '2026-08-02',
+        'price' => 250000000,
+        'repair_cost' => 5000000,
+        'transport_cost' => 0,
+        'other_cost' => 0,
+        'status' => 'completed',
+    ]);
+
+    $car3 = Car::factory()->for($brand)->create(['status' => 'booked', 'selling_price' => 180000000]);
+    $car3->capital()->create([
+        'purchase_date' => '2026-08-03',
+        'price' => 140000000,
+        'repair_cost' => 0,
+        'transport_cost' => 0,
+        'other_cost' => 0,
+        'status' => 'completed',
+    ]);
+
+    $car4 = Car::factory()->for($brand)->create(['status' => 'maintenance', 'selling_price' => 120000000]);
+    $car4->capital()->create([
+        'purchase_date' => '2026-08-04',
+        'price' => 90000000,
+        'repair_cost' => 10000000,
+        'transport_cost' => 0,
+        'other_cost' => 0,
+        'status' => 'completed',
+    ]);
+
+    $car5 = Car::factory()->for($brand)->create(['status' => 'sold', 'selling_price' => 250000000]);
+    $car5->capital()->create([
+        'purchase_date' => '2026-08-05',
+        'price' => 200000000,
+        'repair_cost' => 0,
+        'transport_cost' => 0,
+        'other_cost' => 0,
+        'status' => 'completed',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('cars.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('cars/index')
+            ->has('cars', 5)
+            ->where('summary.total_active', 4)
+            ->where('summary.available', 2)
+            ->where('summary.booked', 1)
+            ->where('summary.maintenance', 1)
+            ->where('summary.sold', 1)
+            ->where('summary.total_active_capital', 658000000)
+            ->where('summary.potential_selling_turnover', 500000000)
+        );
 });

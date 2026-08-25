@@ -210,7 +210,7 @@ function SortableHeader({
         <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8"
+            className="-ml-2 h-8 px-2"
             onClick={onToggle}
             aria-label={`Urutkan berdasarkan ${label}`}
             aria-sort={

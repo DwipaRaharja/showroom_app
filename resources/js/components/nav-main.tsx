@@ -15,7 +15,7 @@ type NavMainProps = {
 };
 
 export function NavMain({ groups, items }: NavMainProps) {
-    const { isCurrentUrl } = useCurrentUrl();
+    const { isCurrentOrParentUrl } = useCurrentUrl();
 
     const normalizedGroups: NavGroup[] = groups ?? [
         {
@@ -38,7 +38,7 @@ export function NavMain({ groups, items }: NavMainProps) {
                             <SidebarMenuItem key={item.title}>
                                 <SidebarMenuButton
                                     asChild
-                                    isActive={isCurrentUrl(item.href)}
+                                    isActive={isCurrentOrParentUrl(item.href)}
                                     tooltip={{ children: item.title }}
                                 >
                                     <Link href={item.href} prefetch>

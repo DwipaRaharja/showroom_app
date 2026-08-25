@@ -61,6 +61,10 @@ function PaymentDialogContent({
     const remainingBill =
         sale.remaining_bill ??
         Math.max(0, sale.deal_price - (sale.total_paid ?? 0));
+    const customerPaymentShortfall = isCredit
+        ? (sale.customer_payment_shortfall ?? remainingBill)
+        : remainingBill;
+    const payableAmount = isCredit ? customerPaymentShortfall : remainingBill;
     const bonusRemaining = Math.max(
         0,
         sale.leasing_bonus - (sale.total_bonus_paid ?? 0),
@@ -77,8 +81,10 @@ function PaymentDialogContent({
     const suggestedCategory: PaymentCategory = requiresDownPayment
         ? 'down_payment'
         : isCredit
-          ? remainingBill > 0
-              ? 'finance_disbursement'
+          ? customerPaymentShortfall > 0
+              ? !hasDownPayment && sale.down_payment > 0
+                  ? 'down_payment'
+                  : 'settlement'
               : bonusRemaining > 0
                 ? 'leasing_bonus'
                 : 'settlement'
@@ -91,18 +97,16 @@ function PaymentDialogContent({
 
     const [category, setCategory] = useState<PaymentCategory>(initialCategory);
     const [payerType, setPayerType] = useState<PayerType>(
-        category === 'finance_disbursement' || category === 'leasing_bonus'
-            ? 'finance'
-            : 'customer',
+        category === 'leasing_bonus' ? 'finance' : 'customer',
     );
 
     const initialAmount =
         category === 'down_payment'
-            ? Math.min(sale.down_payment, remainingBill)
+            ? Math.min(sale.down_payment, payableAmount)
             : category === 'leasing_bonus'
               ? bonusRemaining
-              : remainingBill > 0
-                ? remainingBill
+              : payableAmount > 0
+                ? payableAmount
                 : 0;
 
     const [amount, setAmount] = useState<string>(
@@ -122,38 +126,27 @@ function PaymentDialogContent({
     function handleCategoryChange(newCat: PaymentCategory) {
         setCategory(newCat);
 
-        if (newCat === 'finance_disbursement' || newCat === 'leasing_bonus') {
+        if (newCat === 'leasing_bonus') {
             setPayerType('finance');
-
-            if (newCat === 'leasing_bonus') {
-                setAmount(
-                    String(
-                        bonusRemaining > 0
-                            ? bonusRemaining
-                            : sale.leasing_bonus,
-                    ),
-                );
-            } else if (newCat === 'finance_disbursement') {
-                setAmount(
-                    String(
-                        remainingBill > 0 ? remainingBill : sale.finance_amount,
-                    ),
-                );
-            }
+            setAmount(
+                String(
+                    bonusRemaining > 0 ? bonusRemaining : sale.leasing_bonus,
+                ),
+            );
         } else {
             setPayerType('customer');
 
             if (newCat === 'down_payment') {
                 const plannedDownPayment = Math.min(
                     sale.down_payment,
-                    remainingBill,
+                    payableAmount,
                 );
 
                 setAmount(
                     plannedDownPayment > 0 ? String(plannedDownPayment) : '',
                 );
-            } else if (remainingBill > 0) {
-                setAmount(String(remainingBill));
+            } else if (payableAmount > 0) {
+                setAmount(String(payableAmount));
             }
         }
     }
@@ -231,6 +224,33 @@ function PaymentDialogContent({
                                     {currencyFormatter.format(remainingBill)}
                                 </span>
                             </div>
+                            {isCredit && (
+                                <>
+                                    <div className="flex items-center justify-between text-muted-foreground">
+                                        <span>Sisa Pokok Leasing:</span>
+                                        <span className="font-medium text-foreground">
+                                            {currencyFormatter.format(
+                                                sale.remaining_finance_disbursement ??
+                                                    0,
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between font-semibold">
+                                        <span>Kekurangan Customer:</span>
+                                        <span
+                                            className={
+                                                customerPaymentShortfall > 0
+                                                    ? 'text-amber-600 dark:text-amber-500'
+                                                    : 'text-emerald-600'
+                                            }
+                                        >
+                                            {currencyFormatter.format(
+                                                customerPaymentShortfall,
+                                            )}
+                                        </span>
+                                    </div>
+                                </>
+                            )}
                             {sale.leasing_bonus > 0 && (
                                 <div className="flex items-center justify-between pt-0.5 text-xs text-muted-foreground">
                                     <span>Bonus Leasing:</span>
@@ -253,7 +273,8 @@ function PaymentDialogContent({
                             {/* Payment Category */}
                             <div className="grid gap-2 sm:col-span-2">
                                 <Label htmlFor="payment_category">
-                                    Kategori Pembayaran
+                                    Kategori Pembayaran{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Select
                                     value={category}
@@ -289,9 +310,6 @@ function PaymentDialogContent({
                                         </SelectItem>
                                         {isCredit && (
                                             <>
-                                                <SelectItem value="finance_disbursement">
-                                                    Pencairan Pokok Leasing
-                                                </SelectItem>
                                                 <SelectItem value="leasing_bonus">
                                                     Pencairan Bonus/Komisi
                                                     Leasing
@@ -325,22 +343,23 @@ function PaymentDialogContent({
                             <div className="grid gap-2 sm:col-span-2">
                                 <div className="flex items-center justify-between">
                                     <Label htmlFor="amount">
-                                        Nominal Uang Masuk
+                                        Nominal Uang Masuk{' '}
+                                        <span className="text-red-500">*</span>
                                     </Label>
-                                    {remainingBill > 0 &&
+                                    {payableAmount > 0 &&
                                         category !== 'leasing_bonus' && (
                                             <button
                                                 type="button"
                                                 onClick={() =>
                                                     setAmount(
-                                                        String(remainingBill),
+                                                        String(payableAmount),
                                                     )
                                                 }
                                                 className="text-xs font-medium text-primary hover:underline"
                                             >
                                                 Bayar Lunas Sisa (
                                                 {currencyFormatter.format(
-                                                    remainingBill,
+                                                    payableAmount,
                                                 )}
                                                 )
                                             </button>
@@ -366,7 +385,8 @@ function PaymentDialogContent({
                             <div className="grid gap-2">
                                 <div className="flex items-center justify-between">
                                     <Label htmlFor="payment_date">
-                                        Tanggal Terima Uang
+                                        Tanggal Terima Uang{' '}
+                                        <span className="text-red-500">*</span>
                                     </Label>
                                     <button
                                         type="button"
@@ -403,7 +423,8 @@ function PaymentDialogContent({
                             {/* Payment Method */}
                             <div className="grid gap-2">
                                 <Label htmlFor="payment_method">
-                                    Metode Pembayaran
+                                    Metode Pembayaran{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Select
                                     value={paymentMethod}
@@ -438,7 +459,8 @@ function PaymentDialogContent({
                             {/* Destination Account */}
                             <div className="grid gap-2 sm:col-span-2">
                                 <Label htmlFor="destination_account">
-                                    Rekening / Kas Tujuan Penerima
+                                    Rekening / Kas Tujuan Penerima{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="destination_account"

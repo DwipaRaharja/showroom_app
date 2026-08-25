@@ -24,6 +24,20 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->loadDomainMigrations();
+    }
+
+    /**
+     * Automatically load migrations from domain subdirectories.
+     */
+    protected function loadDomainMigrations(): void
+    {
+        $mainPath = database_path('migrations');
+        $directories = glob($mainPath . '/*', GLOB_ONLYDIR);
+
+        if (! empty($directories)) {
+            $this->loadMigrationsFrom($directories);
+        }
     }
 
     /**

@@ -45,6 +45,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     ]);
     Route::patch('cars/{car}/status', [CarController::class, 'updateStatus'])
         ->name('cars.status.update');
+    Route::get('cars/{car}/image', [CarController::class, 'image'])
+        ->name('cars.image');
     Route::resource('cars', CarController::class)->only([
         'index',
         'create',

@@ -215,6 +215,12 @@ export default function DocumentProcessShow({
                                         'Tidak menggunakan pihak luar'
                                     }
                                 />
+                                {process.processor_phone && (
+                                    <Detail
+                                        label="Nomor kontak biro jasa"
+                                        value={process.processor_phone}
+                                    />
+                                )}
                                 {process.origin_region && (
                                     <Detail
                                         label="Daerah asal"
@@ -532,7 +538,6 @@ DocumentProcessShow.layout = {
         },
         {
             title: 'Detail Proses',
-            href: '#',
         },
     ],
 };

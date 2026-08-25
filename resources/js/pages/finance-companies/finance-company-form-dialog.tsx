@@ -50,7 +50,9 @@ function FinanceCompanyFormContent({
         <DialogContent className="sm:max-w-xl">
             <DialogHeader>
                 <DialogTitle>
-                    {isEditing ? 'Edit Perusahaan Leasing' : 'Tambah Perusahaan Leasing'}
+                    {isEditing
+                        ? 'Edit Perusahaan Leasing'
+                        : 'Tambah Perusahaan Leasing'}
                 </DialogTitle>
                 <DialogDescription>
                     {isEditing
@@ -70,7 +72,8 @@ function FinanceCompanyFormContent({
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <div className="space-y-2 sm:col-span-2">
                                 <Label htmlFor="name">
-                                    Nama Perusahaan Leasing <span className="text-red-500">*</span>
+                                    Nama Perusahaan Leasing{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="name"
@@ -78,12 +81,17 @@ function FinanceCompanyFormContent({
                                     placeholder="Contoh: BCA Finance, Mandiri Utama Finance"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    aria-invalid={errors.name ? 'true' : undefined}
+                                    aria-invalid={
+                                        errors.name ? 'true' : undefined
+                                    }
                                     className={validationColorClassName}
                                     required
                                     autoFocus
                                 />
-                                <InputError message={errors.name} className={errorTextClassName} />
+                                <InputError
+                                    message={errors.name}
+                                    className={errorTextClassName}
+                                />
                             </div>
 
                             <div className="space-y-2">
@@ -93,46 +101,71 @@ function FinanceCompanyFormContent({
                                     name="code"
                                     placeholder="Contoh: BCAF, MUF"
                                     value={code}
-                                    onChange={(e) => setCode(e.target.value.toUpperCase())}
-                                    aria-invalid={errors.code ? 'true' : undefined}
+                                    onChange={(e) =>
+                                        setCode(e.target.value.toUpperCase())
+                                    }
+                                    aria-invalid={
+                                        errors.code ? 'true' : undefined
+                                    }
                                     className={validationColorClassName}
                                 />
-                                <InputError message={errors.code} className={errorTextClassName} />
+                                <InputError
+                                    message={errors.code}
+                                    className={errorTextClassName}
+                                />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="pic_name">Nama PIC / Marketing</Label>
+                                <Label htmlFor="pic_name">
+                                    Nama PIC / Marketing
+                                </Label>
                                 <Input
                                     id="pic_name"
                                     name="pic_name"
                                     placeholder="Contoh: Budi Santoso"
                                     value={picName}
                                     onChange={(e) => setPicName(e.target.value)}
-                                    aria-invalid={errors.pic_name ? 'true' : undefined}
+                                    aria-invalid={
+                                        errors.pic_name ? 'true' : undefined
+                                    }
                                     className={validationColorClassName}
                                 />
-                                <InputError message={errors.pic_name} className={errorTextClassName} />
+                                <InputError
+                                    message={errors.pic_name}
+                                    className={errorTextClassName}
+                                />
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="pic_phone">No. HP / WhatsApp PIC</Label>
+                                <Label htmlFor="pic_phone">
+                                    No. HP / WhatsApp PIC
+                                </Label>
                                 <Input
                                     id="pic_phone"
                                     name="pic_phone"
                                     placeholder="Contoh: 081234567890"
                                     value={picPhone}
-                                    onChange={(e) => setPicPhone(e.target.value)}
-                                    aria-invalid={errors.pic_phone ? 'true' : undefined}
+                                    onChange={(e) =>
+                                        setPicPhone(e.target.value)
+                                    }
+                                    aria-invalid={
+                                        errors.pic_phone ? 'true' : undefined
+                                    }
                                     className={validationColorClassName}
                                 />
-                                <InputError message={errors.pic_phone} className={errorTextClassName} />
+                                <InputError
+                                    message={errors.pic_phone}
+                                    className={errorTextClassName}
+                                />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="notes">Catatan & Syarat Kerjasama</Label>
+                            <Label htmlFor="notes">
+                                Catatan & Syarat Kerjasama
+                            </Label>
                             <Textarea
                                 id="notes"
                                 name="notes"
@@ -143,7 +176,10 @@ function FinanceCompanyFormContent({
                                 className={validationColorClassName}
                                 rows={3}
                             />
-                            <InputError message={errors.notes} className={errorTextClassName} />
+                            <InputError
+                                message={errors.notes}
+                                className={errorTextClassName}
+                            />
                         </div>
 
                         <input
@@ -155,7 +191,9 @@ function FinanceCompanyFormContent({
                             <Checkbox
                                 id="finance-company-is-active"
                                 checked={isActive}
-                                onCheckedChange={(checked) => setIsActive(checked === true)}
+                                onCheckedChange={(checked) =>
+                                    setIsActive(checked === true)
+                                }
                                 aria-invalid={Boolean(errors.is_active)}
                                 className={validationColorClassName}
                             />
@@ -163,14 +201,22 @@ function FinanceCompanyFormContent({
                                 htmlFor="finance-company-is-active"
                                 className="cursor-pointer font-normal"
                             >
-                                Status Rekanan Aktif (dapat dipilih pada transaksi penjualan)
+                                Status Rekanan Aktif (dapat dipilih pada
+                                transaksi penjualan)
                             </Label>
                         </div>
-                        <InputError message={errors.is_active} className={errorTextClassName} />
+                        <InputError
+                            message={errors.is_active}
+                            className={errorTextClassName}
+                        />
 
                         <DialogFooter className="pt-2">
                             <DialogClose asChild>
-                                <Button type="button" variant="outline" disabled={processing}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={processing}
+                                >
                                     Batal
                                 </Button>
                             </DialogClose>
@@ -183,7 +229,9 @@ function FinanceCompanyFormContent({
                                 ) : (
                                     <>
                                         <FloppyDiskIcon className="mr-1.5 size-4" />
-                                        {isEditing ? 'Perbarui Leasing' : 'Simpan Leasing'}
+                                        {isEditing
+                                            ? 'Perbarui Leasing'
+                                            : 'Simpan Leasing'}
                                     </>
                                 )}
                             </Button>

@@ -15,6 +15,9 @@ use Illuminate\Support\Str;
 /**
  * @property int $total_paid
  * @property int $remaining_bill
+ * @property int $total_finance_disbursed
+ * @property int $remaining_finance_disbursement
+ * @property int $customer_payment_shortfall
  * @property int $total_bonus_paid
  * @property bool $is_settled
  * @property bool $has_down_payment
@@ -45,6 +48,9 @@ class Sale extends Model
     protected $appends = [
         'total_paid',
         'remaining_bill',
+        'total_finance_disbursed',
+        'remaining_finance_disbursement',
+        'customer_payment_shortfall',
         'total_bonus_paid',
         'is_settled',
         'has_down_payment',
@@ -135,6 +141,61 @@ class Sale extends Model
     }
 
     /**
+     * Total confirmed principal disbursement received from the finance company.
+     *
+     * @return Attribute<int, never>
+     */
+    protected function totalFinanceDisbursed(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->relationLoaded('payments')) {
+                    return (int) $this->payments
+                        ->where('status', 'confirmed')
+                        ->where('payment_category', 'finance_disbursement')
+                        ->sum('amount');
+                }
+
+                return (int) $this->payments()
+                    ->where('status', 'confirmed')
+                    ->where('payment_category', 'finance_disbursement')
+                    ->sum('amount');
+            }
+        );
+    }
+
+    /**
+     * Principal amount still expected from the finance company.
+     *
+     * @return Attribute<int, never>
+     */
+    protected function remainingFinanceDisbursement(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->payment_type === 'credit'
+                ? max(0, $this->finance_amount - $this->total_finance_disbursed)
+                : 0
+        );
+    }
+
+    /**
+     * Balance that is not covered by the remaining agreed finance disbursement.
+     *
+     * This is the customer/DP obligation that must not be considered paid merely
+     * because a credit agreement exists.
+     *
+     * @return Attribute<int, never>
+     */
+    protected function customerPaymentShortfall(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->payment_type === 'credit'
+                ? max(0, $this->remaining_bill - $this->remaining_finance_disbursement)
+                : $this->remaining_bill
+        );
+    }
+
+    /**
      * Total confirmed bonus received from leasing.
      *
      * @return Attribute<int, never>
@@ -203,7 +264,11 @@ class Sale extends Model
         return Attribute::make(
             get: fn () => $this->status !== 'cancelled'
                 && (
-                    $this->remaining_bill > 0
+                    (
+                        $this->payment_type === 'credit'
+                            ? $this->customer_payment_shortfall > 0
+                            : $this->remaining_bill > 0
+                    )
                     || (
                         $this->payment_type === 'credit'
                         && $this->total_bonus_paid < $this->leasing_bonus
@@ -213,26 +278,36 @@ class Sale extends Model
     }
 
     /**
-     * Check whether the vehicle unit + STNK can be handed over (remaining bill <= 10 million or settled).
+     * Check whether the vehicle unit + STNK can be handed over.
+     *
+     * For credit sales, the agreed but not-yet-disbursed leasing principal is
+     * excluded so only the uncovered customer obligation is compared to the
+     * ten-million handover tolerance.
      *
      * @return Attribute<bool, never>
      */
     protected function canDeliverVehicle(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->status !== 'cancelled' && $this->remaining_bill <= 10_000_000
+            get: fn () => $this->status !== 'cancelled'
+                && $this->customer_payment_shortfall <= 10_000_000
         );
     }
 
     /**
-     * Check whether BPKB & original legal documents can be handed over (strictly 100% settled).
+     * Check whether BPKB & original legal documents can be handed over.
+     *
+     * A credit sale may hand BPKB to the leasing officer when the remaining
+     * agreed leasing principal fully covers the bill. The handover transaction
+     * will then confirm that disbursement as an actual payment.
      *
      * @return Attribute<bool, never>
      */
     protected function canDeliverBpkb(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->status !== 'cancelled' && $this->remaining_bill <= 0
+            get: fn () => $this->status !== 'cancelled'
+                && $this->customer_payment_shortfall <= 0
         );
     }
 

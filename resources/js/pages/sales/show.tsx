@@ -128,6 +128,8 @@ export default function SalesShow({ sale }: Props) {
             .reduce((acc, p) => acc + p.amount, 0);
     const remainingBill =
         sale.remaining_bill ?? Math.max(0, sale.deal_price - totalPaid);
+    const customerPaymentShortfall =
+        sale.customer_payment_shortfall ?? remainingBill;
     const totalBonusPaid =
         sale.total_bonus_paid ??
         payments
@@ -141,12 +143,15 @@ export default function SalesShow({ sale }: Props) {
     const isSettled = remainingBill <= 0;
     const canDeliverVehicle =
         sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
+    const canDeliverBpkb = sale.can_deliver_bpkb ?? remainingBill <= 0;
     const canAddTracking =
         sale.status !== 'cancelled' &&
         (canDeliverVehicle || sale.handover?.vehicle_delivered_at != null);
     const canAcceptPayment =
         sale.can_accept_payment ??
-        (remainingBill > 0 ||
+        ((sale.payment_type === 'credit'
+            ? customerPaymentShortfall > 0
+            : remainingBill > 0) ||
             (sale.payment_type === 'credit' && bonusRemaining > 0));
 
     const purchasePrice = car?.capital?.total_capital ?? 0;
@@ -273,7 +278,9 @@ export default function SalesShow({ sale }: Props) {
                             {isSettled
                                 ? 'Tidak ada tagihan tertunda'
                                 : sale.payment_type === 'credit'
-                                  ? 'Menunggu pencairan leasing'
+                                  ? customerPaymentShortfall > 0
+                                      ? 'Menunggu pembayaran customer'
+                                      : 'Menunggu penyerahan BPKB & pencairan leasing'
                                   : 'Menunggu pelunasan tempo'}
                         </div>
                     </Card>
@@ -412,45 +419,51 @@ export default function SalesShow({ sale }: Props) {
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="text-center">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="size-7"
+                                                        {(!sale.handover
+                                                            ?.bpkb_delivered_at ||
+                                                            payment.payment_category ===
+                                                                'leasing_bonus') && (
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger
+                                                                    asChild
                                                                 >
-                                                                    <DotsThreeVerticalIcon className="size-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem
-                                                                    onSelect={() =>
-                                                                        void copyText(
-                                                                            payment.payment_number,
-                                                                            'Nomor kuitansi',
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <CopyIcon />
-                                                                    Salin no.
-                                                                    kuitansi
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem
-                                                                    className="text-red-500 focus:text-red-500"
-                                                                    onSelect={() =>
-                                                                        setDeletingPayment(
-                                                                            payment,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <TrashIcon />
-                                                                    Hapus
-                                                                    pembayaran
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="size-7"
+                                                                    >
+                                                                        <DotsThreeVerticalIcon className="size-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem
+                                                                        onSelect={() =>
+                                                                            void copyText(
+                                                                                payment.payment_number,
+                                                                                'Nomor kuitansi',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <CopyIcon />
+                                                                        Salin
+                                                                        no.
+                                                                        kuitansi
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        className="text-red-500 focus:text-red-500"
+                                                                        onSelect={() =>
+                                                                            setDeletingPayment(
+                                                                                payment,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <TrashIcon />
+                                                                        Hapus
+                                                                        pembayaran
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        )}
                                                     </TableCell>
                                                 </TableRow>
                                             ))
@@ -643,10 +656,30 @@ export default function SalesShow({ sale }: Props) {
                                     )}
                                     <div className="space-y-1.5 divide-y border-t border-blue-500/20 pt-2">
                                         <div className="flex items-center justify-between pt-1 text-muted-foreground">
-                                            <span>Pokok Cair Leasing:</span>
+                                            <span>
+                                                Pokok Leasing Disetujui:
+                                            </span>
                                             <span className="font-bold text-foreground">
                                                 {currencyFormatter.format(
                                                     sale.finance_amount,
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between pt-1.5 text-muted-foreground">
+                                            <span>Sudah Diterima:</span>
+                                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                                {currencyFormatter.format(
+                                                    sale.total_finance_disbursed ??
+                                                        0,
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between pt-1.5 text-muted-foreground">
+                                            <span>Sisa Pencairan:</span>
+                                            <span className="font-semibold text-amber-600 dark:text-amber-400">
+                                                {currencyFormatter.format(
+                                                    sale.remaining_finance_disbursement ??
+                                                        sale.finance_amount,
                                                 )}
                                             </span>
                                         </div>
@@ -749,9 +782,13 @@ export default function SalesShow({ sale }: Props) {
                                         </div>
                                     ) : (
                                         <div className="text-[11px] text-muted-foreground">
-                                            {canDeliverVehicle
-                                                ? 'Sisa piutang ≤ Rp 10 Juta, unit boleh dibawa pulang.'
-                                                : 'Sisa piutang > Rp 10 Juta, unit belum dapat diserahkan.'}
+                                            {sale.payment_type === 'credit'
+                                                ? canDeliverVehicle
+                                                    ? 'Kekurangan customer ≤ Rp 10 Juta; sisa pokok leasing tidak mengunci unit.'
+                                                    : 'Kekurangan customer > Rp 10 Juta, unit belum dapat diserahkan.'
+                                                : canDeliverVehicle
+                                                  ? 'Sisa piutang ≤ Rp 10 Juta, unit boleh dibawa pulang.'
+                                                  : 'Sisa piutang > Rp 10 Juta, unit belum dapat diserahkan.'}
                                         </div>
                                     )}
                                 </div>
@@ -770,9 +807,11 @@ export default function SalesShow({ sale }: Props) {
                                                 />
                                                 Sudah Diserahkan
                                             </span>
-                                        ) : isSettled ? (
+                                        ) : canDeliverBpkb ? (
                                             <span className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400">
-                                                Siap Diserahkan (Lunas)
+                                                {sale.payment_type === 'credit'
+                                                    ? 'Siap Diserahkan ke Leasing'
+                                                    : 'Siap Diserahkan (Lunas)'}
                                             </span>
                                         ) : (
                                             <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
@@ -791,8 +830,9 @@ export default function SalesShow({ sale }: Props) {
                                         </div>
                                     ) : (
                                         <div className="text-[11px] text-muted-foreground">
-                                            BPKB baru dapat diserahkan setelah
-                                            pembayaran lunas 100%.
+                                            {sale.payment_type === 'credit'
+                                                ? 'Saat BPKB diserahkan kepada petugas leasing, sisa pokok leasing otomatis dicatat sebagai pembayaran sah.'
+                                                : 'BPKB baru dapat diserahkan setelah pembayaran lunas 100%.'}
                                         </div>
                                     )}
                                 </div>

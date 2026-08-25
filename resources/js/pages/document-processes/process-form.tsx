@@ -43,6 +43,10 @@ type Props = {
     initialCarId?: number | null;
 };
 
+const validationColorClassName =
+    'aria-invalid:border-red-500 aria-invalid:ring-red-500/20 dark:aria-invalid:ring-red-500/40';
+const errorTextClassName = 'text-red-500 dark:text-red-500';
+
 function today(): string {
     const date = new Date();
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
@@ -108,37 +112,46 @@ export function ProcessForm({
     }
 
     return (
-        <Form action={DocumentProcessController.store.url()} method="post">
+        <Form
+            action={DocumentProcessController.store.url()}
+            method="post"
+            options={{ preserveScroll: true }}
+            className="space-y-6"
+        >
             {({ processing, errors }) => (
-                <Card>
-                    <CardHeader className="border-b">
-                        <CardTitle>Informasi Proses</CardTitle>
-                        <CardDescription>
-                            Isi data pekerjaan pengurusan berkas untuk satu
-                            kendaraan.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-6">
-                        <input type="hidden" name="car_id" value={carId} />
-                        <input
-                            type="hidden"
-                            name="process_type"
-                            value={processType}
-                        />
-                        <input
-                            type="hidden"
-                            name="assigned_to"
-                            value={assignedTo === 'none' ? '' : assignedTo}
-                        />
-                        <input
-                            type="hidden"
-                            name="initial_cost_paid_by"
-                            value={paidBy}
-                        />
+                <>
+                    <input type="hidden" name="car_id" value={carId} />
+                    <input
+                        type="hidden"
+                        name="process_type"
+                        value={processType}
+                    />
+                    <input
+                        type="hidden"
+                        name="assigned_to"
+                        value={assignedTo === 'none' ? '' : assignedTo}
+                    />
+                    <input
+                        type="hidden"
+                        name="initial_cost_paid_by"
+                        value={paidBy}
+                    />
 
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="grid gap-1.5 sm:col-span-2">
-                                <Label htmlFor="car-search">Kendaraan</Label>
+                    {/* Card 1: Kendaraan & Jenis Pengurusan */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Kendaraan & jenis pengurusan</CardTitle>
+                            <CardDescription>
+                                Pilih unit mobil target dan jenis pengurusan
+                                berkas yang akan diproses.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-5 sm:grid-cols-2">
+                            <div className="grid gap-2 sm:col-span-2">
+                                <Label htmlFor="car-search">
+                                    Kendaraan{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
                                 <div
                                     className="relative"
                                     onBlur={(event) => {
@@ -183,7 +196,8 @@ export function ProcessForm({
                                             autoComplete="off"
                                             aria-expanded={isCarListOpen}
                                             aria-controls="car-search-results"
-                                            className="pr-10 pl-9"
+                                            aria-invalid={Boolean(errors.car_id)}
+                                            className={`pr-10 pl-9 ${validationColorClassName}`}
                                         />
                                         {carSearch !== '' && (
                                             <Button
@@ -275,11 +289,17 @@ export function ProcessForm({
                                         Mobil terpilih: {carLabel(selectedCar)}
                                     </p>
                                 )}
-                                <InputError message={errors.car_id} />
+                                <InputError
+                                    message={errors.car_id}
+                                    className={errorTextClassName}
+                                />
                             </div>
 
-                            <div className="grid gap-1.5 sm:col-span-2">
-                                <Label>Jenis proses</Label>
+                            <div className="grid gap-2 sm:col-span-2">
+                                <Label>
+                                    Jenis proses{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
                                 <Select
                                     value={processType}
                                     onValueChange={(value) =>
@@ -288,7 +308,12 @@ export function ProcessForm({
                                         )
                                     }
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger
+                                        aria-invalid={Boolean(
+                                            errors.process_type,
+                                        )}
+                                        className={validationColorClassName}
+                                    >
                                         <SelectValue placeholder="Pilih jenis proses" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -304,37 +329,119 @@ export function ProcessForm({
                                         )}
                                     </SelectContent>
                                 </Select>
-                                <InputError message={errors.process_type} />
+                                <InputError
+                                    message={errors.process_type}
+                                    className={errorTextClassName}
+                                />
                             </div>
 
-                            <div className="grid gap-1.5">
+                            {processType === 'name_transfer' && (
+                                <div className="grid gap-2 sm:col-span-2">
+                                    <Label htmlFor="target-owner">
+                                        Nama pemilik baru
+                                    </Label>
+                                    <Input
+                                        id="target-owner"
+                                        name="target_owner_name"
+                                        placeholder="Contoh: Muhammad Ramadhan"
+                                        aria-invalid={Boolean(
+                                            errors.target_owner_name,
+                                        )}
+                                        className={validationColorClassName}
+                                    />
+                                    <InputError
+                                        message={errors.target_owner_name}
+                                        className={errorTextClassName}
+                                    />
+                                </div>
+                            )}
+
+                            {processType === 'mutation' && (
+                                <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="origin-region">
+                                            Daerah asal
+                                        </Label>
+                                        <Input
+                                            id="origin-region"
+                                            name="origin_region"
+                                            placeholder="Contoh: Makassar"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="destination-region">
+                                            Daerah tujuan
+                                        </Label>
+                                        <Input
+                                            id="destination-region"
+                                            name="destination_region"
+                                            placeholder="Contoh: Gowa"
+                                            aria-invalid={Boolean(
+                                                errors.destination_region,
+                                            )}
+                                            className={validationColorClassName}
+                                        />
+                                        <InputError
+                                            message={errors.destination_region}
+                                            className={errorTextClassName}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Card 2: Jadwal & Pelaksana */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Jadwal & pelaksana</CardTitle>
+                            <CardDescription>
+                                Atur tanggal mulai, estimasi tanggal selesai,
+                                serta pihak pelaksana proses.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-5 sm:grid-cols-2">
+                            <div className="grid gap-2">
                                 <Label htmlFor="process-started-at">
-                                    Tanggal mulai
+                                    Tanggal mulai{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="process-started-at"
                                     name="started_at"
                                     type="date"
                                     defaultValue={today()}
+                                    aria-invalid={Boolean(errors.started_at)}
+                                    className={validationColorClassName}
                                 />
-                                <InputError message={errors.started_at} />
+                                <InputError
+                                    message={errors.started_at}
+                                    className={errorTextClassName}
+                                />
                             </div>
-                            <div className="grid gap-1.5">
+                            <div className="grid gap-2">
                                 <Label htmlFor="process-estimated-at">
-                                    Target selesai
+                                    Estimasi tanggal selesai
                                 </Label>
                                 <Input
                                     id="process-estimated-at"
                                     name="estimated_completion_date"
                                     type="date"
+                                    aria-invalid={Boolean(
+                                        errors.estimated_completion_date,
+                                    )}
+                                    className={validationColorClassName}
                                 />
                                 <InputError
                                     message={errors.estimated_completion_date}
+                                    className={errorTextClassName}
                                 />
                             </div>
 
-                            <div className="grid gap-1.5 sm:col-span-2">
-                                <Label>Penanggung jawab</Label>
+                            <div className="grid gap-2 sm:col-span-2">
+                                <Label>
+                                    Penanggung jawab (Internal Showroom)
+                                </Label>
                                 <Select
                                     value={assignedTo}
                                     onValueChange={setAssignedTo}
@@ -358,7 +465,7 @@ export function ProcessForm({
                                 </Select>
                             </div>
 
-                            <div className="grid gap-1.5">
+                            <div className="grid gap-2">
                                 <Label htmlFor="processor-name">
                                     Biro jasa / petugas luar (opsional)
                                 </Label>
@@ -366,83 +473,62 @@ export function ProcessForm({
                                     id="processor-name"
                                     name="processor_name"
                                     placeholder="Contoh: Biro Jasa Andi"
+                                    aria-invalid={Boolean(
+                                        errors.processor_name,
+                                    )}
+                                    className={validationColorClassName}
                                 />
-                                <InputError message={errors.processor_name} />
+                                <InputError
+                                    message={errors.processor_name}
+                                    className={errorTextClassName}
+                                />
                             </div>
-                            <div className="grid gap-1.5">
+                            <div className="grid gap-2">
                                 <Label htmlFor="processor-phone">
-                                    Nomor kontak (opsional)
+                                    Nomor kontak petugas / biro jasa (opsional)
                                 </Label>
                                 <Input
                                     id="processor-phone"
                                     name="processor_phone"
                                     placeholder="Contoh: 0812 3456 7890"
+                                    aria-invalid={Boolean(
+                                        errors.processor_phone,
+                                    )}
+                                    className={validationColorClassName}
                                 />
-                                <InputError message={errors.processor_phone} />
+                                <InputError
+                                    message={errors.processor_phone}
+                                    className={errorTextClassName}
+                                />
                             </div>
+                        </CardContent>
+                    </Card>
 
-                            {processType === 'name_transfer' && (
-                                <div className="grid gap-1.5 sm:col-span-2">
-                                    <Label htmlFor="target-owner">
-                                        Nama pemilik baru
-                                    </Label>
-                                    <Input
-                                        id="target-owner"
-                                        name="target_owner_name"
-                                        placeholder="Contoh: Muhammad Ramadhan"
-                                    />
-                                    <InputError
-                                        message={errors.target_owner_name}
-                                    />
-                                </div>
-                            )}
-
-                            {processType === 'mutation' && (
-                                <>
-                                    <div className="grid gap-1.5">
-                                        <Label htmlFor="origin-region">
-                                            Daerah asal
-                                        </Label>
-                                        <Input
-                                            id="origin-region"
-                                            name="origin_region"
-                                            placeholder="Contoh: Makassar"
-                                        />
-                                    </div>
-                                    <div className="grid gap-1.5">
-                                        <Label htmlFor="destination-region">
-                                            Daerah tujuan
-                                        </Label>
-                                        <Input
-                                            id="destination-region"
-                                            name="destination_region"
-                                            placeholder="Contoh: Gowa"
-                                        />
-                                        <InputError
-                                            message={errors.destination_region}
-                                        />
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        <div className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2">
-                            <div className="sm:col-span-2">
-                                <h3 className="font-semibold">Biaya proses</h3>
-                                <p className="text-xs text-muted-foreground">
-                                    Wajib isi biaya awal proses. Biaya yang
-                                    dibayar showroom otomatis menambah modal
-                                    kendaraan, sedangkan biaya customer hanya
-                                    dicatat pada riwayat.
-                                </p>
-                            </div>
-                            <div className="grid gap-1.5">
-                                <Label>Dibayar oleh</Label>
+                    {/* Card 3: Biaya Awal Proses */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Biaya awal proses</CardTitle>
+                            <CardDescription>
+                                Rincian biaya awal yang dikeluarkan saat
+                                pengurusan berkas dimulai.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-5 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label>
+                                    Dibayar oleh{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
                                 <Select
                                     value={paidBy}
                                     onValueChange={setPaidBy}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger
+                                        aria-invalid={Boolean(
+                                            errors.initial_cost_paid_by,
+                                        )}
+                                        className={validationColorClassName}
+                                    >
                                         <SelectValue placeholder="Pilih pihak pembayar" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -456,10 +542,14 @@ export function ProcessForm({
                                 </Select>
                                 <InputError
                                     message={errors.initial_cost_paid_by}
+                                    className={errorTextClassName}
                                 />
                             </div>
-                            <div className="grid gap-1.5">
-                                <Label>Jumlah biaya</Label>
+                            <div className="grid gap-2">
+                                <Label>
+                                    Jumlah biaya{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
                                 <PriceInput
                                     name="initial_cost"
                                     value={initialCost}
@@ -467,43 +557,73 @@ export function ProcessForm({
                                     placeholder="Contoh: 1.500.000"
                                     required
                                     aria-invalid={Boolean(errors.initial_cost)}
+                                    className={validationColorClassName}
                                 />
-                                <InputError message={errors.initial_cost} />
+                                <InputError
+                                    message={errors.initial_cost}
+                                    className={errorTextClassName}
+                                />
                             </div>
-                        </div>
 
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="process-notes">Catatan</Label>
-                            <Textarea
-                                id="process-notes"
-                                name="notes"
-                                rows={3}
-                                placeholder="Contoh: Dokumen STNK masih menunggu diserahkan oleh pemilik."
-                            />
-                        </div>
+                            <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground sm:col-span-2">
+                                <span className="font-semibold text-foreground">
+                                    Catatan Biaya:
+                                </span>{' '}
+                                Biaya yang dibayar showroom otomatis menambah
+                                modal kendaraan, sedangkan biaya customer hanya
+                                dicatat pada riwayat proses.
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                        <div className="flex flex-col-reverse gap-2 border-t pt-6 sm:flex-row sm:justify-end">
-                            <Button type="button" variant="outline" asChild>
-                                <Link
-                                    href={DocumentProcessController.index.url()}
-                                >
-                                    Batal
-                                </Link>
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={
-                                    processing ||
-                                    carId === '' ||
-                                    initialCost === ''
-                                }
-                            >
-                                {processing ? <Spinner /> : <FloppyDiskIcon />}
-                                Simpan proses
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                    {/* Card 4: Catatan Tambahan */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Catatan tambahan</CardTitle>
+                            <CardDescription>
+                                Keterangan berkas atau instruksi khusus terkait
+                                pengurusan.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-5">
+                            <div className="grid gap-2">
+                                <Label htmlFor="process-notes">
+                                    Catatan (opsional)
+                                </Label>
+                                <Textarea
+                                    id="process-notes"
+                                    name="notes"
+                                    rows={3}
+                                    placeholder="Contoh: Dokumen STNK masih menunggu diserahkan oleh pemilik sebelumnya."
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Form Actions Footer */}
+                    <div className="flex flex-wrap items-center justify-end gap-3">
+                        <Button type="button" variant="outline" asChild>
+                            <Link href={DocumentProcessController.index.url()}>
+                                Batal
+                            </Link>
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={
+                                processing ||
+                                carId === '' ||
+                                initialCost === ''
+                            }
+                        >
+                            {processing ? (
+                                <Spinner />
+                            ) : (
+                                <FloppyDiskIcon className="size-4" />
+                            )}
+                            Simpan proses
+                        </Button>
+                    </div>
+                </>
             )}
         </Form>
     );

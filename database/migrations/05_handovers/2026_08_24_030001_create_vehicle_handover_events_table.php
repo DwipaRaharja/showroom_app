@@ -13,37 +13,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('vehicle_handovers', function (Blueprint $table) {
+        Schema::create('vehicle_handover_events', function (Blueprint $table): void {
             $table->id();
-            $table->string('handover_number', 50)->unique();
-            $table->foreignId('sale_id')->constrained('sales')->cascadeOnDelete();
-            $table->foreignId('car_id')->constrained('cars')->cascadeOnDelete();
-
-            // Pihak Penerima
+            $table->foreignId('vehicle_handover_id')->constrained('vehicle_handovers')->cascadeOnDelete();
+            $table->string('event_type', 40)->default('item_delivery');
+            $table->dateTime('occurred_at');
             $table->string('recipient_name', 100);
             $table->string('recipient_phone', 30)->nullable();
             $table->string('recipient_id_card', 50)->nullable();
             $table->string('recipient_relation', 50)->default('buyer_self');
-
-            // Staf Showroom
             $table->string('officer_name', 100);
-
-            // Lokasi
             $table->string('handover_location', 100)->default('Showroom Telaga Berlian');
             $table->text('handover_address')->nullable();
-
-            // Tracking Waktu & Status
-            $table->dateTime('vehicle_delivered_at')->nullable();
-            $table->dateTime('bpkb_delivered_at')->nullable();
-            $table->string('bpkb_recipient_type', 50)->nullable();
-            $table->string('status', 30)->default('pending'); // pending, vehicle_delivered, completed
-
-            // Checklist & Fisik
-            $table->json('checklist')->nullable();
+            $table->json('vehicle_condition')->nullable();
             $table->text('notes')->nullable();
-            $table->string('proof_file')->nullable();
-
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+
+            $table->index(['vehicle_handover_id', 'occurred_at']);
         });
     }
 
@@ -52,6 +39,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('vehicle_handovers');
+        Schema::dropIfExists('vehicle_handover_events');
     }
 };

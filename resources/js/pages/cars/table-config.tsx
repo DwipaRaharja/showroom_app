@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     ArchiveBoxIcon,
+    CarProfileIcon,
     CaretDownIcon,
     CaretUpIcon,
     CaretUpDownIcon,
@@ -101,7 +102,7 @@ function SortableHeader({
         <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8"
+            className="-ml-2 h-8 px-2"
             onClick={onToggle}
             aria-label={`Urutkan berdasarkan ${label}`}
             aria-sort={
@@ -240,24 +241,40 @@ export function createCarColumns({
                 />
             ),
             cell: ({ row }) => (
-                <div className="min-w-44">
-                    <div className="font-semibold text-foreground">
-                        {row.original.name}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-xs text-muted-foreground">
-                        {row.original.brand && (
-                            <span className="font-medium text-primary">
-                                {row.original.brand.name}
-                            </span>
-                        )}
-                        <span>•</span>
-                        <span>{row.original.year}</span>
-                        {row.original.color && (
-                            <>
-                                <span>•</span>
-                                <span>{row.original.color}</span>
-                            </>
-                        )}
+                <div className="flex min-w-56 items-center gap-3">
+                    {row.original.image ? (
+                        <img
+                            src={CarController.image.url(row.original.id, {
+                                query: { v: row.original.updated_at },
+                            })}
+                            alt={row.original.name}
+                            className="size-12 shrink-0 rounded-lg border object-cover"
+                            loading="lazy"
+                        />
+                    ) : (
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+                            <CarProfileIcon className="size-6" />
+                        </div>
+                    )}
+                    <div className="min-w-0">
+                        <div className="truncate font-semibold text-foreground">
+                            {row.original.name}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-xs text-muted-foreground">
+                            {row.original.brand && (
+                                <span className="font-medium text-primary">
+                                    {row.original.brand.name}
+                                </span>
+                            )}
+                            <span>•</span>
+                            <span>{row.original.year}</span>
+                            {row.original.color && (
+                                <>
+                                    <span>•</span>
+                                    <span>{row.original.color}</span>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             ),

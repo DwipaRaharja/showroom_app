@@ -163,6 +163,9 @@ export type Sale = {
     handover?: VehicleHandover | null;
     total_paid?: number;
     remaining_bill?: number;
+    total_finance_disbursed?: number;
+    remaining_finance_disbursement?: number;
+    customer_payment_shortfall?: number;
     total_bonus_paid?: number;
     is_settled?: boolean;
     has_down_payment?: boolean;

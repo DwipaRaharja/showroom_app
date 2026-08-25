@@ -14,10 +14,11 @@ return new class extends Migration
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('phone')->unique()->nullable();
-            $table->string('ktp_number')->unique()->nullable()->comment('Nomor Induk Kependudukan');
+            $table->string('phone')->nullable();
+            $table->string('ktp_number')->nullable()->index();
             $table->text('address')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

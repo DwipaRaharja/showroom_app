@@ -36,15 +36,21 @@ export function FinanceCompanyDeleteDialog({ company, onOpenChange }: Props) {
                     <DialogDescription>
                         {hasSales ? (
                             <>
-                                Rekanan <strong>{company?.name}</strong> telah memiliki{' '}
-                                <strong>{company?.sales_count} transaksi penjualan</strong> terkait.
-                                Perusahaan leasing ini tidak dapat dihapus permanen. Silakan gunakan opsi
-                                <strong> Nonaktifkan</strong> jika rekanan sudah tidak bekerja sama.
+                                Rekanan <strong>{company?.name}</strong> telah
+                                memiliki{' '}
+                                <strong>
+                                    {company?.sales_count} transaksi penjualan
+                                </strong>{' '}
+                                terkait. Perusahaan leasing ini tidak dapat
+                                dihapus permanen. Silakan gunakan opsi
+                                <strong> Nonaktifkan</strong> jika rekanan sudah
+                                tidak bekerja sama.
                             </>
                         ) : (
                             <>
-                                Apakah Anda yakin ingin menghapus data rekanan leasing{' '}
-                                <strong>{company?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
+                                Apakah Anda yakin ingin menghapus data rekanan
+                                leasing <strong>{company?.name}</strong>?
+                                Tindakan ini tidak dapat dibatalkan.
                             </>
                         )}
                     </DialogDescription>
@@ -81,7 +87,10 @@ export function FinanceCompanyDeleteDialog({ company, onOpenChange }: Props) {
                                             </>
                                         ) : (
                                             <>
-                                                <TrashIcon className="mr-1.5 size-4" weight="bold" />
+                                                <TrashIcon
+                                                    className="mr-1.5 size-4"
+                                                    weight="bold"
+                                                />
                                                 Hapus Permanen
                                             </>
                                         )}

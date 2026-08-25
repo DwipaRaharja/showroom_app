@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\FinanceCompany;
 
+use App\Models\FinanceCompany;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,14 +25,18 @@ class UpdateFinanceCompanyRequest extends FormRequest
      */
     public function rules(): array
     {
-        $companyId = $this->route('finance_company')?->id ?? $this->route('financeCompany')?->id;
+        $financeCompany = $this->route('financeCompany');
 
         return [
             'name' => [
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('finance_companies', 'name')->ignore($companyId),
+                Rule::unique('finance_companies', 'name')->ignore(
+                    $financeCompany instanceof FinanceCompany
+                        ? $financeCompany
+                        : null,
+                ),
             ],
             'code' => ['nullable', 'string', 'max:30'],
             'pic_name' => ['nullable', 'string', 'max:100'],

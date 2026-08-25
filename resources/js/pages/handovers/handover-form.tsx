@@ -1,13 +1,16 @@
 import { Form, Link } from '@inertiajs/react';
-import {
-    CameraIcon,
-    CheckCircleIcon,
-    PackageIcon,
-} from '@phosphor-icons/react';
+import { CameraIcon, FloppyDiskIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,9 +62,9 @@ const relationLabels: Record<RecipientRelation, string> = {
     other: 'Pihak lainnya',
 };
 
-const invalidClassName =
+const validationColorClassName =
     'aria-invalid:border-red-500 aria-invalid:ring-red-500/20 dark:aria-invalid:ring-red-500/40';
-const errorClassName = 'mt-1 text-xs text-red-500';
+const errorTextClassName = 'text-red-500 dark:text-red-500';
 
 function nowForInput(): string {
     const date = new Date();
@@ -83,6 +86,7 @@ function getDeliveredItems(events: VehicleHandoverEvent[]) {
 }
 
 export function HandoverForm({ sale }: Props) {
+    const isCredit = sale.payment_type === 'credit';
     const events = sale.handover?.events ?? [];
     const deliveredItems = getDeliveredItems(events);
     const remainingBill = sale.remaining_bill ?? sale.deal_price;
@@ -118,10 +122,12 @@ export function HandoverForm({ sale }: Props) {
     const [recipientIdCard, setRecipientIdCard] = useState('');
     const [recipientRelation, setRecipientRelation] = useState<
         RecipientRelation | ''
-    >('');
+    >(isCredit && initialItems.includes('bpkb') ? 'leasing_officer' : '');
     const [officerName, setOfficerName] = useState('Admin Showroom');
     const [handoverLocation, setHandoverLocation] = useState(
-        'Showroom Telaga Berlian',
+        isCredit && initialItems.includes('bpkb')
+            ? 'Kantor leasing'
+            : 'Showroom Telaga Berlian',
     );
     const [handoverAddress, setHandoverAddress] = useState('');
     const [keyCount, setKeyCount] = useState('2');
@@ -141,10 +147,7 @@ export function HandoverForm({ sale }: Props) {
         }
 
         if (item === 'bpkb') {
-            return (
-                !canDeliverBpkb ||
-                (!unitAlreadyDelivered && !selectedItems.includes('vehicle'))
-            );
+            return !canDeliverBpkb || !unitAlreadyDelivered;
         }
 
         if (item === 'invoice') {
@@ -155,6 +158,11 @@ export function HandoverForm({ sale }: Props) {
     }
 
     function toggleItem(item: HandoverItemCode, checked: boolean) {
+        if (item === 'bpkb' && checked && isCredit) {
+            setRecipientRelation('leasing_officer');
+            setHandoverLocation('Kantor leasing');
+        }
+
         setSelectedItems((current) => {
             const next = checked
                 ? [...new Set([...current, item])]
@@ -188,114 +196,113 @@ export function HandoverForm({ sale }: Props) {
         <Form
             action={VehicleHandoverController.store.url()}
             method="post"
-            className="grid gap-6"
+            options={{ preserveScroll: true }}
+            className="space-y-6"
         >
             {({ processing, errors }) => (
                 <>
-                    <div className="space-y-6">
-                        <input type="hidden" name="sale_id" value={sale.id} />
+                    <input type="hidden" name="sale_id" value={sale.id} />
+                    <input
+                        type="hidden"
+                        name="recipient_relation"
+                        value={recipientRelation}
+                    />
+                    <input
+                        type="hidden"
+                        name="handover_location"
+                        value={handoverLocation}
+                    />
+                    {selectedItems.map((item) => (
+                        <input
+                            key={item}
+                            type="hidden"
+                            name="items[]"
+                            value={item}
+                        />
+                    ))}
+                    {selectedItems.includes('keys') && (
                         <input
                             type="hidden"
-                            name="recipient_relation"
-                            value={recipientRelation}
+                            name="key_count"
+                            value={keyCount}
                         />
+                    )}
+                    {selectedItems.includes('other') && (
                         <input
                             type="hidden"
-                            name="handover_location"
-                            value={handoverLocation}
+                            name="other_item_name"
+                            value={otherItemName}
                         />
-                        {selectedItems.map((item) => (
-                            <input
-                                key={item}
-                                type="hidden"
-                                name="items[]"
-                                value={item}
-                            />
-                        ))}
-                        {selectedItems.includes('keys') && (
+                    )}
+                    {selectedItems.includes('vehicle') && (
+                        <>
                             <input
                                 type="hidden"
-                                name="key_count"
-                                value={keyCount}
+                                name="vehicle_condition[fuel_level]"
+                                value={fuelLevel}
                             />
-                        )}
-                        {selectedItems.includes('other') && (
                             <input
                                 type="hidden"
-                                name="other_item_name"
-                                value={otherItemName}
+                                name="vehicle_condition[cleanliness]"
+                                value={cleanliness}
                             />
-                        )}
-                        {selectedItems.includes('vehicle') && (
-                            <>
-                                <input
-                                    type="hidden"
-                                    name="vehicle_condition[fuel_level]"
-                                    value={fuelLevel}
-                                />
-                                <input
-                                    type="hidden"
-                                    name="vehicle_condition[cleanliness]"
-                                    value={cleanliness}
-                                />
-                            </>
-                        )}
+                        </>
+                    )}
 
-                        <section className="grid gap-3 rounded-xl border bg-muted/20 p-4 sm:grid-cols-3">
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Sisa tagihan
-                                </p>
-                                <p className="font-semibold">
-                                    {currencyFormatter.format(remainingBill)}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Penyerahan unit
-                                </p>
-                                <p className="font-semibold">
-                                    {unitAlreadyDelivered
-                                        ? 'Sudah diserahkan'
-                                        : canDeliverVehicle
-                                          ? 'Dapat diserahkan'
-                                          : 'Masih terkunci'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Penyerahan BPKB
-                                </p>
-                                <p className="font-semibold">
-                                    {bpkbAlreadyDelivered
-                                        ? 'Sudah diserahkan'
-                                        : canDeliverBpkb
-                                          ? 'Dapat diserahkan'
+                    {/* Summary Banner */}
+                    <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-3">
+                        <div>
+                            <p className="text-xs text-muted-foreground">
+                                Sisa tagihan
+                            </p>
+                            <p className="text-base font-semibold">
+                                {currencyFormatter.format(remainingBill)}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">
+                                Penyerahan unit
+                            </p>
+                            <p className="text-base font-semibold">
+                                {unitAlreadyDelivered
+                                    ? 'Sudah diserahkan'
+                                    : canDeliverVehicle
+                                      ? 'Dapat diserahkan'
+                                      : 'Masih terkunci'}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">
+                                Penyerahan BPKB
+                            </p>
+                            <p className="text-base font-semibold">
+                                {bpkbAlreadyDelivered
+                                    ? 'Sudah diserahkan'
+                                    : !unitAlreadyDelivered
+                                      ? 'Menunggu penyerahan unit'
+                                      : canDeliverBpkb
+                                        ? 'Dapat diserahkan'
+                                        : isCredit
+                                          ? 'Menunggu kekurangan customer'
                                           : 'Menunggu pelunasan'}
-                                </p>
-                            </div>
-                        </section>
+                            </p>
+                        </div>
+                    </div>
 
-                        <section className="space-y-4 rounded-xl border p-4">
-                            <div className="flex items-start gap-3">
-                                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                    <PackageIcon className="size-4" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-semibold">
-                                        Tambah tracking baru
-                                    </h3>
-                                    <p className="text-xs text-muted-foreground">
-                                        Pilih tepat sesuai barang dan dokumen
-                                        yang benar-benar diserahkan saat
-                                        kejadian ini.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="grid gap-1.5 sm:max-w-sm">
+                    {/* Card 1: Waktu & Item yang Diserahkan */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Waktu & item yang diserahkan</CardTitle>
+                            <CardDescription>
+                                Pilih waktu penyerahan dan centang barang atau
+                                dokumen yang diserahkan pada tahap ini.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-5">
+                            <div className="grid gap-2 sm:max-w-sm">
                                 <Label htmlFor="handover-occurred-at">
-                                    Tanggal dan waktu kejadian
+                                    Tanggal dan waktu kejadian{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="handover-occurred-at"
@@ -306,12 +313,12 @@ export function HandoverForm({ sale }: Props) {
                                     onChange={(event) =>
                                         setOccurredAt(event.target.value)
                                     }
-                                    className={invalidClassName}
                                     aria-invalid={Boolean(errors.occurred_at)}
+                                    className={validationColorClassName}
                                 />
                                 <InputError
                                     message={errors.occurred_at}
-                                    className={errorClassName}
+                                    className={errorTextClassName}
                                 />
                             </div>
 
@@ -360,22 +367,22 @@ export function HandoverForm({ sale }: Props) {
                             </div>
                             <InputError
                                 message={errors.items}
-                                className={errorClassName}
+                                className={errorTextClassName}
                             />
 
                             {(selectedItems.includes('keys') ||
                                 selectedItems.includes('other') ||
                                 selectedItems.includes('vehicle')) && (
-                                <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="grid gap-5 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2">
                                     {selectedItems.includes('keys') && (
-                                        <div className="grid gap-1.5">
+                                        <div className="grid gap-2">
                                             <Label>Jumlah kunci</Label>
                                             <Select
                                                 value={keyCount}
                                                 onValueChange={setKeyCount}
                                             >
                                                 <SelectTrigger>
-                                                    <SelectValue />
+                                                    <SelectValue placeholder="Pilih jumlah kunci" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {[1, 2, 3].map((count) => (
@@ -392,13 +399,13 @@ export function HandoverForm({ sale }: Props) {
                                             </Select>
                                             <InputError
                                                 message={errors.key_count}
-                                                className={errorClassName}
+                                                className={errorTextClassName}
                                             />
                                         </div>
                                     )}
 
                                     {selectedItems.includes('other') && (
-                                        <div className="grid gap-1.5">
+                                        <div className="grid gap-2">
                                             <Label htmlFor="other-item-name">
                                                 Nama barang lainnya
                                             </Label>
@@ -410,28 +417,31 @@ export function HandoverForm({ sale }: Props) {
                                                         event.target.value,
                                                     )
                                                 }
-                                                placeholder="Contoh: remote alarm"
+                                                placeholder="Contoh: remote alarm, karpet tambahan"
                                                 aria-invalid={Boolean(
                                                     errors.other_item_name,
                                                 )}
+                                                className={
+                                                    validationColorClassName
+                                                }
                                             />
                                             <InputError
                                                 message={errors.other_item_name}
-                                                className={errorClassName}
+                                                className={errorTextClassName}
                                             />
                                         </div>
                                     )}
 
                                     {selectedItems.includes('vehicle') && (
                                         <>
-                                            <div className="grid gap-1.5">
+                                            <div className="grid gap-2">
                                                 <Label>Level bahan bakar</Label>
                                                 <Select
                                                     value={fuelLevel}
                                                     onValueChange={setFuelLevel}
                                                 >
                                                     <SelectTrigger>
-                                                        <SelectValue />
+                                                        <SelectValue placeholder="Pilih level BBM" />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         {[
@@ -451,7 +461,7 @@ export function HandoverForm({ sale }: Props) {
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                            <div className="grid gap-1.5">
+                                            <div className="grid gap-2">
                                                 <Label>
                                                     Kondisi kebersihan
                                                 </Label>
@@ -462,7 +472,7 @@ export function HandoverForm({ sale }: Props) {
                                                     }
                                                 >
                                                     <SelectTrigger>
-                                                        <SelectValue />
+                                                        <SelectValue placeholder="Pilih kondisi kebersihan" />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         {[
@@ -484,201 +494,235 @@ export function HandoverForm({ sale }: Props) {
                                     )}
                                 </div>
                             )}
-                        </section>
+                        </CardContent>
+                    </Card>
 
-                        <section className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2">
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                        <h3 className="text-sm font-semibold">
-                                            Penerima
-                                        </h3>
-                                        <p className="text-xs text-muted-foreground">
-                                            Pihak yang menerima pada kejadian
-                                            ini.
-                                        </p>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={fillBuyerData}
-                                    >
-                                        Gunakan data pembeli
-                                    </Button>
-                                </div>
-                                <div className="grid gap-1.5">
-                                    <Label htmlFor="recipient-name">
-                                        Nama penerima *
-                                    </Label>
-                                    <Input
-                                        id="recipient-name"
-                                        name="recipient_name"
-                                        value={recipientName}
-                                        onChange={(event) =>
-                                            setRecipientName(event.target.value)
-                                        }
-                                        aria-invalid={Boolean(
-                                            errors.recipient_name,
-                                        )}
-                                    />
-                                    <InputError
-                                        message={errors.recipient_name}
-                                        className={errorClassName}
-                                    />
-                                </div>
-                                <div className="grid gap-1.5">
-                                    <Label>Hubungan penerima *</Label>
-                                    <Select
-                                        value={recipientRelation}
-                                        onValueChange={(value) =>
-                                            setRecipientRelation(
-                                                value as RecipientRelation,
-                                            )
-                                        }
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Pilih hubungan dengan pembeli" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {Object.entries(relationLabels).map(
-                                                ([value, label]) => (
-                                                    <SelectItem
-                                                        key={value}
-                                                        value={value}
-                                                    >
-                                                        {label}
-                                                    </SelectItem>
-                                                ),
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError
-                                        message={errors.recipient_relation}
-                                        className={errorClassName}
-                                    />
-                                </div>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <div className="grid gap-1.5">
-                                        <Label htmlFor="recipient-phone">
-                                            Nomor HP
-                                        </Label>
-                                        <Input
-                                            id="recipient-phone"
-                                            name="recipient_phone"
-                                            value={recipientPhone}
-                                            onChange={(event) =>
-                                                setRecipientPhone(
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                    <div className="grid gap-1.5">
-                                        <Label htmlFor="recipient-id-card">
-                                            NIK penerima
-                                        </Label>
-                                        <Input
-                                            id="recipient-id-card"
-                                            name="recipient_id_card"
-                                            value={recipientIdCard}
-                                            inputMode="numeric"
-                                            onChange={(event) =>
-                                                setRecipientIdCard(
-                                                    event.target.value
-                                                        .replace(/\D/g, '')
-                                                        .slice(0, 16),
-                                                )
-                                            }
-                                            aria-invalid={Boolean(
-                                                errors.recipient_id_card,
-                                            )}
-                                        />
-                                        <InputError
-                                            message={errors.recipient_id_card}
-                                            className={errorClassName}
-                                        />
-                                    </div>
-                                </div>
+                    {/* Card 2: Data Penerima */}
+                    <Card>
+                        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <CardTitle>Data penerima</CardTitle>
+                                <CardDescription>
+                                    Pihak yang menerima unit atau dokumen pada
+                                    kejadian ini.
+                                </CardDescription>
                             </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <h3 className="text-sm font-semibold">
-                                        Petugas dan lokasi
-                                    </h3>
-                                    <p className="text-xs text-muted-foreground">
-                                        Informasi pelaksana penyerahan.
-                                    </p>
-                                </div>
-                                <div className="grid gap-1.5">
-                                    <Label htmlFor="officer-name">
-                                        Nama petugas
-                                    </Label>
-                                    <Input
-                                        id="officer-name"
-                                        name="officer_name"
-                                        value={officerName}
-                                        onChange={(event) =>
-                                            setOfficerName(event.target.value)
-                                        }
-                                        aria-invalid={Boolean(
-                                            errors.officer_name,
-                                        )}
-                                    />
-                                    <InputError
-                                        message={errors.officer_name}
-                                        className={errorClassName}
-                                    />
-                                </div>
-                                <div className="grid gap-1.5">
-                                    <Label>Lokasi penyerahan</Label>
-                                    <Select
-                                        value={handoverLocation}
-                                        onValueChange={setHandoverLocation}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Showroom Telaga Berlian">
-                                                Showroom Telaga Berlian
-                                            </SelectItem>
-                                            <SelectItem value="Alamat customer">
-                                                Alamat customer
-                                            </SelectItem>
-                                            <SelectItem value="Kantor leasing">
-                                                Kantor leasing
-                                            </SelectItem>
-                                            <SelectItem value="Lokasi lainnya">
-                                                Lokasi lainnya
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid gap-1.5">
-                                    <Label htmlFor="handover-address">
-                                        Alamat lengkap
-                                    </Label>
-                                    <Textarea
-                                        id="handover-address"
-                                        name="handover_address"
-                                        value={handoverAddress}
-                                        onChange={(event) =>
-                                            setHandoverAddress(
-                                                event.target.value,
-                                            )
-                                        }
-                                        rows={3}
-                                    />
-                                </div>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={fillBuyerData}
+                            >
+                                Gunakan data pembeli
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="grid gap-5 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="recipient-name">
+                                    Nama penerima{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="recipient-name"
+                                    name="recipient_name"
+                                    value={recipientName}
+                                    onChange={(event) =>
+                                        setRecipientName(event.target.value)
+                                    }
+                                    placeholder="Masukkan nama lengkap penerima"
+                                    aria-invalid={Boolean(
+                                        errors.recipient_name,
+                                    )}
+                                    className={validationColorClassName}
+                                />
+                                <InputError
+                                    message={errors.recipient_name}
+                                    className={errorTextClassName}
+                                />
                             </div>
-                        </section>
+                            <div className="grid gap-2">
+                                <Label>
+                                    Hubungan penerima{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
+                                <Select
+                                    value={recipientRelation}
+                                    onValueChange={(value) =>
+                                        setRecipientRelation(
+                                            value as RecipientRelation,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger
+                                        aria-invalid={Boolean(
+                                            errors.recipient_relation,
+                                        )}
+                                        className={validationColorClassName}
+                                    >
+                                        <SelectValue placeholder="Pilih hubungan dengan pembeli" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(relationLabels).map(
+                                            ([value, label]) => (
+                                                <SelectItem
+                                                    key={value}
+                                                    value={value}
+                                                >
+                                                    {label}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                <InputError
+                                    message={errors.recipient_relation}
+                                    className={errorTextClassName}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="recipient-phone">
+                                    Nomor HP
+                                </Label>
+                                <Input
+                                    id="recipient-phone"
+                                    name="recipient_phone"
+                                    value={recipientPhone}
+                                    onChange={(event) =>
+                                        setRecipientPhone(event.target.value)
+                                    }
+                                    placeholder="Contoh: 081234567890"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="recipient-id-card">
+                                    NIK penerima (KTP)
+                                </Label>
+                                <Input
+                                    id="recipient-id-card"
+                                    name="recipient_id_card"
+                                    value={recipientIdCard}
+                                    inputMode="numeric"
+                                    onChange={(event) =>
+                                        setRecipientIdCard(
+                                            event.target.value
+                                                .replace(/\D/g, '')
+                                                .slice(0, 16),
+                                        )
+                                    }
+                                    placeholder="16 digit NIK sesuai KTP"
+                                    aria-invalid={Boolean(
+                                        errors.recipient_id_card,
+                                    )}
+                                    className={validationColorClassName}
+                                />
+                                <InputError
+                                    message={errors.recipient_id_card}
+                                    className={errorTextClassName}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                        <section className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2">
-                            <div className="grid content-start gap-1.5">
+                    {/* Card 3: Petugas & Lokasi Serah Terima */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Petugas & lokasi serah terima</CardTitle>
+                            <CardDescription>
+                                Informasi staf pelaksana penyerahan dan alamat
+                                lokasi serah terima.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-5 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="officer-name">
+                                    Nama petugas{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="officer-name"
+                                    name="officer_name"
+                                    value={officerName}
+                                    onChange={(event) =>
+                                        setOfficerName(event.target.value)
+                                    }
+                                    placeholder="Nama staf/admin showroom"
+                                    aria-invalid={Boolean(errors.officer_name)}
+                                    className={validationColorClassName}
+                                />
+                                <InputError
+                                    message={errors.officer_name}
+                                    className={errorTextClassName}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>
+                                    Lokasi penyerahan{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
+                                <Select
+                                    value={handoverLocation}
+                                    onValueChange={setHandoverLocation}
+                                >
+                                    <SelectTrigger
+                                        aria-invalid={Boolean(
+                                            errors.handover_location,
+                                        )}
+                                        className={validationColorClassName}
+                                    >
+                                        <SelectValue placeholder="Pilih lokasi penyerahan" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Showroom Telaga Berlian">
+                                            Showroom Telaga Berlian
+                                        </SelectItem>
+                                        <SelectItem value="Alamat customer">
+                                            Alamat customer
+                                        </SelectItem>
+                                        <SelectItem value="Kantor leasing">
+                                            Kantor leasing
+                                        </SelectItem>
+                                        <SelectItem value="Lokasi lainnya">
+                                            Lokasi lainnya
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <InputError
+                                    message={errors.handover_location}
+                                    className={errorTextClassName}
+                                />
+                            </div>
+                            <div className="grid gap-2 sm:col-span-2">
+                                <Label htmlFor="handover-address">
+                                    Alamat lengkap
+                                </Label>
+                                <Textarea
+                                    id="handover-address"
+                                    name="handover_address"
+                                    value={handoverAddress}
+                                    onChange={(event) =>
+                                        setHandoverAddress(event.target.value)
+                                    }
+                                    rows={3}
+                                    placeholder="Masukkan alamat lengkap lokasi penyerahan (opsional jika di showroom)"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Card 4: Foto Bukti & Catatan */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Foto bukti & catatan</CardTitle>
+                            <CardDescription>
+                                Unggah foto serah terima dan tambahkan catatan
+                                kejadian jika diperlukan.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-5 sm:grid-cols-2">
+                            <div className="grid content-start gap-2">
                                 <Label htmlFor="handover-photos">
-                                    Foto bukti
+                                    Foto bukti{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <div className="relative">
                                     <CameraIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -689,7 +733,7 @@ export function HandoverForm({ sale }: Props) {
                                         accept="image/jpeg,image/png,image/webp"
                                         multiple
                                         required
-                                        className="pl-9 file:mr-2"
+                                        className={`pl-9 file:mr-2 ${validationColorClassName}`}
                                         onChange={(event) =>
                                             setPhotoCount(
                                                 event.target.files?.length ?? 0,
@@ -711,12 +755,12 @@ export function HandoverForm({ sale }: Props) {
                                     message={
                                         errors.photos ?? errors['photos.0']
                                     }
-                                    className={errorClassName}
+                                    className={errorTextClassName}
                                 />
                             </div>
-                            <div className="grid gap-1.5">
+                            <div className="grid gap-2">
                                 <Label htmlFor="handover-notes">
-                                    Catatan kejadian
+                                    Catatan kejadian (opsional)
                                 </Label>
                                 <Textarea
                                     id="handover-notes"
@@ -729,10 +773,11 @@ export function HandoverForm({ sale }: Props) {
                                     placeholder="Kondisi khusus atau keterangan tambahan"
                                 />
                             </div>
-                        </section>
-                    </div>
+                        </CardContent>
+                    </Card>
 
-                    <div className="flex flex-col-reverse gap-2 border-t pt-6 sm:flex-row sm:justify-end">
+                    {/* Action Footer Buttons */}
+                    <div className="flex flex-wrap items-center justify-end gap-3">
                         <Button type="button" variant="outline" asChild>
                             <Link
                                 href={VehicleHandoverController.show.url(
@@ -754,7 +799,11 @@ export function HandoverForm({ sale }: Props) {
                                 handoverLocation.length === 0
                             }
                         >
-                            {processing ? <Spinner /> : <CheckCircleIcon />}
+                            {processing ? (
+                                <Spinner />
+                            ) : (
+                                <FloppyDiskIcon className="size-4" />
+                            )}
                             {processing ? 'Menyimpan...' : 'Simpan tracking'}
                         </Button>
                     </div>

@@ -159,26 +159,54 @@ class StoreHandoverRequest extends FormRequest
                 );
             }
 
-            if (in_array('vehicle', $items, true) && $sale->remaining_bill > 10_000_000) {
+            if (
+                in_array('vehicle', $items, true)
+                && $sale->customer_payment_shortfall > 10_000_000
+            ) {
                 $validator->errors()->add(
                     'items',
-                    'Unit belum dapat diserahkan karena sisa tagihan masih '.
-                    'Rp '.number_format($sale->remaining_bill, 0, ',', '.').'.',
+                    'Unit belum dapat diserahkan karena kekurangan pembayaran customer masih '.
+                    'Rp '.number_format($sale->customer_payment_shortfall, 0, ',', '.').'.',
                 );
             }
 
-            $containsOriginalLegalDocument = collect(['bpkb', 'invoice'])
-                ->contains(fn (string $item): bool => in_array($item, $items, true));
+            $containsBpkb = in_array('bpkb', $items, true);
+            $containsOriginalLegalDocument = $containsBpkb
+                || in_array('invoice', $items, true);
+            $isCreditBpkbHandover = $sale->payment_type === 'credit'
+                && $containsBpkb;
 
-            if ($containsOriginalLegalDocument && $sale->remaining_bill > 0) {
+            if (
+                $isCreditBpkbHandover
+                && $this->input('recipient_relation') !== 'leasing_officer'
+            ) {
+                $validator->errors()->add(
+                    'recipient_relation',
+                    'BPKB penjualan kredit harus diserahkan kepada petugas leasing.',
+                );
+            }
+
+            if ($isCreditBpkbHandover && $sale->customer_payment_shortfall > 0) {
+                $validator->errors()->add(
+                    'items',
+                    'Masih ada kekurangan pembayaran customer sebesar Rp '.
+                    number_format($sale->customer_payment_shortfall, 0, ',', '.').
+                    '. Lunasi kekurangan sebelum menyerahkan BPKB ke leasing.',
+                );
+            }
+
+            if (
+                $containsOriginalLegalDocument
+                && ! $isCreditBpkbHandover
+                && $sale->remaining_bill > 0
+            ) {
                 $validator->errors()->add(
                     'items',
                     'BPKB dan faktur asli hanya dapat diserahkan setelah transaksi lunas.',
                 );
             }
 
-            $hasVehicleDelivery = in_array('vehicle', $items, true)
-                || ($handover?->hasDeliveredItem('vehicle') ?? false);
+            $hasVehicleDelivery = $handover?->hasDeliveredItem('vehicle') ?? false;
 
             if (in_array('bpkb', $items, true) && ! $hasVehicleDelivery) {
                 $validator->errors()->add(

@@ -19,7 +19,10 @@ class FinanceCompanyController extends Controller
     public function index(): Response
     {
         $companies = FinanceCompany::query()
-            ->withCount('sales')
+            ->withCount([
+                'sales as sales_count' => fn ($query) => $query
+                    ->where('payment_type', 'credit'),
+            ])
             ->latest('id')
             ->get();
 

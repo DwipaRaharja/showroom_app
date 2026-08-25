@@ -223,7 +223,7 @@ export function SaleForm({
                                     {/* Select Car */}
                                     <div className="grid gap-2 sm:col-span-2">
                                         <Label htmlFor="sale-car">
-                                            Pilih Unit Mobil Tersedia
+                                            Pilih Unit Mobil Tersedia <span className="text-red-500">*</span>
                                         </Label>
                                         {availableCars.length > 0 ? (
                                             <Select
@@ -297,7 +297,7 @@ export function SaleForm({
                                     {/* Select Customer */}
                                     <div className="grid gap-2 sm:col-span-2">
                                         <Label htmlFor="sale-customer">
-                                            Pilih Customer Pembeli
+                                            Pilih Customer Pembeli <span className="text-red-500">*</span>
                                         </Label>
                                         <Select
                                             value={selectedCustomerId}
@@ -358,7 +358,7 @@ export function SaleForm({
                                     {/* Deal Price */}
                                     <div className="grid gap-2 sm:col-span-2">
                                         <Label htmlFor="deal_price">
-                                            Harga Kesepakatan Deal
+                                            Harga Kesepakatan Deal <span className="text-red-500">*</span>
                                         </Label>
                                         <PriceInput
                                             id="deal_price"
@@ -593,7 +593,7 @@ export function SaleForm({
                                                     htmlFor="finance_company_id"
                                                     className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
                                                 >
-                                                    1. Mitra Lembaga Pembiayaan
+                                                    1. Mitra Lembaga Pembiayaan <span className="text-red-500">*</span>
                                                 </Label>
                                                 <Select
                                                     value={financeCompanyId}

@@ -6,13 +6,18 @@ use App\Http\Requests\Car\StoreCarRequest;
 use App\Http\Requests\Car\UpdateCarRequest;
 use App\Models\Brand;
 use App\Models\Car;
+use App\Models\Purchase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class CarController extends Controller
 {
@@ -21,46 +26,73 @@ class CarController extends Controller
      */
     public function index(): Response
     {
-        return Inertia::render('cars/index', [
-            'cars' => Car::query()
-                ->with([
-                    'brand:id,name',
-                    'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,document_process_cost,status,notes,created_at',
-                    'documents' => fn ($query) => $query->select([
-                        'id',
-                        'car_id',
-                        'document_type',
-                        'document_number',
-                        'owner_name',
-                        'issued_at',
-                        'expires_at',
-                        'annual_tax_due_at',
-                        'status',
-                        'original_received',
-                        'notes',
-                        'created_at',
-                    ]),
-                    'documentAttachment:id,car_id,file_name,file_mime,file_size,created_at,updated_at',
-                ])
-                ->latest('id')
-                ->get([
+        $cars = Car::query()
+            ->with([
+                'brand:id,name',
+                'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,document_process_cost,status,notes,created_at',
+                'documents' => fn ($query) => $query->select([
                     'id',
-                    'brand_id',
-                    'name',
-                    'license_plate',
-                    'chassis_number',
-                    'engine_number',
-                    'year',
-                    'color',
-                    'transmission',
-                    'fuel_type',
-                    'mileage',
-                    'selling_price',
+                    'car_id',
+                    'document_type',
+                    'document_number',
+                    'owner_name',
+                    'issued_at',
+                    'expires_at',
+                    'annual_tax_due_at',
                     'status',
-                    'description',
-                    'image',
+                    'original_received',
+                    'notes',
                     'created_at',
                 ]),
+                'documentAttachment:id,car_id,file_name,file_mime,file_size,created_at,updated_at',
+            ])
+            ->latest('id')
+            ->get([
+                'id',
+                'brand_id',
+                'name',
+                'license_plate',
+                'chassis_number',
+                'engine_number',
+                'year',
+                'color',
+                'transmission',
+                'fuel_type',
+                'mileage',
+                'selling_price',
+                'status',
+                'description',
+                'image',
+                'created_at',
+                'updated_at',
+            ]);
+
+        $activeCars = $cars->whereIn('status', ['available', 'booked', 'maintenance']);
+        $availableCars = $cars->where('status', 'available');
+
+        $totalActiveCapital = (int) $activeCars->sum(function (Car $car): int {
+            $capital = $car->getRelation('capital');
+
+            return $capital instanceof Purchase
+                ? (int) $capital->total_capital
+                : 0;
+        });
+
+        $potentialSellingTurnover = (int) $availableCars->sum('selling_price');
+
+        $summary = [
+            'total_active' => $activeCars->count(),
+            'available' => $availableCars->count(),
+            'booked' => $cars->where('status', 'booked')->count(),
+            'maintenance' => $cars->where('status', 'maintenance')->count(),
+            'sold' => $cars->where('status', 'sold')->count(),
+            'total_active_capital' => $totalActiveCapital,
+            'potential_selling_turnover' => $potentialSellingTurnover,
+        ];
+
+        return Inertia::render('cars/index', [
+            'cars' => $cars,
+            'summary' => $summary,
         ]);
     }
 
@@ -114,12 +146,33 @@ class CarController extends Controller
     {
         $validated = $request->validated();
         $capital = $validated['capital'];
-        unset($validated['capital']);
+        $image = $request->file('image');
+        unset($validated['capital'], $validated['image']);
+        $storedImagePath = null;
 
-        DB::transaction(function () use ($validated, $capital): void {
-            $car = Car::query()->create($validated);
-            $car->capital()->create($capital);
-        });
+        try {
+            DB::transaction(function () use (
+                $validated,
+                $capital,
+                $image,
+                &$storedImagePath,
+            ): void {
+                $car = Car::query()->create($validated);
+
+                if ($image instanceof UploadedFile) {
+                    $storedImagePath = $this->storeImage($image, $car);
+                    $car->update(['image' => $storedImagePath]);
+                }
+
+                $car->capital()->create($capital);
+            });
+        } catch (Throwable $exception) {
+            if ($storedImagePath !== null) {
+                Storage::disk('local')->delete($storedImagePath);
+            }
+
+            throw $exception;
+        }
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -155,6 +208,7 @@ class CarController extends Controller
                     'description',
                     'image',
                     'created_at',
+                    'updated_at',
                 ]),
                 'capital' => $car->capital?->only([
                     'id',
@@ -190,7 +244,13 @@ class CarController extends Controller
     {
         $validated = $request->validated();
         $capital = $validated['capital'];
-        unset($validated['capital']);
+        $image = $request->file('image');
+        $removeImage = $request->boolean('remove_image');
+        unset(
+            $validated['capital'],
+            $validated['image'],
+            $validated['remove_image'],
+        );
 
         if (
             $capital['status'] !== 'completed'
@@ -201,10 +261,36 @@ class CarController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($car, $validated, $capital): void {
-            $car->update($validated);
-            $car->capital()->updateOrCreate([], $capital);
-        });
+        $oldImagePath = $car->image;
+        $storedImagePath = null;
+
+        try {
+            if ($image instanceof UploadedFile) {
+                $storedImagePath = $this->storeImage($image, $car);
+                $validated['image'] = $storedImagePath;
+            } elseif ($removeImage) {
+                $validated['image'] = null;
+            }
+
+            DB::transaction(function () use ($car, $validated, $capital): void {
+                $car->update($validated);
+                $car->capital()->updateOrCreate([], $capital);
+            });
+        } catch (Throwable $exception) {
+            if ($storedImagePath !== null) {
+                Storage::disk('local')->delete($storedImagePath);
+            }
+
+            throw $exception;
+        }
+
+        if (
+            $oldImagePath !== null
+            && ($storedImagePath !== null || $removeImage)
+            && $oldImagePath !== $storedImagePath
+        ) {
+            Storage::disk('local')->delete($oldImagePath);
+        }
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -212,6 +298,28 @@ class CarController extends Controller
         ]);
 
         return to_route('cars.show', $car);
+    }
+
+    public function image(Car $car): StreamedResponse
+    {
+        abort_unless(
+            $car->image !== null
+                && Storage::disk('local')->exists($car->image),
+            404,
+        );
+
+        $mimeType = Storage::disk('local')->mimeType($car->image);
+
+        return Storage::disk('local')->response(
+            $car->image,
+            basename($car->image),
+            [
+                'Content-Type' => is_string($mimeType)
+                    ? $mimeType
+                    : 'application/octet-stream',
+            ],
+            'inline',
+        );
     }
 
     /**
@@ -246,5 +354,18 @@ class CarController extends Controller
         ]);
 
         return to_route('cars.index');
+    }
+
+    private function storeImage(UploadedFile $image, Car $car): string
+    {
+        $path = $image->store("cars/{$car->id}/images", 'local');
+
+        if (! is_string($path)) {
+            throw ValidationException::withMessages([
+                'image' => 'Gambar kendaraan gagal disimpan. Silakan coba lagi.',
+            ]);
+        }
+
+        return $path;
     }
 }

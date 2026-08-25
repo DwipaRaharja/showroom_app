@@ -1,10 +1,13 @@
 import { Form, Link } from '@inertiajs/react';
 import {
     CalculatorIcon,
+    CameraIcon,
     FloppyDiskIcon,
+    TrashIcon,
     WarningCircleIcon,
+    XIcon,
 } from '@phosphor-icons/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import CarController from '@/actions/App/Http/Controllers/CarController';
 import InputError from '@/components/input-error';
 import { MileageInput } from '@/components/mileage-input';
@@ -124,6 +127,21 @@ export function CarForm({ car, brands }: Props) {
     );
     const [status, setStatus] = useState<CarStatus>(car?.status ?? 'available');
     const [description, setDescription] = useState(car?.description ?? '');
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [removeImage, setRemoveImage] = useState(false);
+    const [imageInputKey, setImageInputKey] = useState(0);
+    const selectedImagePreview = useMemo(
+        () =>
+            selectedImage === null ? null : URL.createObjectURL(selectedImage),
+        [selectedImage],
+    );
+    const storedImagePreview =
+        car?.image && !removeImage
+            ? CarController.image.url(car.id, {
+                  query: { v: car.updated_at },
+              })
+            : null;
+    const imagePreview = selectedImagePreview ?? storedImagePreview;
     const totalCapital = useMemo(
         () =>
             numericValue(capitalPrice) +
@@ -144,6 +162,20 @@ export function CarForm({ car, brands }: Props) {
         ? CarController.update.form(car.id)
         : CarController.store.form();
     const hasBrands = brands.length > 0;
+
+    useEffect(
+        () => () => {
+            if (selectedImagePreview !== null) {
+                URL.revokeObjectURL(selectedImagePreview);
+            }
+        },
+        [selectedImagePreview],
+    );
+
+    function clearSelectedImage() {
+        setSelectedImage(null);
+        setImageInputKey((current) => current + 1);
+    }
 
     return (
         <Form
@@ -166,6 +198,13 @@ export function CarForm({ car, brands }: Props) {
                         name="capital[status]"
                         value={capitalStatus}
                     />
+                    {isEditing && (
+                        <input
+                            type="hidden"
+                            name="remove_image"
+                            value={removeImage ? '1' : '0'}
+                        />
+                    )}
 
                     {!hasBrands && (
                         <Alert variant="destructive">
@@ -195,7 +234,8 @@ export function CarForm({ car, brands }: Props) {
                         <CardContent className="grid gap-5 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="car-brand">
-                                    Merek kendaraan
+                                    Merek kendaraan{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Select
                                     value={brandId}
@@ -228,7 +268,8 @@ export function CarForm({ car, brands }: Props) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="car-name">
-                                    Nama / varian model
+                                    Nama / varian model{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="car-name"
@@ -389,7 +430,8 @@ export function CarForm({ car, brands }: Props) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="car-year">
-                                    Tahun pembuatan
+                                    Tahun pembuatan{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="car-year"
@@ -435,7 +477,8 @@ export function CarForm({ car, brands }: Props) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="car-mileage">
-                                    Jarak tempuh (km)
+                                    Jarak tempuh (km){' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <MileageInput
                                     id="car-mileage"
@@ -457,6 +500,108 @@ export function CarForm({ car, brands }: Props) {
 
                     <Card>
                         <CardHeader>
+                            <CardTitle>Gambar kendaraan</CardTitle>
+                            <CardDescription>
+                                Tambahkan satu gambar utama untuk memudahkan
+                                identifikasi unit mobil.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
+                            <div className="overflow-hidden rounded-xl border bg-muted/40">
+                                {imagePreview ? (
+                                    <img
+                                        src={imagePreview}
+                                        alt={`Preview ${name || 'kendaraan'}`}
+                                        className="aspect-video size-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="flex aspect-video items-center justify-center">
+                                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                            <CameraIcon className="size-10" />
+                                            <span className="text-sm">
+                                                Belum ada gambar kendaraan
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col justify-center gap-3">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="car-image">
+                                        Pilih gambar utama
+                                    </Label>
+                                    <Input
+                                        key={imageInputKey}
+                                        id="car-image"
+                                        name="image"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        onChange={(event) => {
+                                            const image =
+                                                event.target.files?.[0] ?? null;
+
+                                            setSelectedImage(image);
+
+                                            if (image !== null) {
+                                                setRemoveImage(false);
+                                            }
+                                        }}
+                                        aria-invalid={Boolean(errors.image)}
+                                        className={validationColorClassName}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        JPG, PNG, atau WebP. Maksimal 5 MB.
+                                    </p>
+                                    <InputError
+                                        message={errors.image}
+                                        className={errorTextClassName}
+                                    />
+                                </div>
+
+                                {selectedImage && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-fit"
+                                        onClick={clearSelectedImage}
+                                    >
+                                        <XIcon />
+                                        Batalkan gambar pilihan
+                                    </Button>
+                                )}
+
+                                {isEditing && car.image && !selectedImage && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className={
+                                            removeImage
+                                                ? 'w-fit'
+                                                : 'w-fit text-red-500 hover:text-red-500'
+                                        }
+                                        onClick={() =>
+                                            setRemoveImage(
+                                                (current) => !current,
+                                            )
+                                        }
+                                    >
+                                        {removeImage ? (
+                                            <XIcon />
+                                        ) : (
+                                            <TrashIcon className="text-red-500" />
+                                        )}
+                                        {removeImage
+                                            ? 'Batalkan hapus gambar'
+                                            : 'Hapus gambar saat disimpan'}
+                                    </Button>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
                             <CardTitle>Spesifikasi</CardTitle>
                             <CardDescription>
                                 Konfigurasi mesin dan transmisi kendaraan.
@@ -465,7 +610,8 @@ export function CarForm({ car, brands }: Props) {
                         <CardContent className="grid gap-5 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="car-transmission">
-                                    Transmisi
+                                    Transmisi{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Select
                                     value={transmission}
@@ -493,7 +639,10 @@ export function CarForm({ car, brands }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="car-fuel">Bahan bakar</Label>
+                                <Label htmlFor="car-fuel">
+                                    Bahan bakar{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
                                 <Select
                                     value={fuelType}
                                     onValueChange={(value) =>
@@ -538,7 +687,8 @@ export function CarForm({ car, brands }: Props) {
                         <CardContent className="grid gap-5 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="car-capital-date">
-                                    Tanggal perolehan
+                                    Tanggal perolehan{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="car-capital-date"
@@ -562,7 +712,8 @@ export function CarForm({ car, brands }: Props) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="car-capital-status">
-                                    Status modal
+                                    Status modal{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Select
                                     value={capitalStatus}
@@ -595,7 +746,8 @@ export function CarForm({ car, brands }: Props) {
 
                             <div className="grid gap-2 sm:col-span-2">
                                 <Label htmlFor="car-capital-price">
-                                    Harga perolehan mobil
+                                    Harga perolehan mobil{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <PriceInput
                                     id="car-capital-price"
@@ -677,7 +829,8 @@ export function CarForm({ car, brands }: Props) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="car-selling-price">
-                                    Harga jual (Rp)
+                                    Harga jual (Rp){' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <PriceInput
                                     id="car-selling-price"
@@ -766,7 +919,10 @@ export function CarForm({ car, brands }: Props) {
                         </CardHeader>
                         <CardContent className="grid gap-5">
                             <div className="grid gap-2">
-                                <Label htmlFor="car-status">Status unit</Label>
+                                <Label htmlFor="car-status">
+                                    Status unit{' '}
+                                    <span className="text-red-500">*</span>
+                                </Label>
                                 <Select
                                     value={status}
                                     onValueChange={(value) =>

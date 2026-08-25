@@ -50,14 +50,16 @@ export function FinanceCompanyStatusDialog({ company, onOpenChange }: Props) {
                     <DialogDescription>
                         {willActivate ? (
                             <>
-                                Rekanan <strong>{company?.name}</strong> akan dapat
-                                dipilih kembali pada transaksi penjualan kredit.
+                                Rekanan <strong>{company?.name}</strong> akan
+                                dapat dipilih kembali pada transaksi penjualan
+                                kredit.
                             </>
                         ) : (
                             <>
-                                Rekanan <strong>{company?.name}</strong> tidak akan
-                                muncul pada pilihan penjualan kredit baru, namun data
-                                riwayat transaksi sebelumnya tetap aman tersimpan.
+                                Rekanan <strong>{company?.name}</strong> tidak
+                                akan muncul pada pilihan penjualan kredit baru,
+                                namun data riwayat transaksi sebelumnya tetap
+                                aman tersimpan.
                             </>
                         )}
                     </DialogDescription>
@@ -65,7 +67,9 @@ export function FinanceCompanyStatusDialog({ company, onOpenChange }: Props) {
 
                 {company && (
                     <Form
-                        {...FinanceCompanyController.updateStatus.form(company.id)}
+                        {...FinanceCompanyController.updateStatus.form(
+                            company.id,
+                        )}
                         options={{ preserveScroll: true }}
                         onSuccess={() => onOpenChange(false)}
                     >
@@ -85,7 +89,7 @@ export function FinanceCompanyStatusDialog({ company, onOpenChange }: Props) {
                                     className={
                                         willActivate
                                             ? 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700'
-                                            : 'bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700'
+                                            : 'bg-red-500 text-white hover:bg-red-500/90 hover:text-white dark:bg-red-500 dark:text-white dark:hover:bg-red-500/90 dark:hover:text-white'
                                     }
                                     disabled={processing}
                                 >
@@ -96,12 +100,18 @@ export function FinanceCompanyStatusDialog({ company, onOpenChange }: Props) {
                                         </>
                                     ) : willActivate ? (
                                         <>
-                                            <CheckCircleIcon className="mr-1.5 size-4" weight="bold" />
+                                            <CheckCircleIcon
+                                                className="mr-1.5 size-4"
+                                                weight="bold"
+                                            />
                                             Aktifkan Rekanan
                                         </>
                                     ) : (
                                         <>
-                                            <PowerIcon className="mr-1.5 size-4" weight="bold" />
+                                            <PowerIcon
+                                                className="mr-1.5 size-4"
+                                                weight="bold"
+                                            />
                                             Nonaktifkan Rekanan
                                         </>
                                     )}

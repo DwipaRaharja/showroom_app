@@ -99,6 +99,27 @@ class StoreDocumentProcessEventRequest extends FormRequest
                 );
             }
 
+            $receivedItemsInput = $this->input('received_items');
+            /** @var array<int, int|string> $receivedItems */
+            $receivedItems = is_array($receivedItemsInput)
+                ? $receivedItemsInput
+                : [];
+            $receivedItemIds = array_values(array_unique(array_map(
+                static fn (int|string $itemId): int => (int) $itemId,
+                $receivedItems,
+            )));
+
+            if (
+                $receivedItemIds !== []
+                && $process->items()->whereKey($receivedItemIds)->count()
+                    !== count($receivedItemIds)
+            ) {
+                $validator->errors()->add(
+                    'received_items',
+                    'Salah satu dokumen yang dipilih tidak termasuk dalam proses ini.',
+                );
+            }
+
             if ($this->input('status') !== 'completed') {
                 return;
             }

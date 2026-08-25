@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Car extends Model
 {
@@ -32,6 +33,10 @@ class Car extends Model
 
             $car->documentAttachment?->delete();
             $car->documents()->get()->each->delete();
+
+            if ($car->image !== null) {
+                Storage::disk('local')->delete($car->image);
+            }
         });
     }
 
@@ -84,6 +89,16 @@ class Car extends Model
     public function capital(): HasOne
     {
         return $this->hasOne(Purchase::class);
+    }
+
+    /**
+     * Alias relationship for purchase/capital.
+     *
+     * @return HasOne<Purchase, $this>
+     */
+    public function purchase(): HasOne
+    {
+        return $this->capital();
     }
 
     /**
