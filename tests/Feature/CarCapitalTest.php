@@ -102,3 +102,52 @@ test('standalone capital management routes are no longer exposed', function () {
     $this->actingAs($user)->get('/purchases')->assertNotFound();
     $this->actingAs($user)->get('/purchases/create')->assertNotFound();
 });
+
+test('draft capital allows empty prices and defaults to zero', function () {
+    $user = User::factory()->create();
+    $carData = [
+        'brand_id' => \App\Models\Brand::factory()->create()->id,
+        'name' => 'Toyota Yaris Cross',
+        'year' => 2023,
+        'transmission' => 'automatic',
+        'fuel_type' => 'hybrid',
+        'mileage' => 15000,
+        'status' => 'available',
+        'capital' => [
+            'status' => 'draft',
+        ],
+    ];
+
+    $this->actingAs($user)
+        ->post(route('cars.store'), $carData)
+        ->assertRedirect(route('cars.index'));
+
+    $createdCar = Car::query()->where('name', 'Toyota Yaris Cross')->first();
+    expect($createdCar)->not->toBeNull()
+        ->and($createdCar->selling_price)->toBe(0)
+        ->and($createdCar->capital->price)->toBe(0)
+        ->and($createdCar->capital->status)->toBe('draft');
+});
+
+test('active capital requires selling price and purchase price to be greater than zero', function () {
+    $user = User::factory()->create();
+    $brand = \App\Models\Brand::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('cars.store'), [
+            'brand_id' => $brand->id,
+            'name' => 'Honda HR-V',
+            'year' => 2022,
+            'transmission' => 'automatic',
+            'fuel_type' => 'bensin',
+            'mileage' => 20000,
+            'selling_price' => 0,
+            'status' => 'available',
+            'capital' => [
+                'purchase_date' => '2024-01-01',
+                'price' => 0,
+                'status' => 'completed',
+            ],
+        ])
+        ->assertSessionHasErrors(['selling_price', 'capital.price']);
+});

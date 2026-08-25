@@ -158,6 +158,8 @@ export function CarForm({ car, brands }: Props) {
         ],
     );
 
+    const isCapitalRequired = capitalStatus === 'completed';
+
     const formDefinition = isEditing
         ? CarController.update.form(car.id)
         : CarController.store.form();
@@ -688,7 +690,9 @@ export function CarForm({ car, brands }: Props) {
                             <div className="grid gap-2">
                                 <Label htmlFor="car-capital-date">
                                     Tanggal perolehan{' '}
-                                    <span className="text-red-500">*</span>
+                                    {isCapitalRequired && (
+                                        <span className="text-red-500">*</span>
+                                    )}
                                 </Label>
                                 <Input
                                     id="car-capital-date"
@@ -698,7 +702,7 @@ export function CarForm({ car, brands }: Props) {
                                     onChange={(event) =>
                                         setCapitalDate(event.target.value)
                                     }
-                                    required
+                                    required={isCapitalRequired}
                                     aria-invalid={Boolean(
                                         errors['capital.purchase_date'],
                                     )}
@@ -747,15 +751,21 @@ export function CarForm({ car, brands }: Props) {
                             <div className="grid gap-2 sm:col-span-2">
                                 <Label htmlFor="car-capital-price">
                                     Harga perolehan mobil{' '}
-                                    <span className="text-red-500">*</span>
+                                    {isCapitalRequired && (
+                                        <span className="text-red-500">*</span>
+                                    )}
                                 </Label>
                                 <PriceInput
                                     id="car-capital-price"
                                     name="capital[price]"
                                     value={capitalPrice}
                                     onValueChange={setCapitalPrice}
-                                    placeholder="Contoh: 180.000.000"
-                                    required
+                                    placeholder={
+                                        isCapitalRequired
+                                            ? 'Contoh: 180.000.000'
+                                            : 'Opsional (otomatis Rp 0 saat draft)'
+                                    }
+                                    required={isCapitalRequired}
                                     aria-invalid={Boolean(
                                         errors['capital.price'],
                                     )}
@@ -830,15 +840,21 @@ export function CarForm({ car, brands }: Props) {
                             <div className="grid gap-2">
                                 <Label htmlFor="car-selling-price">
                                     Harga jual (Rp){' '}
-                                    <span className="text-red-500">*</span>
+                                    {isCapitalRequired && (
+                                        <span className="text-red-500">*</span>
+                                    )}
                                 </Label>
                                 <PriceInput
                                     id="car-selling-price"
                                     name="selling_price"
                                     value={sellingPrice}
                                     onValueChange={setSellingPrice}
-                                    placeholder="Contoh: 215.000.000"
-                                    required
+                                    placeholder={
+                                        isCapitalRequired
+                                            ? 'Contoh: 215.000.000'
+                                            : 'Opsional (otomatis Rp 0 saat draft)'
+                                    }
+                                    required={isCapitalRequired}
                                     aria-invalid={Boolean(errors.selling_price)}
                                     className={validationColorClassName}
                                 />

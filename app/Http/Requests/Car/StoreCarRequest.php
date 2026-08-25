@@ -29,22 +29,40 @@ class StoreCarRequest extends FormRequest
         }
 
         $capital = (array) $this->input('capital', []);
+        $capitalStatus = (string) ($capital['status'] ?? 'completed');
+        $isDraft = $capitalStatus === 'draft';
         $capitalNotes = trim((string) ($capital['notes'] ?? ''));
+
+        $sellingPrice = $this->input('selling_price');
+        if ($isDraft && ($sellingPrice === null || $sellingPrice === '')) {
+            $sellingPrice = 0;
+        }
+
+        $purchaseDate = $capital['purchase_date'] ?? null;
+        if ($isDraft && ($purchaseDate === null || $purchaseDate === '')) {
+            $purchaseDate = now()->toDateString();
+        }
+
+        $capitalPrice = $capital['price'] ?? null;
+        if ($isDraft && ($capitalPrice === null || $capitalPrice === '')) {
+            $capitalPrice = 0;
+        }
 
         $this->merge([
             'name' => trim((string) $this->input('name')),
+            'selling_price' => $sellingPrice,
             'license_plate' => $licensePlate,
             'chassis_number' => $this->input('chassis_number') ? strtoupper(trim((string) $this->input('chassis_number'))) : null,
             'engine_number' => $this->input('engine_number') ? strtoupper(trim((string) $this->input('engine_number'))) : null,
             'color' => $this->input('color') ? trim((string) $this->input('color')) : null,
             'description' => $this->input('description') ? trim((string) $this->input('description')) : null,
             'capital' => [
-                'purchase_date' => $capital['purchase_date'] ?? null,
-                'price' => $capital['price'] ?? null,
+                'purchase_date' => $purchaseDate,
+                'price' => $capitalPrice,
                 'repair_cost' => $capital['repair_cost'] ?? 0,
                 'transport_cost' => $capital['transport_cost'] ?? 0,
                 'other_cost' => $capital['other_cost'] ?? 0,
-                'status' => $capital['status'] ?? 'completed',
+                'status' => $capitalStatus,
                 'notes' => $capitalNotes === '' ? null : $capitalNotes,
             ],
         ]);
@@ -57,6 +75,8 @@ class StoreCarRequest extends FormRequest
      */
     public function rules(): array
     {
+        $isCompleted = $this->input('capital.status') === 'completed';
+
         return [
             'brand_id' => [
                 'required',
@@ -113,7 +133,7 @@ class StoreCarRequest extends FormRequest
             'selling_price' => [
                 'required',
                 'numeric',
-                'min:0',
+                $isCompleted ? 'min:1' : 'min:0',
             ],
             'status' => [
                 'required',
@@ -131,7 +151,11 @@ class StoreCarRequest extends FormRequest
             ],
             'capital' => ['required', 'array'],
             'capital.purchase_date' => ['required', 'date'],
-            'capital.price' => ['required', 'integer', 'min:0'],
+            'capital.price' => [
+                'required',
+                'integer',
+                $isCompleted ? 'min:1' : 'min:0',
+            ],
             'capital.repair_cost' => ['required', 'integer', 'min:0'],
             'capital.transport_cost' => ['required', 'integer', 'min:0'],
             'capital.other_cost' => ['required', 'integer', 'min:0'],
@@ -184,6 +208,8 @@ class StoreCarRequest extends FormRequest
     {
         return [
             'license_plate.regex' => 'Format plat nomor tidak valid (contoh: B 1234 ABC atau DK 8888 XY).',
+            'selling_price.min' => 'Harga jual harus lebih dari Rp 0 ketika status modal Aktif.',
+            'capital.price.min' => 'Harga perolehan modal harus lebih dari Rp 0 ketika status modal Aktif.',
         ];
     }
 }

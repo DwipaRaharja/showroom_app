@@ -450,16 +450,17 @@ export default function SalesShow({ sale }: Props) {
                                                                         kuitansi
                                                                     </DropdownMenuItem>
                                                                     <DropdownMenuItem
-                                                                        className="text-red-500 focus:text-red-500"
+                                                                        className="text-red-500 focus:bg-red-500/10 focus:text-red-500 dark:focus:bg-red-500/20"
                                                                         onSelect={() =>
                                                                             setDeletingPayment(
                                                                                 payment,
                                                                             )
                                                                         }
                                                                     >
-                                                                        <TrashIcon />
-                                                                        Hapus
-                                                                        pembayaran
+                                                                        <TrashIcon className="text-red-500" />
+                                                                        <span className="text-red-500">
+                                                                            Hapus pembayaran
+                                                                        </span>
                                                                     </DropdownMenuItem>
                                                                 </DropdownMenuContent>
                                                             </DropdownMenu>
