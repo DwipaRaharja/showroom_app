@@ -185,7 +185,7 @@ export default function CarsShow({ car }: Props) {
                     <div className="flex flex-wrap gap-2">
                         <Button type="button" variant="outline" asChild>
                             <Link
-                                href={DocumentProcessController.index.url({
+                                href={DocumentProcessController.create.url({
                                     query: { car_id: car.id },
                                 })}
                             >

@@ -35,7 +35,6 @@ type Props = {
     process: DocumentProcess;
     type_options: LabelOptions;
     status_options: LabelOptions;
-    cost_type_options: LabelOptions;
 };
 
 const dateFormatter = new Intl.DateTimeFormat('id-ID', {
@@ -106,7 +105,6 @@ export default function DocumentProcessShow({
     process,
     type_options: typeOptions,
     status_options: statusOptions,
-    cost_type_options: costTypeOptions,
 }: Props) {
     const [isEventOpen, setIsEventOpen] = useState(false);
     const [isCostOpen, setIsCostOpen] = useState(false);
@@ -454,16 +452,9 @@ export default function DocumentProcessShow({
                                                 className="grid gap-2 p-4"
                                             >
                                                 <div className="flex items-start justify-between gap-3">
-                                                    <div>
-                                                        <p className="text-sm font-semibold">
-                                                            {cost.description}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {costTypeOptions[
-                                                                cost.cost_type
-                                                            ] ?? cost.cost_type}
-                                                        </p>
-                                                    </div>
+                                                    <p className="text-sm font-semibold">
+                                                        {cost.description}
+                                                    </p>
                                                     <p className="shrink-0 text-sm font-bold">
                                                         {currencyFormatter.format(
                                                             cost.amount,
@@ -528,7 +519,6 @@ export default function DocumentProcessShow({
                 open={isCostOpen}
                 onOpenChange={setIsCostOpen}
                 process={process}
-                costTypeOptions={costTypeOptions}
             />
         </>
     );

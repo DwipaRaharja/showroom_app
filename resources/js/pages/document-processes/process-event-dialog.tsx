@@ -98,7 +98,7 @@ export function ProcessEventDialog({
 
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="grid gap-1.5">
-                                    <Label>Status terbaru *</Label>
+                                    <Label>Status terbaru</Label>
                                     <Select
                                         value={status}
                                         onValueChange={(value) =>
@@ -108,7 +108,7 @@ export function ProcessEventDialog({
                                         }
                                     >
                                         <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue placeholder="Pilih status terbaru" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {Object.entries(statusOptions).map(
@@ -128,7 +128,7 @@ export function ProcessEventDialog({
 
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="event-occurred-at">
-                                        Tanggal dan waktu kejadian *
+                                        Tanggal dan waktu kejadian
                                     </Label>
                                     <Input
                                         id="event-occurred-at"
@@ -142,7 +142,7 @@ export function ProcessEventDialog({
 
                                 <div className="grid gap-1.5 sm:col-span-2">
                                     <Label htmlFor="event-description">
-                                        Keterangan kejadian *
+                                        Keterangan kejadian
                                     </Label>
                                     <Input
                                         id="event-description"
@@ -214,7 +214,7 @@ export function ProcessEventDialog({
                                     {process.process_type === 'annual_tax' && (
                                         <div className="grid gap-1.5 sm:col-span-2">
                                             <Label htmlFor="annual-tax-due">
-                                                Jatuh tempo pajak tahunan baru *
+                                                Jatuh tempo pajak tahunan baru
                                             </Label>
                                             <Input
                                                 id="annual-tax-due"
@@ -235,7 +235,7 @@ export function ProcessEventDialog({
                                         'five_year_tax' && (
                                         <div className="grid gap-1.5 sm:col-span-2">
                                             <Label htmlFor="stnk-expires-at">
-                                                Masa berlaku STNK/plat baru *
+                                                Masa berlaku STNK/plat baru
                                             </Label>
                                             <Input
                                                 id="stnk-expires-at"
@@ -263,6 +263,7 @@ export function ProcessEventDialog({
                                                 <Input
                                                     id="result-owner"
                                                     name="result[owner_name]"
+                                                    placeholder="Contoh: Muhammad Ramadhan"
                                                     defaultValue={
                                                         process.target_owner_name ??
                                                         ''
@@ -276,6 +277,7 @@ export function ProcessEventDialog({
                                                 <Input
                                                     id="result-plate"
                                                     name="result[license_plate]"
+                                                    placeholder="Contoh: DD 1234 AB"
                                                 />
                                             </div>
                                         </>
@@ -296,11 +298,12 @@ export function ProcessEventDialog({
                                     </div>
                                     <div className="grid gap-1.5">
                                         <Label htmlFor="recipient-name">
-                                            Nama penerima *
+                                            Nama penerima
                                         </Label>
                                         <Input
                                             id="recipient-name"
                                             name="recipient_name"
+                                            placeholder="Contoh: Muhammad Ramadhan"
                                         />
                                         <InputError
                                             message={errors.recipient_name}
@@ -313,6 +316,7 @@ export function ProcessEventDialog({
                                         <Input
                                             id="recipient-phone"
                                             name="recipient_phone"
+                                            placeholder="Contoh: 0812 3456 7890"
                                         />
                                     </div>
                                     <div className="grid gap-1.5 sm:col-span-2">
@@ -351,6 +355,7 @@ export function ProcessEventDialog({
                                         id="event-notes"
                                         name="notes"
                                         rows={3}
+                                        placeholder="Contoh: Berkas diterima lengkap dan tanpa kerusakan."
                                     />
                                 </div>
                             </div>

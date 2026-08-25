@@ -5,28 +5,20 @@ import {
     CurrencyCircleDollarIcon,
     WarningCircleIcon,
 } from '@phosphor-icons/react';
-import { useState } from 'react';
 import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
 import { StatCard } from '@/components/stat-card';
 import { ProcessDataTable } from '@/pages/document-processes/data-table';
-import { ProcessFormDialog } from '@/pages/document-processes/process-form-dialog';
 import type {
     DocumentProcess,
     LabelOptions,
-    ProcessCar,
     ProcessSummary,
-    UserOption,
 } from '@/pages/document-processes/types';
 
 type Props = {
     processes: DocumentProcess[];
-    cars: ProcessCar[];
-    selected_car_id: number | null;
-    users: UserOption[];
     summary: ProcessSummary;
     type_options: LabelOptions;
     status_options: LabelOptions;
-    cost_type_options: LabelOptions;
 };
 
 const currencyFormatter = new Intl.NumberFormat('id-ID', {
@@ -37,16 +29,10 @@ const currencyFormatter = new Intl.NumberFormat('id-ID', {
 
 export default function DocumentProcessesIndex({
     processes,
-    cars,
-    selected_car_id: selectedCarId,
-    users,
     summary,
     type_options: typeOptions,
     status_options: statusOptions,
-    cost_type_options: costTypeOptions,
 }: Props) {
-    const [isCreateOpen, setIsCreateOpen] = useState(selectedCarId !== null);
-
     return (
         <>
             <Head title="Proses Berkas" />
@@ -96,19 +82,8 @@ export default function DocumentProcessesIndex({
                     processes={processes}
                     typeOptions={typeOptions}
                     statusOptions={statusOptions}
-                    onAdd={() => setIsCreateOpen(true)}
                 />
             </div>
-
-            <ProcessFormDialog
-                open={isCreateOpen}
-                onOpenChange={setIsCreateOpen}
-                cars={cars}
-                users={users}
-                typeOptions={typeOptions}
-                costTypeOptions={costTypeOptions}
-                initialCarId={selectedCarId}
-            />
         </>
     );
 }

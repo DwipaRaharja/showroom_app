@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\DocumentProcess;
 
-use App\Models\DocumentProcessCost;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,10 +18,6 @@ class StoreDocumentProcessCostRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cost_type' => [
-                'required',
-                Rule::in(array_keys(DocumentProcessCost::TYPE_LABELS)),
-            ],
             'description' => ['required', 'string', 'max:180'],
             'amount' => ['required', 'integer', 'min:1'],
             'paid_by' => ['required', Rule::in(['showroom', 'customer'])],

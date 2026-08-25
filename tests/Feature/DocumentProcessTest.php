@@ -33,14 +33,16 @@ function validDocumentProcessPayload(Car $car): array
         'process_type' => 'annual_tax',
         'started_at' => now()->toDateString(),
         'estimated_completion_date' => now()->addDays(5)->toDateString(),
-        'processor_name' => 'Biro Jasa Makassar',
-        'processor_phone' => '081234567890',
         'notes' => 'Pengurusan pajak tahunan.',
+        'initial_cost' => 100_000,
+        'initial_cost_paid_by' => 'customer',
     ];
 }
 
 test('guest cannot access document process management', function () {
     $this->get(route('document-processes.index'))
+        ->assertRedirect(route('login'));
+    $this->get(route('document-processes.create'))
         ->assertRedirect(route('login'));
 });
 
@@ -50,7 +52,6 @@ test('user creates a process with requirements timeline and capitalized initial 
     $payload = [
         ...validDocumentProcessPayload($car),
         'initial_cost' => 1_500_000,
-        'initial_cost_type' => 'administration',
         'initial_cost_paid_by' => 'showroom',
     ];
 
@@ -61,8 +62,11 @@ test('user creates a process with requirements timeline and capitalized initial 
     $process = DocumentProcess::query()->sole();
 
     expect($process->process_number)->toStartWith('BRK-')
+        ->and($process->processor_name)->toBeNull()
+        ->and($process->processor_phone)->toBeNull()
         ->and($process->items()->count())->toBe(2)
         ->and($process->events()->count())->toBe(1)
+        ->and($process->costs()->sole()->cost_type)->toBe('other')
         ->and((int) $process->costs()->sum('amount'))->toBe(1_500_000)
         ->and($car->capital?->fresh()->document_process_cost)->toBe(1_500_000)
         ->and($car->capital?->fresh()->total_capital)->toBe(105_000_000);
@@ -74,20 +78,38 @@ test('user creates a process with requirements timeline and capitalized initial 
     ]);
 });
 
-test('index can open the process form for a vehicle selected from its detail page', function () {
+test('create page can preselect a vehicle from its detail page', function () {
     $user = User::factory()->create();
     $car = createCarWithCapital();
 
     $this->actingAs($user)
-        ->get(route('document-processes.index', ['car_id' => $car->id]))
+        ->get(route('document-processes.create', ['car_id' => $car->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('document-processes/index')
+            ->component('document-processes/create')
             ->where('selected_car_id', $car->id)
             ->where('cars.0.id', $car->id)
             ->has('type_options.annual_tax')
-            ->has('cost_type_options.tax')
         );
+});
+
+test('initial process cost is required when creating a document process', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+    $payload = validDocumentProcessPayload($car);
+    unset(
+        $payload['initial_cost'],
+        $payload['initial_cost_paid_by'],
+    );
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), $payload)
+        ->assertSessionHasErrors([
+            'initial_cost',
+            'initial_cost_paid_by',
+        ]);
+
+    expect(DocumentProcess::query()->count())->toBe(0);
 });
 
 test('only costs paid by the showroom increase vehicle capital', function () {
@@ -101,7 +123,6 @@ test('only costs paid by the showroom increase vehicle capital', function () {
 
     $this->actingAs($user)
         ->post(route('document-processes.costs.store', $process), [
-            'cost_type' => 'tax',
             'description' => 'Pokok pajak dibayar customer',
             'amount' => 2_000_000,
             'paid_by' => 'customer',
@@ -113,7 +134,6 @@ test('only costs paid by the showroom increase vehicle capital', function () {
 
     $this->actingAs($user)
         ->post(route('document-processes.costs.store', $process), [
-            'cost_type' => 'agent_fee',
             'description' => 'Jasa pengurusan showroom',
             'amount' => 750_000,
             'paid_by' => 'showroom',
@@ -122,7 +142,7 @@ test('only costs paid by the showroom increase vehicle capital', function () {
         ->assertSessionHasNoErrors();
 
     expect($car->capital?->fresh()->document_process_cost)->toBe(750_000)
-        ->and($process->fresh()->total_cost)->toBe(2_750_000)
+        ->and($process->fresh()->total_cost)->toBe(2_850_000)
         ->and($process->fresh()->capitalized_cost)->toBe(750_000);
 });
 
@@ -166,7 +186,6 @@ test('cancelling a process removes its showroom costs from vehicle capital', fun
     $payload = [
         ...validDocumentProcessPayload($car),
         'initial_cost' => 900_000,
-        'initial_cost_type' => 'agent_fee',
         'initial_cost_paid_by' => 'showroom',
     ];
 
@@ -202,7 +221,6 @@ test('receipt is stored privately and can be downloaded by an authenticated user
 
     $this->actingAs($user)
         ->post(route('document-processes.costs.store', $process), [
-            'cost_type' => 'tax',
             'description' => 'Pokok pajak',
             'amount' => 1_000_000,
             'paid_by' => 'showroom',

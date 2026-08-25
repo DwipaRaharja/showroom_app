@@ -24,16 +24,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import type {
-    DocumentProcess,
-    LabelOptions,
-} from '@/pages/document-processes/types';
+import type { DocumentProcess } from '@/pages/document-processes/types';
 
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     process: DocumentProcess;
-    costTypeOptions: LabelOptions;
 };
 
 function today(): string {
@@ -43,13 +39,7 @@ function today(): string {
     return local.toISOString().slice(0, 10);
 }
 
-export function ProcessCostDialog({
-    open,
-    onOpenChange,
-    process,
-    costTypeOptions,
-}: Props) {
-    const [costType, setCostType] = useState('administration');
+export function ProcessCostDialog({ open, onOpenChange, process }: Props) {
     const [paidBy, setPaidBy] = useState('showroom');
     const [amount, setAmount] = useState('');
 
@@ -74,43 +64,13 @@ export function ProcessCostDialog({
                         <>
                             <input
                                 type="hidden"
-                                name="cost_type"
-                                value={costType}
-                            />
-                            <input
-                                type="hidden"
                                 name="paid_by"
                                 value={paidBy}
                             />
 
                             <div className="grid gap-1.5">
-                                <Label>Jenis biaya *</Label>
-                                <Select
-                                    value={costType}
-                                    onValueChange={setCostType}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Object.entries(costTypeOptions).map(
-                                            ([value, label]) => (
-                                                <SelectItem
-                                                    key={value}
-                                                    value={value}
-                                                >
-                                                    {label}
-                                                </SelectItem>
-                                            ),
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.cost_type} />
-                            </div>
-
-                            <div className="grid gap-1.5">
                                 <Label htmlFor="cost-description">
-                                    Keterangan biaya *
+                                    Keterangan biaya
                                 </Label>
                                 <Input
                                     id="cost-description"
@@ -121,25 +81,25 @@ export function ProcessCostDialog({
                             </div>
 
                             <div className="grid gap-1.5">
-                                <Label>Jumlah biaya *</Label>
+                                <Label>Jumlah biaya</Label>
                                 <PriceInput
                                     name="amount"
                                     value={amount}
                                     onValueChange={setAmount}
-                                    placeholder="0"
+                                    placeholder="Contoh: 1.500.000"
                                 />
                                 <InputError message={errors.amount} />
                             </div>
 
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="grid gap-1.5">
-                                    <Label>Dibayar oleh *</Label>
+                                    <Label>Dibayar oleh</Label>
                                     <Select
                                         value={paidBy}
                                         onValueChange={setPaidBy}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue placeholder="Pilih pihak pembayar" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="showroom">

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Requests\DocumentProcess;
 
 use App\Models\DocumentProcess;
-use App\Models\DocumentProcessCost;
 use App\Models\Sale;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -59,15 +58,9 @@ class StoreDocumentProcessRequest extends FormRequest
             'destination_region' => ['nullable', 'string', 'max:120'],
             'target_owner_name' => ['nullable', 'string', 'max:150'],
             'notes' => ['nullable', 'string', 'max:1000'],
-            'initial_cost' => ['nullable', 'integer', 'min:1'],
-            'initial_cost_type' => [
-                Rule::requiredIf($this->filled('initial_cost')),
-                'nullable',
-                Rule::in(array_keys(DocumentProcessCost::TYPE_LABELS)),
-            ],
+            'initial_cost' => ['required', 'integer', 'min:1'],
             'initial_cost_paid_by' => [
-                Rule::requiredIf($this->filled('initial_cost')),
-                'nullable',
+                'required',
                 Rule::in(['showroom', 'customer']),
             ],
         ];

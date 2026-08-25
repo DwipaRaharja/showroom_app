@@ -64,7 +64,7 @@ class DocumentProcessController extends Controller
         ],
     ];
 
-    public function index(Request $request): Response
+    public function index(): Response
     {
         $processes = DocumentProcess::query()
             ->with([
@@ -88,29 +88,8 @@ class DocumentProcessController extends Controller
             'issue',
         ];
 
-        $cars = Car::query()
-            ->with([
-                'brand:id,name',
-                'sale.customer:id,name,phone',
-                'capital:id,car_id,status,document_process_cost',
-            ])
-            ->latest('id')
-            ->get([
-                'id',
-                'brand_id',
-                'name',
-                'license_plate',
-                'status',
-            ]);
-        $selectedCarId = $request->integer('car_id');
-
         return Inertia::render('document-processes/index', [
             'processes' => $processes,
-            'cars' => $cars,
-            'selected_car_id' => $cars->contains('id', $selectedCarId)
-                ? $selectedCarId
-                : null,
-            'users' => User::query()->orderBy('name')->get(['id', 'name']),
             'summary' => [
                 'active' => $processes->whereIn('status', $activeStatuses)->count(),
                 'overdue' => $processes
@@ -130,7 +109,34 @@ class DocumentProcessController extends Controller
             ],
             'type_options' => DocumentProcess::TYPE_LABELS,
             'status_options' => DocumentProcess::STATUS_LABELS,
-            'cost_type_options' => DocumentProcessCost::TYPE_LABELS,
+        ]);
+    }
+
+    public function create(Request $request): Response
+    {
+        $cars = Car::query()
+            ->with([
+                'brand:id,name',
+                'sale.customer:id,name,phone',
+                'capital:id,car_id,status,document_process_cost',
+            ])
+            ->latest('id')
+            ->get([
+                'id',
+                'brand_id',
+                'name',
+                'license_plate',
+                'status',
+            ]);
+        $selectedCarId = $request->integer('car_id');
+
+        return Inertia::render('document-processes/create', [
+            'cars' => $cars,
+            'selected_car_id' => $cars->contains('id', $selectedCarId)
+                ? $selectedCarId
+                : null,
+            'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            'type_options' => DocumentProcess::TYPE_LABELS,
         ]);
     }
 
@@ -191,18 +197,14 @@ class DocumentProcessController extends Controller
                 'created_by' => $request->user()?->id,
             ]);
 
-            if (isset($validated['initial_cost'])) {
-                $process->costs()->create([
-                    'cost_type' => $validated['initial_cost_type'],
-                    'description' => DocumentProcessCost::TYPE_LABELS[
-                        $validated['initial_cost_type']
-                    ],
-                    'amount' => $validated['initial_cost'],
-                    'paid_by' => $validated['initial_cost_paid_by'],
-                    'paid_at' => $validated['started_at'],
-                    'created_by' => $request->user()?->id,
-                ]);
-            }
+            $process->costs()->create([
+                'cost_type' => 'other',
+                'description' => 'Biaya awal proses',
+                'amount' => $validated['initial_cost'],
+                'paid_by' => $validated['initial_cost_paid_by'],
+                'paid_at' => $validated['started_at'],
+                'created_by' => $request->user()?->id,
+            ]);
 
             return $process;
         });
@@ -236,7 +238,6 @@ class DocumentProcessController extends Controller
             'process' => $documentProcess,
             'type_options' => DocumentProcess::TYPE_LABELS,
             'status_options' => DocumentProcess::STATUS_LABELS,
-            'cost_type_options' => DocumentProcessCost::TYPE_LABELS,
         ]);
     }
 
@@ -383,7 +384,7 @@ class DocumentProcessController extends Controller
             ): void {
                 /** @var DocumentProcessCost $cost */
                 $cost = $documentProcess->costs()->create([
-                    'cost_type' => $validated['cost_type'],
+                    'cost_type' => 'other',
                     'description' => $validated['description'],
                     'amount' => $validated['amount'],
                     'paid_by' => $validated['paid_by'],

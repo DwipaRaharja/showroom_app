@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import {
     CaretDoubleLeftIcon,
     CaretDoubleRightIcon,
@@ -16,6 +17,7 @@ import type {
     SortingState,
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
+import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -56,7 +58,6 @@ type Props = {
     processes: DocumentProcess[];
     typeOptions: LabelOptions;
     statusOptions: LabelOptions;
-    onAdd: () => void;
 };
 
 const initialSorting: SortingState = [{ id: 'number', desc: true }];
@@ -67,7 +68,6 @@ export function ProcessDataTable({
     processes,
     typeOptions,
     statusOptions,
-    onAdd,
 }: Props) {
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -147,9 +147,11 @@ export function ProcessDataTable({
                             ditampilkan
                         </p>
                     </div>
-                    <Button type="button" onClick={onAdd}>
-                        <PlusIcon />
-                        Tambah Proses Berkas
+                    <Button asChild>
+                        <Link href={DocumentProcessController.create.url()}>
+                            <PlusIcon />
+                            Tambah Proses Berkas
+                        </Link>
                     </Button>
                 </div>
 
