@@ -121,9 +121,7 @@ class Car extends Model
     {
         return $query->where(function ($q) use ($saleCarId) {
             $q->whereIn('status', ['available', 'booked'])
-                ->whereDoesntHave('sale')
-                ->whereHas('capital', fn (Builder $capital) => $capital
-                    ->where('status', 'completed'));
+                ->whereDoesntHave('sale');
             if ($saleCarId) {
                 $q->orWhere('id', $saleCarId);
             }

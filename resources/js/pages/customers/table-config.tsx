@@ -27,7 +27,6 @@ import {
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { StatusBadge } from '@/components/status-badge';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {

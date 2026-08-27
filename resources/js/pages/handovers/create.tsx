@@ -1,7 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeftIcon } from '@phosphor-icons/react';
+import { Head } from '@inertiajs/react';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
-import { Button } from '@/components/ui/button';
 import { HandoverForm } from '@/pages/handovers/handover-form';
 import type { Sale } from '@/pages/sales/types';
 

@@ -24,7 +24,6 @@ class Payment extends Model
         'payment_method',
         'destination_account',
         'reference_number',
-        'proof_file',
         'status',
         'notes',
     ];

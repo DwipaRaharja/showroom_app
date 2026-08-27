@@ -27,7 +27,10 @@ export function NavMain({ groups, items }: NavMainProps) {
     return (
         <div className="space-y-2">
             {normalizedGroups.map((group, groupIdx) => (
-                <SidebarGroup key={group.title ?? groupIdx} className="px-2 py-0">
+                <SidebarGroup
+                    key={group.title ?? groupIdx}
+                    className="px-2 py-0"
+                >
                     {group.title && (
                         <SidebarGroupLabel className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                             {group.title}
@@ -54,4 +57,3 @@ export function NavMain({ groups, items }: NavMainProps) {
         </div>
     );
 }
-

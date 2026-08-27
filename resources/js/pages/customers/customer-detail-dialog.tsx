@@ -17,7 +17,6 @@ import {
     DialogContent,
     DialogDescription,
     DialogFooter,
-    DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
 import type { Customer } from '@/pages/customers/types';
@@ -52,7 +51,9 @@ export function CustomerDetailDialog({
     onOpenChange,
     onEdit,
 }: Props) {
-    if (!customer) return null;
+    if (!customer) {
+        return null;
+    }
 
     const isArchived = customer.deleted_at !== null;
     const cleanPhone = customer.phone?.replace(/[^0-9]/g, '') ?? '';
@@ -71,15 +72,15 @@ export function CustomerDetailDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg p-0 overflow-hidden gap-0">
+            <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
                 {/* Header Banner */}
-                <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b p-6 pr-14">
+                <div className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 pr-14">
                     <div className="flex items-center gap-3.5">
-                        <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-semibold text-base shadow-sm shrink-0">
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-base font-semibold text-primary-foreground shadow-sm">
                             {initials || <UserIcon className="size-6" />}
                         </div>
                         <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <DialogTitle className="text-xl font-bold tracking-tight">
                                     {customer.name}
                                 </DialogTitle>
@@ -88,27 +89,33 @@ export function CustomerDetailDialog({
                                     className="px-2 py-0.5 text-xs shadow-xs"
                                 />
                             </div>
-                            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                                ID Customer: <span className="font-mono font-medium">#{customer.id}</span>
+                            <DialogDescription className="mt-0.5 text-xs text-muted-foreground">
+                                ID Customer:{' '}
+                                <span className="font-mono font-medium">
+                                    #{customer.id}
+                                </span>
                             </DialogDescription>
                         </div>
                     </div>
                 </div>
 
                 {/* Content Cards */}
-                <div className="p-6 space-y-4 text-sm">
+                <div className="space-y-4 p-6 text-sm">
                     {/* Contact & WA */}
                     <div className="rounded-xl border bg-card p-3.5 shadow-xs transition-colors hover:bg-accent/20">
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3">
-                                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 mt-0.5">
-                                    <PhoneIcon className="size-4" weight="bold" />
+                                <div className="mt-0.5 rounded-lg bg-emerald-500/10 p-2 text-emerald-600 dark:text-emerald-500">
+                                    <PhoneIcon
+                                        className="size-4"
+                                        weight="bold"
+                                    />
                                 </div>
                                 <div>
                                     <div className="text-xs font-medium text-muted-foreground">
                                         Telepon / WhatsApp
                                     </div>
-                                    <div className="font-semibold text-foreground mt-0.5 text-base font-mono">
+                                    <div className="mt-0.5 font-mono text-base font-semibold text-foreground">
                                         {customer.phone || (
                                             <span className="font-sans text-sm font-normal text-muted-foreground">
                                                 Belum diisi
@@ -123,7 +130,7 @@ export function CustomerDetailDialog({
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="h-8 gap-1.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800"
+                                            className="h-8 gap-1.5 border-emerald-200 text-xs text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:border-emerald-800 dark:hover:bg-emerald-950/40"
                                             asChild
                                         >
                                             <a
@@ -131,7 +138,10 @@ export function CustomerDetailDialog({
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >
-                                                <WhatsappLogoIcon className="size-4" weight="fill" />
+                                                <WhatsappLogoIcon
+                                                    className="size-4"
+                                                    weight="fill"
+                                                />
                                                 Chat WA
                                             </a>
                                         </Button>
@@ -159,14 +169,17 @@ export function CustomerDetailDialog({
                     <div className="rounded-xl border bg-card p-3.5 shadow-xs transition-colors hover:bg-accent/20">
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3">
-                                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-500 mt-0.5">
-                                    <IdentificationCardIcon className="size-4" weight="bold" />
+                                <div className="mt-0.5 rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-500">
+                                    <IdentificationCardIcon
+                                        className="size-4"
+                                        weight="bold"
+                                    />
                                 </div>
                                 <div>
                                     <div className="text-xs font-medium text-muted-foreground">
                                         Nomor KTP / NIK
                                     </div>
-                                    <div className="font-mono font-semibold text-foreground mt-0.5 text-sm">
+                                    <div className="mt-0.5 font-mono text-sm font-semibold text-foreground">
                                         {customer.ktp_number || (
                                             <span className="font-sans text-sm font-normal text-muted-foreground">
                                                 Belum diisi
@@ -197,14 +210,14 @@ export function CustomerDetailDialog({
                     {/* Address */}
                     <div className="rounded-xl border bg-card p-3.5 shadow-xs transition-colors hover:bg-accent/20">
                         <div className="flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-500 mt-0.5 shrink-0">
+                            <div className="mt-0.5 shrink-0 rounded-lg bg-amber-500/10 p-2 text-amber-600 dark:text-amber-500">
                                 <MapPinIcon className="size-4" weight="bold" />
                             </div>
                             <div className="min-w-0 flex-1">
                                 <div className="text-xs font-medium text-muted-foreground">
                                     Alamat Lengkap
                                 </div>
-                                <div className="font-medium text-foreground mt-0.5 text-sm leading-relaxed">
+                                <div className="mt-0.5 text-sm leading-relaxed font-medium text-foreground">
                                     {customer.address || (
                                         <span className="font-normal text-muted-foreground">
                                             Belum diisi
@@ -221,14 +234,16 @@ export function CustomerDetailDialog({
                         <span>
                             Terdaftar sejak{' '}
                             <strong className="font-medium text-foreground">
-                                {dateFormatter.format(new Date(customer.created_at))}
+                                {dateFormatter.format(
+                                    new Date(customer.created_at),
+                                )}
                             </strong>
                         </span>
                     </div>
                 </div>
 
                 {/* Footer Actions */}
-                <DialogFooter className="border-t bg-muted/30 p-4 gap-2 sm:gap-2">
+                <DialogFooter className="gap-2 border-t bg-muted/30 p-4 sm:gap-2">
                     {!isArchived && onEdit && (
                         <Button
                             type="button"
@@ -244,7 +259,9 @@ export function CustomerDetailDialog({
                         </Button>
                     )}
                     <DialogClose asChild>
-                        <Button type="button" className="min-w-20">Tutup</Button>
+                        <Button type="button" className="min-w-20">
+                            Tutup
+                        </Button>
                     </DialogClose>
                 </DialogFooter>
             </DialogContent>

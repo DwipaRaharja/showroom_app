@@ -30,7 +30,7 @@ class StoreSaleRequest extends FormRequest
                         ->exists();
 
                     if (! $isEligible) {
-                        $fail('Unit mobil harus berstatus tersedia dan memiliki modal aktif sebelum dijual.');
+                        $fail('Unit mobil harus berstatus tersedia dan belum memiliki transaksi penjualan.');
                     }
                 },
             ],

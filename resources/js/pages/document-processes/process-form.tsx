@@ -196,7 +196,9 @@ export function ProcessForm({
                                             autoComplete="off"
                                             aria-expanded={isCarListOpen}
                                             aria-controls="car-search-results"
-                                            aria-invalid={Boolean(errors.car_id)}
+                                            aria-invalid={Boolean(
+                                                errors.car_id,
+                                            )}
                                             className={`pr-10 pl-9 ${validationColorClassName}`}
                                         />
                                         {carSearch !== '' && (
@@ -293,6 +295,25 @@ export function ProcessForm({
                                     message={errors.car_id}
                                     className={errorTextClassName}
                                 />
+                                {errors.car_id_active_process_id && (
+                                    <Button
+                                        type="button"
+                                        variant="link"
+                                        size="sm"
+                                        className="h-auto w-fit p-0 text-red-500 dark:text-red-500"
+                                        asChild
+                                    >
+                                        <Link
+                                            href={DocumentProcessController.show.url(
+                                                Number(
+                                                    errors.car_id_active_process_id,
+                                                ),
+                                            )}
+                                        >
+                                            Lihat proses berkas aktif →
+                                        </Link>
+                                    </Button>
+                                )}
                             </div>
 
                             <div className="grid gap-2 sm:col-span-2">
@@ -610,9 +631,7 @@ export function ProcessForm({
                         <Button
                             type="submit"
                             disabled={
-                                processing ||
-                                carId === '' ||
-                                initialCost === ''
+                                processing || carId === '' || initialCost === ''
                             }
                         >
                             {processing ? (

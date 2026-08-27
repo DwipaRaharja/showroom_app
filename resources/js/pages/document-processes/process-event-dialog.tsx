@@ -38,6 +38,30 @@ type Props = {
     statusOptions: LabelOptions;
 };
 
+const validationColorClassName =
+    'aria-invalid:border-red-500 aria-invalid:ring-red-500/20 dark:aria-invalid:ring-red-500/40';
+const errorTextClassName = 'text-red-500 dark:text-red-500';
+
+const eventStatusValues: Record<
+    DocumentProcessStatus,
+    DocumentProcessStatus[]
+> = {
+    waiting_documents: [
+        'waiting_documents',
+        'processing',
+        'completed',
+        'issue',
+    ],
+    documents_ready: ['documents_ready', 'processing', 'completed', 'issue'],
+    submitted: ['submitted', 'processing', 'completed', 'issue'],
+    processing: ['processing', 'completed', 'issue'],
+    ready_for_pickup: ['ready_for_pickup', 'completed', 'returned', 'issue'],
+    completed: ['completed', 'returned', 'issue'],
+    returned: ['returned'],
+    issue: ['issue', 'processing', 'completed', 'returned'],
+    cancelled: ['cancelled'],
+};
+
 function nowForInput(): string {
     const date = new Date();
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
@@ -98,7 +122,10 @@ export function ProcessEventDialog({
 
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="grid gap-1.5">
-                                    <Label>Status terbaru</Label>
+                                    <Label htmlFor="event-status">
+                                        Status terbaru{' '}
+                                        <span className="text-red-500">*</span>
+                                    </Label>
                                     <Select
                                         value={status}
                                         onValueChange={(value) =>
@@ -107,28 +134,38 @@ export function ProcessEventDialog({
                                             )
                                         }
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger
+                                            id="event-status"
+                                            aria-invalid={Boolean(
+                                                errors.status,
+                                            )}
+                                            className={validationColorClassName}
+                                        >
                                             <SelectValue placeholder="Pilih status terbaru" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {Object.entries(statusOptions).map(
-                                                ([value, label]) => (
-                                                    <SelectItem
-                                                        key={value}
-                                                        value={value}
-                                                    >
-                                                        {label}
-                                                    </SelectItem>
-                                                ),
-                                            )}
+                                            {eventStatusValues[
+                                                process.status
+                                            ].map((value) => (
+                                                <SelectItem
+                                                    key={value}
+                                                    value={value}
+                                                >
+                                                    {statusOptions[value]}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
-                                    <InputError message={errors.status} />
+                                    <InputError
+                                        message={errors.status}
+                                        className={errorTextClassName}
+                                    />
                                 </div>
 
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="event-occurred-at">
-                                        Tanggal dan waktu kejadian
+                                        Tanggal dan waktu kejadian{' '}
+                                        <span className="text-red-500">*</span>
                                     </Label>
                                     <Input
                                         id="event-occurred-at"
@@ -136,20 +173,37 @@ export function ProcessEventDialog({
                                         type="datetime-local"
                                         max={nowForInput()}
                                         defaultValue={nowForInput()}
+                                        required
+                                        aria-invalid={Boolean(
+                                            errors.occurred_at,
+                                        )}
+                                        className={validationColorClassName}
                                     />
-                                    <InputError message={errors.occurred_at} />
+                                    <InputError
+                                        message={errors.occurred_at}
+                                        className={errorTextClassName}
+                                    />
                                 </div>
 
                                 <div className="grid gap-1.5 sm:col-span-2">
                                     <Label htmlFor="event-description">
-                                        Keterangan kejadian
+                                        Keterangan kejadian{' '}
+                                        <span className="text-red-500">*</span>
                                     </Label>
                                     <Input
                                         id="event-description"
                                         name="description"
                                         placeholder="Contoh: Berkas sudah diajukan ke Samsat"
+                                        required
+                                        aria-invalid={Boolean(
+                                            errors.description,
+                                        )}
+                                        className={validationColorClassName}
                                     />
-                                    <InputError message={errors.description} />
+                                    <InputError
+                                        message={errors.description}
+                                        className={errorTextClassName}
+                                    />
                                 </div>
 
                                 <div className="grid gap-1.5 sm:col-span-2">
@@ -160,12 +214,23 @@ export function ProcessEventDialog({
                                         id="event-location"
                                         name="location"
                                         placeholder="Contoh: Samsat Makassar"
+                                        aria-invalid={Boolean(errors.location)}
+                                        className={validationColorClassName}
+                                    />
+                                    <InputError
+                                        message={errors.location}
+                                        className={errorTextClassName}
                                     />
                                 </div>
                             </div>
 
                             {availableItems.length > 0 && (
-                                <div className="grid gap-3 rounded-xl border p-4">
+                                <div
+                                    aria-invalid={Boolean(
+                                        errors.received_items,
+                                    )}
+                                    className={`grid gap-3 rounded-xl border p-4 ${validationColorClassName}`}
+                                >
                                     <div>
                                         <h3 className="font-semibold">
                                             Dokumen yang diterima
@@ -196,6 +261,10 @@ export function ProcessEventDialog({
                                             </label>
                                         ))}
                                     </div>
+                                    <InputError
+                                        message={errors.received_items}
+                                        className={errorTextClassName}
+                                    />
                                 </div>
                             )}
 
@@ -214,12 +283,24 @@ export function ProcessEventDialog({
                                     {process.process_type === 'annual_tax' && (
                                         <div className="grid gap-1.5 sm:col-span-2">
                                             <Label htmlFor="annual-tax-due">
-                                                Jatuh tempo pajak tahunan baru
+                                                Jatuh tempo pajak tahunan baru{' '}
+                                                <span className="text-red-500">
+                                                    *
+                                                </span>
                                             </Label>
                                             <Input
                                                 id="annual-tax-due"
                                                 name="result[annual_tax_due_at]"
                                                 type="date"
+                                                required
+                                                aria-invalid={Boolean(
+                                                    errors[
+                                                        'result.annual_tax_due_at'
+                                                    ],
+                                                )}
+                                                className={
+                                                    validationColorClassName
+                                                }
                                             />
                                             <InputError
                                                 message={
@@ -227,6 +308,7 @@ export function ProcessEventDialog({
                                                         'result.annual_tax_due_at'
                                                     ]
                                                 }
+                                                className={errorTextClassName}
                                             />
                                         </div>
                                     )}
@@ -235,12 +317,24 @@ export function ProcessEventDialog({
                                         'five_year_tax' && (
                                         <div className="grid gap-1.5 sm:col-span-2">
                                             <Label htmlFor="stnk-expires-at">
-                                                Masa berlaku STNK/plat baru
+                                                Masa berlaku STNK/plat baru{' '}
+                                                <span className="text-red-500">
+                                                    *
+                                                </span>
                                             </Label>
                                             <Input
                                                 id="stnk-expires-at"
                                                 name="result[stnk_expires_at]"
                                                 type="date"
+                                                required
+                                                aria-invalid={Boolean(
+                                                    errors[
+                                                        'result.stnk_expires_at'
+                                                    ],
+                                                )}
+                                                className={
+                                                    validationColorClassName
+                                                }
                                             />
                                             <InputError
                                                 message={
@@ -248,6 +342,7 @@ export function ProcessEventDialog({
                                                         'result.stnk_expires_at'
                                                     ]
                                                 }
+                                                className={errorTextClassName}
                                             />
                                         </div>
                                     )}
@@ -268,6 +363,24 @@ export function ProcessEventDialog({
                                                         process.target_owner_name ??
                                                         ''
                                                     }
+                                                    aria-invalid={Boolean(
+                                                        errors[
+                                                            'result.owner_name'
+                                                        ],
+                                                    )}
+                                                    className={
+                                                        validationColorClassName
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors[
+                                                            'result.owner_name'
+                                                        ]
+                                                    }
+                                                    className={
+                                                        errorTextClassName
+                                                    }
                                                 />
                                             </div>
                                             <div className="grid gap-1.5">
@@ -278,6 +391,24 @@ export function ProcessEventDialog({
                                                     id="result-plate"
                                                     name="result[license_plate]"
                                                     placeholder="Contoh: DD 1234 AB"
+                                                    aria-invalid={Boolean(
+                                                        errors[
+                                                            'result.license_plate'
+                                                        ],
+                                                    )}
+                                                    className={
+                                                        validationColorClassName
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors[
+                                                            'result.license_plate'
+                                                        ]
+                                                    }
+                                                    className={
+                                                        errorTextClassName
+                                                    }
                                                 />
                                             </div>
                                         </>
@@ -298,15 +429,24 @@ export function ProcessEventDialog({
                                     </div>
                                     <div className="grid gap-1.5">
                                         <Label htmlFor="recipient-name">
-                                            Nama penerima
+                                            Nama penerima{' '}
+                                            <span className="text-red-500">
+                                                *
+                                            </span>
                                         </Label>
                                         <Input
                                             id="recipient-name"
                                             name="recipient_name"
                                             placeholder="Contoh: Muhammad Ramadhan"
+                                            required
+                                            aria-invalid={Boolean(
+                                                errors.recipient_name,
+                                            )}
+                                            className={validationColorClassName}
                                         />
                                         <InputError
                                             message={errors.recipient_name}
+                                            className={errorTextClassName}
                                         />
                                     </div>
                                     <div className="grid gap-1.5">
@@ -317,6 +457,14 @@ export function ProcessEventDialog({
                                             id="recipient-phone"
                                             name="recipient_phone"
                                             placeholder="Contoh: 0812 3456 7890"
+                                            aria-invalid={Boolean(
+                                                errors.recipient_phone,
+                                            )}
+                                            className={validationColorClassName}
+                                        />
+                                        <InputError
+                                            message={errors.recipient_phone}
+                                            className={errorTextClassName}
                                         />
                                     </div>
                                     <div className="grid gap-1.5 sm:col-span-2">
@@ -327,6 +475,14 @@ export function ProcessEventDialog({
                                             id="recipient-relation"
                                             name="recipient_relation"
                                             placeholder="Contoh: Pemilik, keluarga, petugas showroom"
+                                            aria-invalid={Boolean(
+                                                errors.recipient_relation,
+                                            )}
+                                            className={validationColorClassName}
+                                        />
+                                        <InputError
+                                            message={errors.recipient_relation}
+                                            className={errorTextClassName}
                                         />
                                     </div>
                                 </div>
@@ -343,11 +499,16 @@ export function ProcessEventDialog({
                                         type="file"
                                         accept=".pdf,.jpg,.jpeg,.png,.webp"
                                         multiple
+                                        aria-invalid={Boolean(errors.files)}
+                                        className={validationColorClassName}
                                     />
                                     <p className="text-xs text-muted-foreground">
                                         Maksimal 5 file, masing-masing 5 MB.
                                     </p>
-                                    <InputError message={errors.files} />
+                                    <InputError
+                                        message={errors.files}
+                                        className={errorTextClassName}
+                                    />
                                 </div>
                                 <div className="grid gap-1.5 sm:col-span-2">
                                     <Label htmlFor="event-notes">Catatan</Label>
@@ -356,6 +517,12 @@ export function ProcessEventDialog({
                                         name="notes"
                                         rows={3}
                                         placeholder="Contoh: Berkas diterima lengkap dan tanpa kerusakan."
+                                        aria-invalid={Boolean(errors.notes)}
+                                        className={validationColorClassName}
+                                    />
+                                    <InputError
+                                        message={errors.notes}
+                                        className={errorTextClassName}
                                     />
                                 </div>
                             </div>

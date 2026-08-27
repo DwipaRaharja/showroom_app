@@ -50,8 +50,7 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
                 }
 
                 return (
-                    urlToCompare === path ||
-                    urlToCompare.startsWith(path + '/')
+                    urlToCompare === path || urlToCompare.startsWith(path + '/')
                 );
             }
 

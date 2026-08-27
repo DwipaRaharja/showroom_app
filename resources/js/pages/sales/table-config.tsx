@@ -167,7 +167,8 @@ export function createSaleColumns({
                     <Checkbox
                         checked={
                             table.getIsAllPageRowsSelected() ||
-                            (table.getIsSomePageRowsSelected() && 'indeterminate')
+                            (table.getIsSomePageRowsSelected() &&
+                                'indeterminate')
                         }
                         onCheckedChange={(value) =>
                             table.toggleAllPageRowsSelected(value === true)
@@ -450,16 +451,6 @@ export function createSaleColumns({
                                     <EyeIcon />
                                     Lihat detail & SPK
                                 </DropdownMenuItem>
-                                {canAcceptPayment && (
-                                    <DropdownMenuItem
-                                        onSelect={() =>
-                                            onRecordPayment(row.original)
-                                        }
-                                    >
-                                        <MoneyIcon className="text-emerald-600" />
-                                        Catat pembayaran
-                                    </DropdownMenuItem>
-                                )}
                                 <DropdownMenuItem
                                     onSelect={() =>
                                         void copyText(
@@ -472,6 +463,16 @@ export function createSaleColumns({
                                     Salin no. invoice
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
+                                {canAcceptPayment && (
+                                    <DropdownMenuItem
+                                        onSelect={() =>
+                                            onRecordPayment(row.original)
+                                        }
+                                    >
+                                        <MoneyIcon className="text-emerald-600" />
+                                        Catat pembayaran
+                                    </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                     className="text-red-500 focus:text-red-500"
                                     onSelect={() => onDelete(row.original)}

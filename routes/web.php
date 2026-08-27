@@ -3,6 +3,7 @@
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CarController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentProcessController;
 use App\Http\Controllers\FinanceCompanyController;
 use App\Http\Controllers\PaymentController;
@@ -18,7 +19,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::patch('brands/{brand}/status', [BrandController::class, 'updateStatus'])
         ->name('brands.status.update');
     Route::resource('brands', BrandController::class)->only([
@@ -43,6 +44,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'update',
         'destroy',
     ]);
+    Route::patch('cars/{car}/restore', [CarController::class, 'restore'])
+        ->name('cars.restore');
     Route::patch('cars/{car}/status', [CarController::class, 'updateStatus'])
         ->name('cars.status.update');
     Route::get('cars/{car}/image', [CarController::class, 'image'])
@@ -99,6 +102,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('document-processes.events.store');
     Route::post('document-processes/{documentProcess}/costs', [DocumentProcessController::class, 'storeCost'])
         ->name('document-processes.costs.store');
+    Route::patch('document-processes/{documentProcess}/cancel', [DocumentProcessController::class, 'cancel'])
+        ->name('document-processes.cancel');
+    Route::delete('document-processes/{documentProcess}', [DocumentProcessController::class, 'destroy'])
+        ->name('document-processes.destroy');
     Route::get('document-process-files/{file}', [DocumentProcessController::class, 'downloadFile'])
         ->name('document-process-files.download');
 });

@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
-import { SaleForm } from '@/pages/sales/sale-form';
 import type { Car } from '@/pages/cars/types';
 import type { Customer } from '@/pages/customers/types';
+import { SaleForm } from '@/pages/sales/sale-form';
 import type { FinanceCompany } from '@/pages/sales/types';
 import { create as salesCreate, index as salesIndex } from '@/routes/sales';
 
@@ -26,7 +26,8 @@ export default function SalesCreate({
                         Buat Penjualan Baru (SPK)
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Pilih unit mobil, customer, dan skema pembayaran (Tunai Lunas, Tunai Tempo, atau Kredit Leasing).
+                        Pilih unit mobil, customer, dan skema pembayaran (Tunai
+                        Lunas, Tunai Tempo, atau Kredit Leasing).
                     </p>
                 </div>
 

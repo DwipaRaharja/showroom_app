@@ -33,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
     protected function loadDomainMigrations(): void
     {
         $mainPath = database_path('migrations');
-        $directories = glob($mainPath . '/*', GLOB_ONLYDIR);
+        $directories = glob($mainPath.'/*', GLOB_ONLYDIR);
 
         if (! empty($directories)) {
             $this->loadMigrationsFrom($directories);

@@ -19,7 +19,9 @@ export default function SalesIndex({ sales, summary }: Props) {
                         Penjualan Mobil
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Kelola seluruh transaksi penjualan showroom (Tunai Lunas, Tempo, & Kredit Leasing) serta pantau riwayat pelunasan dan piutang.
+                        Kelola seluruh transaksi penjualan showroom (Tunai
+                        Lunas, Tempo, & Kredit Leasing) serta pantau riwayat
+                        pelunasan dan piutang.
                     </p>
                 </div>
 

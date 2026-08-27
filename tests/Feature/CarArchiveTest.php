@@ -76,5 +76,17 @@ test('archiving a sold car preserves all transaction and document relations', fu
     $this->actingAs($user)
         ->get(route('cars.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->has('cars', 0));
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('cars', 1)
+            ->where('cars.0.id', $car->id)
+            ->where('cars.0.deleted_at', fn ($deletedAt) => $deletedAt !== null)
+            ->where('summary.total_active', 0)
+        );
+
+    $this->actingAs($user)
+        ->patch(route('cars.restore', $car->id))
+        ->assertRedirect(route('cars.index'));
+
+    $this->assertNotSoftDeleted('cars', ['id' => $car->id]);
+    expect($car->fresh()->trashed())->toBeFalse();
 });

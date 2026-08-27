@@ -6,6 +6,8 @@ import {
     CaretUpIcon,
     DotsThreeVerticalIcon,
     EyeIcon,
+    ProhibitIcon,
+    TrashIcon,
 } from '@phosphor-icons/react';
 import {
     columnFilteringFeature,
@@ -149,6 +151,10 @@ function SortableHeader({
 export function createProcessColumns(
     typeOptions: LabelOptions,
     statusOptions: LabelOptions,
+    actions: {
+        onCancel: (process: DocumentProcess) => void;
+        onDelete: (process: DocumentProcess) => void;
+    },
 ) {
     return columnHelper.columns([
         columnHelper.display({
@@ -415,6 +421,32 @@ export function createProcessColumns(
                                         Detail kendaraan
                                     </Link>
                                 </DropdownMenuItem>
+                                {(process.can_cancel ||
+                                    process.can_delete_permanently) && (
+                                    <DropdownMenuSeparator />
+                                )}
+                                {process.can_cancel && (
+                                    <DropdownMenuItem
+                                        className="text-red-500 focus:text-red-500"
+                                        onSelect={() =>
+                                            actions.onCancel(process)
+                                        }
+                                    >
+                                        <ProhibitIcon className="text-red-500" />
+                                        Batalkan proses
+                                    </DropdownMenuItem>
+                                )}
+                                {process.can_delete_permanently && (
+                                    <DropdownMenuItem
+                                        className="text-red-500 focus:text-red-500"
+                                        onSelect={() =>
+                                            actions.onDelete(process)
+                                        }
+                                    >
+                                        <TrashIcon className="text-red-500" />
+                                        Hapus permanen
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>

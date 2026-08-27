@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Brand;
 use App\Models\Car;
 use App\Models\Customer;
 use App\Models\Purchase;
@@ -7,14 +8,14 @@ use App\Models\Sale;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
-test('only cars with active capital are eligible for sale', function () {
+test('car sale eligibility does not depend on capital data or status', function () {
     $car = Car::factory()->create(['status' => 'available']);
 
-    expect(Car::query()->availableForSale()->whereKey($car)->exists())->toBeFalse();
+    expect(Car::query()->availableForSale()->whereKey($car)->exists())->toBeTrue();
 
     $capital = Purchase::factory()->for($car)->create(['status' => 'draft']);
 
-    expect(Car::query()->availableForSale()->whereKey($car)->exists())->toBeFalse();
+    expect(Car::query()->availableForSale()->whereKey($car)->exists())->toBeTrue();
 
     $capital->update(['status' => 'completed']);
 
@@ -22,10 +23,10 @@ test('only cars with active capital are eligible for sale', function () {
 
     $capital->update(['status' => 'cancelled']);
 
-    expect(Car::query()->availableForSale()->whereKey($car)->exists())->toBeFalse();
+    expect(Car::query()->availableForSale()->whereKey($car)->exists())->toBeTrue();
 });
 
-test('sale creation rejects a car until its capital is active', function () {
+test('sale creation accepts an available car with draft capital', function () {
     $user = User::factory()->create();
     $customer = Customer::factory()->create();
     $car = Car::factory()->create(['status' => 'available']);
@@ -36,7 +37,9 @@ test('sale creation rejects a car until its capital is active', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('sales/create')
-            ->has('available_cars', 0)
+            ->has('available_cars', 1)
+            ->where('available_cars.0.id', $car->id)
+            ->where('available_cars.0.capital.status', 'draft')
         );
 
     $this->actingAs($user)
@@ -46,18 +49,9 @@ test('sale creation rejects a car until its capital is active', function () {
             'payment_type' => 'cash_full',
             'deal_price' => $car->selling_price,
         ])
-        ->assertSessionHasErrors('car_id');
+        ->assertSessionHasNoErrors();
 
-    $capital->update(['status' => 'completed']);
-
-    $this->actingAs($user)
-        ->get(route('sales.create'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->has('available_cars', 1)
-            ->where('available_cars.0.id', $car->id)
-            ->where('available_cars.0.capital.total_capital', $capital->total_capital)
-        );
+    expect(Sale::query()->whereBelongsTo($car)->exists())->toBeTrue();
 });
 
 test('capital attached to a sale cannot be deactivated from the car form', function () {
@@ -106,7 +100,7 @@ test('standalone capital management routes are no longer exposed', function () {
 test('draft capital allows empty prices and defaults to zero', function () {
     $user = User::factory()->create();
     $carData = [
-        'brand_id' => \App\Models\Brand::factory()->create()->id,
+        'brand_id' => Brand::factory()->create()->id,
         'name' => 'Toyota Yaris Cross',
         'year' => 2023,
         'transmission' => 'automatic',
@@ -131,7 +125,7 @@ test('draft capital allows empty prices and defaults to zero', function () {
 
 test('active capital requires selling price and purchase price to be greater than zero', function () {
     $user = User::factory()->create();
-    $brand = \App\Models\Brand::factory()->create();
+    $brand = Brand::factory()->create();
 
     $this->actingAs($user)
         ->post(route('cars.store'), [

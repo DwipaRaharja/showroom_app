@@ -27,6 +27,7 @@ class CarController extends Controller
     public function index(): Response
     {
         $cars = Car::query()
+            ->withTrashed()
             ->with([
                 'brand:id,name',
                 'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,document_process_cost,status,notes,created_at',
@@ -65,10 +66,12 @@ class CarController extends Controller
                 'image',
                 'created_at',
                 'updated_at',
+                'deleted_at',
             ]);
 
-        $activeCars = $cars->whereIn('status', ['available', 'booked', 'maintenance']);
-        $availableCars = $cars->where('status', 'available');
+        $nonArchivedCars = $cars->whereNull('deleted_at');
+        $activeCars = $nonArchivedCars->whereIn('status', ['available', 'booked', 'maintenance']);
+        $availableCars = $nonArchivedCars->where('status', 'available');
 
         $totalActiveCapital = (int) $activeCars->sum(function (Car $car): int {
             $capital = $car->getRelation('capital');
@@ -83,9 +86,9 @@ class CarController extends Controller
         $summary = [
             'total_active' => $activeCars->count(),
             'available' => $availableCars->count(),
-            'booked' => $cars->where('status', 'booked')->count(),
-            'maintenance' => $cars->where('status', 'maintenance')->count(),
-            'sold' => $cars->where('status', 'sold')->count(),
+            'booked' => $nonArchivedCars->where('status', 'booked')->count(),
+            'maintenance' => $nonArchivedCars->where('status', 'maintenance')->count(),
+            'sold' => $nonArchivedCars->where('status', 'sold')->count(),
             'total_active_capital' => $totalActiveCapital,
             'potential_selling_turnover' => $potentialSellingTurnover,
         ];
@@ -351,6 +354,25 @@ class CarController extends Controller
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => 'Data mobil berhasil diarsipkan. Riwayat transaksi dan dokumen tetap tersimpan.',
+        ]);
+
+        return to_route('cars.index');
+    }
+
+    /**
+     * Restore an archived car.
+     */
+    public function restore(int $car): RedirectResponse
+    {
+        $car = Car::query()
+            ->withTrashed()
+            ->findOrFail($car);
+
+        $car->restore();
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Data mobil berhasil dipulihkan ke daftar aktif.',
         ]);
 
         return to_route('cars.index');

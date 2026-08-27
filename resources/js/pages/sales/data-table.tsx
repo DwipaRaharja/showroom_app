@@ -1,6 +1,5 @@
 import { Form, Link, router } from '@inertiajs/react';
 import {
-    ArrowsClockwiseIcon,
     CaretDoubleLeftIcon,
     CaretDoubleRightIcon,
     CaretLeftIcon,
@@ -11,7 +10,6 @@ import {
     HandCoinsIcon,
     HourglassMediumIcon,
     MagnifyingGlassIcon,
-    MoneyIcon,
     PlusIcon,
     TrashIcon,
     WarningIcon,
@@ -70,7 +68,12 @@ import {
     saleColumnLabels,
     saleTableFeatures,
 } from '@/pages/sales/table-config';
-import type { PaymentType, Sale, SalesSummary, SaleStatus } from '@/pages/sales/types';
+import type {
+    PaymentType,
+    Sale,
+    SalesSummary,
+    SaleStatus,
+} from '@/pages/sales/types';
 import { create as salesCreate } from '@/routes/sales';
 
 type Props = {
@@ -94,19 +97,23 @@ const currencyFormatter = new Intl.NumberFormat('id-ID', {
 });
 
 export function SaleDataTable({ data, summary }: Props) {
-    const [selectedSaleForPayment, setSelectedSaleForPayment] = useState<Sale | null>(null);
+    const [selectedSaleForPayment, setSelectedSaleForPayment] =
+        useState<Sale | null>(null);
     const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
-    const [pagination, setPagination] = useState<PaginationState>(initialPagination);
+    const [pagination, setPagination] =
+        useState<PaginationState>(initialPagination);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-    const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>(initialColumnVisibility);
+    const [columnVisibility, setColumnVisibility] =
+        useState<ColumnVisibilityState>(initialColumnVisibility);
 
     const columns = useMemo(
         () =>
             createSaleColumns({
-                onShow: (sale) => router.visit(SaleController.show.url(sale.id)),
+                onShow: (sale) =>
+                    router.visit(SaleController.show.url(sale.id)),
                 onRecordPayment: (sale) => setSelectedSaleForPayment(sale),
                 onDelete: (sale) => setDeletingSale(sale),
             }),
@@ -144,15 +151,21 @@ export function SaleDataTable({ data, summary }: Props) {
     });
 
     const search = globalFilter;
-    const statusFilter = table.getColumn('status')?.getFilterValue() as SaleStatus | undefined;
-    const paymentTypeFilter = table.getColumn('payment_type')?.getFilterValue() as PaymentType | undefined;
+    const statusFilter = table.getColumn('status')?.getFilterValue() as
+        SaleStatus | undefined;
+    const paymentTypeFilter = table
+        .getColumn('payment_type')
+        ?.getFilterValue() as PaymentType | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
     const selectedCount = table.getSelectedRowIds().length;
     const { pageIndex, pageSize } = pagination;
     const pageCount = Math.max(table.getPageCount(), 1);
     const firstVisibleRow = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
     const lastVisibleRow = Math.min((pageIndex + 1) * pageSize, filteredCount);
-    const hasFilters = search.length > 0 || statusFilter !== undefined || paymentTypeFilter !== undefined;
+    const hasFilters =
+        search.length > 0 ||
+        statusFilter !== undefined ||
+        paymentTypeFilter !== undefined;
 
     function resetFilters() {
         setGlobalFilter('');
@@ -184,7 +197,9 @@ export function SaleDataTable({ data, summary }: Props) {
                 />
                 <StatCard
                     title="Bonus Leasing Diterima"
-                    value={currencyFormatter.format(summary.total_bonus_collected)}
+                    value={currencyFormatter.format(
+                        summary.total_bonus_collected,
+                    )}
                     icon={CreditCardIcon}
                     variant="info"
                 />
@@ -197,7 +212,8 @@ export function SaleDataTable({ data, summary }: Props) {
                         <div>
                             <CardTitle>Data Transaksi Penjualan</CardTitle>
                             <p className="text-sm text-muted-foreground">
-                                {filteredCount} dari {data.length} transaksi penjualan ditampilkan
+                                {filteredCount} dari {data.length} transaksi
+                                penjualan ditampilkan
                             </p>
                         </div>
 
@@ -222,7 +238,9 @@ export function SaleDataTable({ data, summary }: Props) {
                             <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 value={search}
-                                onChange={(event) => table.setGlobalFilter(event.target.value)}
+                                onChange={(event) =>
+                                    table.setGlobalFilter(event.target.value)
+                                }
                                 placeholder="Cari invoice, mobil, customer..."
                                 className="pl-9"
                                 aria-label="Cari transaksi penjualan"
@@ -234,18 +252,32 @@ export function SaleDataTable({ data, summary }: Props) {
                             <Select
                                 value={statusFilter ?? 'all'}
                                 onValueChange={(value) =>
-                                    table.getColumn('status')?.setFilterValue(value === 'all' ? undefined : value)
+                                    table
+                                        .getColumn('status')
+                                        ?.setFilterValue(
+                                            value === 'all' ? undefined : value,
+                                        )
                                 }
                             >
                                 <SelectTrigger className="w-44">
                                     <SelectValue placeholder="Semua status" />
                                 </SelectTrigger>
                                 <SelectContent align="end">
-                                    <SelectItem value="all">Semua status</SelectItem>
-                                    <SelectItem value="completed">Lunas / Selesai</SelectItem>
-                                    <SelectItem value="partial">Tempo / Piutang</SelectItem>
-                                    <SelectItem value="pending">Booking / Menunggu</SelectItem>
-                                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                                    <SelectItem value="all">
+                                        Semua status
+                                    </SelectItem>
+                                    <SelectItem value="completed">
+                                        Lunas / Selesai
+                                    </SelectItem>
+                                    <SelectItem value="partial">
+                                        Tempo / Piutang
+                                    </SelectItem>
+                                    <SelectItem value="pending">
+                                        Booking / Menunggu
+                                    </SelectItem>
+                                    <SelectItem value="cancelled">
+                                        Dibatalkan
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
 
@@ -253,17 +285,29 @@ export function SaleDataTable({ data, summary }: Props) {
                             <Select
                                 value={paymentTypeFilter ?? 'all'}
                                 onValueChange={(value) =>
-                                    table.getColumn('payment_type')?.setFilterValue(value === 'all' ? undefined : value)
+                                    table
+                                        .getColumn('payment_type')
+                                        ?.setFilterValue(
+                                            value === 'all' ? undefined : value,
+                                        )
                                 }
                             >
                                 <SelectTrigger className="w-40">
                                     <SelectValue placeholder="Semua skema" />
                                 </SelectTrigger>
                                 <SelectContent align="end">
-                                    <SelectItem value="all">Semua skema</SelectItem>
-                                    <SelectItem value="cash_full">Tunai Lunas</SelectItem>
-                                    <SelectItem value="cash_tempo">Tunai Tempo</SelectItem>
-                                    <SelectItem value="credit">Kredit Leasing</SelectItem>
+                                    <SelectItem value="all">
+                                        Semua skema
+                                    </SelectItem>
+                                    <SelectItem value="cash_full">
+                                        Tunai Lunas
+                                    </SelectItem>
+                                    <SelectItem value="cash_tempo">
+                                        Tunai Tempo
+                                    </SelectItem>
+                                    <SelectItem value="credit">
+                                        Kredit Leasing
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
 
@@ -275,8 +319,13 @@ export function SaleDataTable({ data, summary }: Props) {
                                         Kolom
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-48">
-                                    <DropdownMenuLabel>Tampilkan kolom</DropdownMenuLabel>
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="w-48"
+                                >
+                                    <DropdownMenuLabel>
+                                        Tampilkan kolom
+                                    </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     {table
                                         .getAllLeafColumns()
@@ -286,10 +335,13 @@ export function SaleDataTable({ data, summary }: Props) {
                                                 key={column.id}
                                                 checked={column.getIsVisible()}
                                                 onCheckedChange={(value) =>
-                                                    column.toggleVisibility(value === true)
+                                                    column.toggleVisibility(
+                                                        value === true,
+                                                    )
                                                 }
                                             >
-                                                {saleColumnLabels[column.id] ?? column.id}
+                                                {saleColumnLabels[column.id] ??
+                                                    column.id}
                                             </DropdownMenuCheckboxItem>
                                         ))}
                                 </DropdownMenuContent>
@@ -314,7 +366,9 @@ export function SaleDataTable({ data, summary }: Props) {
                                         {headerGroup.headers.map((header) => (
                                             <TableHead key={header.id}>
                                                 {header.isPlaceholder ? null : (
-                                                    <table.FlexRender header={header} />
+                                                    <table.FlexRender
+                                                        header={header}
+                                                    />
                                                 )}
                                             </TableHead>
                                         ))}
@@ -326,25 +380,40 @@ export function SaleDataTable({ data, summary }: Props) {
                                     table.getRowModel().rows.map((row) => (
                                         <TableRow
                                             key={row.id}
-                                            data-state={row.getIsSelected() ? 'selected' : undefined}
+                                            data-state={
+                                                row.getIsSelected()
+                                                    ? 'selected'
+                                                    : undefined
+                                            }
                                         >
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    <table.FlexRender cell={cell} />
-                                                </TableCell>
-                                            ))}
+                                            {row
+                                                .getVisibleCells()
+                                                .map((cell) => (
+                                                    <TableCell key={cell.id}>
+                                                        <table.FlexRender
+                                                            cell={cell}
+                                                        />
+                                                    </TableCell>
+                                                ))}
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={table.getVisibleLeafColumns().length}
+                                            colSpan={
+                                                table.getVisibleLeafColumns()
+                                                    .length
+                                            }
                                             className="h-32 text-center"
                                         >
                                             <div className="space-y-1">
-                                                <p className="font-medium">Transaksi penjualan tidak ditemukan</p>
+                                                <p className="font-medium">
+                                                    Transaksi penjualan tidak
+                                                    ditemukan
+                                                </p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    Ubah kata pencarian atau filter yang digunakan.
+                                                    Ubah kata pencarian atau
+                                                    filter yang digunakan.
                                                 </p>
                                             </div>
                                         </TableCell>
@@ -357,22 +426,33 @@ export function SaleDataTable({ data, summary }: Props) {
                     {/* Pagination */}
                     <div className="flex flex-col gap-3 border-t px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
                         <p className="text-sm text-muted-foreground">
-                            Menampilkan {firstVisibleRow}–{lastVisibleRow} dari {filteredCount} data
+                            Menampilkan {firstVisibleRow}–{lastVisibleRow} dari{' '}
+                            {filteredCount} data
                         </p>
 
                         <div className="flex flex-wrap items-center gap-3">
                             <div className="flex items-center gap-2">
-                                <span className="text-sm">Baris per halaman</span>
+                                <span className="text-sm">
+                                    Baris per halaman
+                                </span>
                                 <Select
                                     value={String(pageSize)}
-                                    onValueChange={(value) => table.setPageSize(Number(value))}
+                                    onValueChange={(value) =>
+                                        table.setPageSize(Number(value))
+                                    }
                                 >
                                     <SelectTrigger size="sm" className="w-18">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent align="end" className="min-w-18">
+                                    <SelectContent
+                                        align="end"
+                                        className="min-w-18"
+                                    >
                                         {[10, 20, 50].map((size) => (
-                                            <SelectItem key={size} value={String(size)}>
+                                            <SelectItem
+                                                key={size}
+                                                value={String(size)}
+                                            >
                                                 {size}
                                             </SelectItem>
                                         ))}
@@ -436,12 +516,21 @@ export function SaleDataTable({ data, summary }: Props) {
                 open={selectedSaleForPayment !== null}
                 sale={selectedSaleForPayment}
                 onOpenChange={(open) => {
-                    if (!open) setSelectedSaleForPayment(null);
+                    if (!open) {
+                        setSelectedSaleForPayment(null);
+                    }
                 }}
             />
 
             {/* Cancel / Delete Sale Dialog */}
-            <Dialog open={deletingSale !== null} onOpenChange={(open) => { if (!open) setDeletingSale(null); }}>
+            <Dialog
+                open={deletingSale !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeletingSale(null);
+                    }
+                }}
+            >
                 <DialogContent>
                     <DialogHeader>
                         <div className="mb-1 flex size-10 items-center justify-center rounded-full bg-red-500/10 text-red-500">
@@ -449,9 +538,11 @@ export function SaleDataTable({ data, summary }: Props) {
                         </div>
                         <DialogTitle>Batalkan Transaksi Penjualan?</DialogTitle>
                         <DialogDescription>
-                            Apakah Anda yakin ingin membatalkan transaksi invoice{' '}
-                            <strong>{deletingSale?.invoice_number}</strong> ({deletingSale?.car?.name})?
-                            Unit mobil akan otomatis dikembalikan menjadi <strong>Tersedia</strong>.
+                            Apakah Anda yakin ingin membatalkan transaksi
+                            invoice{' '}
+                            <strong>{deletingSale?.invoice_number}</strong> (
+                            {deletingSale?.car?.name})? Unit mobil akan otomatis
+                            dikembalikan menjadi <strong>Tersedia</strong>.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -465,7 +556,11 @@ export function SaleDataTable({ data, summary }: Props) {
                             {({ processing }) => (
                                 <DialogFooter>
                                     <DialogClose asChild>
-                                        <Button type="button" variant="outline" disabled={processing}>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            disabled={processing}
+                                        >
                                             Batal
                                         </Button>
                                     </DialogClose>
@@ -474,7 +569,11 @@ export function SaleDataTable({ data, summary }: Props) {
                                         variant="destructive"
                                         disabled={processing}
                                     >
-                                        {processing ? <Spinner /> : <TrashIcon />}
+                                        {processing ? (
+                                            <Spinner />
+                                        ) : (
+                                            <TrashIcon />
+                                        )}
                                         Ya, Batalkan Penjualan
                                     </Button>
                                 </DialogFooter>

@@ -39,7 +39,8 @@ class SaleFactory extends Factory
             $dueDate = Carbon::parse($createdDate)->addDays(fake()->numberBetween(7, 30))->format('Y-m-d');
             $status = fake()->randomElement(['partial', 'completed']);
         } else { // credit
-            $financeCompanyId = FinanceCompany::inRandomOrder()->first()?->id ?? FinanceCompany::factory();
+            $financeCompanyId = FinanceCompany::query()->inRandomOrder()->value('id')
+                ?? FinanceCompany::factory();
             $downPayment = (int) ($dealPrice * fake()->randomFloat(2, 0.15, 0.25));
             $financeAmount = $dealPrice - $downPayment;
             $disbursementEstDate = Carbon::parse($createdDate)->addDays(fake()->numberBetween(3, 14))->format('Y-m-d');

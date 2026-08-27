@@ -75,16 +75,16 @@ class StoreDocumentProcessRequest extends FormRequest
 
             $carId = $this->integer('car_id');
             $type = (string) $this->input('process_type');
-            $hasActiveDuplicate = DocumentProcess::query()
+            $activeProcess = DocumentProcess::query()
                 ->where('car_id', $carId)
-                ->where('process_type', $type)
-                ->whereNotIn('status', ['returned', 'cancelled'])
-                ->exists();
+                ->whereNotIn('status', DocumentProcess::CLOSED_STATUSES)
+                ->oldest('id')
+                ->first(['process_number']);
 
-            if ($hasActiveDuplicate) {
+            if ($activeProcess !== null) {
                 $validator->errors()->add(
-                    'process_type',
-                    'Mobil ini masih memiliki proses aktif dengan jenis yang sama.',
+                    'car_id',
+                    "Mobil ini masih memiliki proses berkas aktif ({$activeProcess->process_number}). Selesaikan atau batalkan proses tersebut terlebih dahulu.",
                 );
             }
 

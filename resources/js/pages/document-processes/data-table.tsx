@@ -45,6 +45,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { ProcessLifecycleDialog } from '@/pages/document-processes/process-lifecycle-dialog';
+import type { ProcessLifecycleAction } from '@/pages/document-processes/process-lifecycle-dialog';
 import {
     createProcessColumns,
     processColumnLabels,
@@ -78,8 +80,22 @@ export function ProcessDataTable({
     const [columnVisibility, setColumnVisibility] =
         useState<ColumnVisibilityState>(initialColumnVisibility);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+    const [managedProcess, setManagedProcess] =
+        useState<DocumentProcess | null>(null);
+    const [lifecycleAction, setLifecycleAction] =
+        useState<ProcessLifecycleAction>('cancel');
     const columns = useMemo(
-        () => createProcessColumns(typeOptions, statusOptions),
+        () =>
+            createProcessColumns(typeOptions, statusOptions, {
+                onCancel: (process) => {
+                    setLifecycleAction('cancel');
+                    setManagedProcess(process);
+                },
+                onDelete: (process) => {
+                    setLifecycleAction('delete');
+                    setManagedProcess(process);
+                },
+            }),
         [statusOptions, typeOptions],
     );
 
@@ -406,6 +422,15 @@ export function ProcessDataTable({
                     </div>
                 </div>
             </CardContent>
+            <ProcessLifecycleDialog
+                process={managedProcess}
+                action={lifecycleAction}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setManagedProcess(null);
+                    }
+                }}
+            />
         </Card>
     );
 }

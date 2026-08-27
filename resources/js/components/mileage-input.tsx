@@ -47,7 +47,10 @@ export function MileageInput({
                 onChange={(event) =>
                     onValueChange(normalizeMileage(event.target.value))
                 }
-                className={cn(unit ? 'pr-12 tabular-nums' : 'tabular-nums', className)}
+                className={cn(
+                    unit ? 'pr-12 tabular-nums' : 'tabular-nums',
+                    className,
+                )}
             />
             {unit && (
                 <span

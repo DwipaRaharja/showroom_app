@@ -459,7 +459,8 @@ export default function SalesShow({ sale }: Props) {
                                                                     >
                                                                         <TrashIcon className="text-red-500" />
                                                                         <span className="text-red-500">
-                                                                            Hapus pembayaran
+                                                                            Hapus
+                                                                            pembayaran
                                                                         </span>
                                                                     </DropdownMenuItem>
                                                                 </DropdownMenuContent>

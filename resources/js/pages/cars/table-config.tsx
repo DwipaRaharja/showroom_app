@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     ArchiveBoxIcon,
+    ArrowCounterClockwiseIcon,
     CarProfileIcon,
     CaretDownIcon,
     CaretUpIcon,
@@ -170,12 +171,14 @@ type CarColumnActions = {
     onStatusChange: (car: Car) => void;
     onManageDocuments: (car: Car) => void;
     onDelete: (car: Car) => void;
+    onRestore: (car: Car) => void;
 };
 
 export function createCarColumns({
     onStatusChange,
     onManageDocuments,
     onDelete,
+    onRestore,
 }: CarColumnActions) {
     return columnHelper.columns([
         columnHelper.display({
@@ -397,10 +400,28 @@ export function createCarColumns({
                 sortFn: 'text',
             },
         ),
+        columnHelper.accessor(
+            (row) => row.deleted_at !== null && row.deleted_at !== undefined,
+            {
+                id: 'is_archived',
+                header: ({ column }) => (
+                    <SortableHeader
+                        label="Status Data"
+                        isSorted={column.getIsSorted()}
+                        onToggle={column.getToggleSortingHandler()}
+                    />
+                ),
+                cell: ({ getValue }) => (
+                    <StatusBadge status={getValue() ? 'archived' : 'active'} />
+                ),
+                filterFn: 'equals',
+                sortFn: 'text',
+            },
+        ),
         columnHelper.accessor('status', {
             header: ({ column }) => (
                 <SortableHeader
-                    label="Status"
+                    label="Status Unit"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
                 />
@@ -424,97 +445,124 @@ export function createCarColumns({
             header: () => <span className="sr-only">Aksi</span>,
             enableHiding: false,
             enableSorting: false,
-            cell: ({ row }) => (
-                <div className="flex justify-end">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-8"
-                                aria-label={`Buka aksi untuk ${row.original.name}`}
-                            >
-                                <DotsThreeVerticalIcon className="size-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                                <Link
-                                    href={CarController.show(row.original.id)}
+            cell: ({ row }) => {
+                const isArchived = Boolean(row.original.deleted_at);
+
+                return (
+                    <div className="flex justify-end">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8"
+                                    aria-label={`Buka aksi untuk ${row.original.name}`}
                                 >
-                                    <EyeIcon />
-                                    Detail unit mobil
-                                </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onSelect={() =>
-                                    void copyText(
-                                        String(row.original.id),
-                                        'ID mobil',
-                                    )
-                                }
-                            >
-                                <CopyIcon />
-                                Salin ID
-                            </DropdownMenuItem>
-                            {row.original.license_plate && (
+                                    <DotsThreeVerticalIcon className="size-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel>Aksi</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link
+                                        href={CarController.show(
+                                            row.original.id,
+                                        )}
+                                    >
+                                        <EyeIcon />
+                                        Detail unit mobil
+                                    </Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onSelect={() =>
                                         void copyText(
-                                            row.original.license_plate ?? '',
-                                            'Plat nomor',
+                                            String(row.original.id),
+                                            'ID mobil',
                                         )
                                     }
                                 >
                                     <CopyIcon />
-                                    Salin Plat Nomor
+                                    Salin ID
                                 </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                                onSelect={() =>
-                                    void copyText(
-                                        row.original.name,
-                                        'Nama mobil',
-                                    )
-                                }
-                            >
-                                <CopyIcon />
-                                Salin Nama Mobil
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                onSelect={() => onManageDocuments(row.original)}
-                            >
-                                <FileTextIcon />
-                                Kelola dokumen
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onSelect={() => onStatusChange(row.original)}
-                            >
-                                <TagIcon />
-                                Ubah status unit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                                <Link
-                                    href={CarController.edit(row.original.id)}
+                                {row.original.license_plate && (
+                                    <DropdownMenuItem
+                                        onSelect={() =>
+                                            void copyText(
+                                                row.original.license_plate ??
+                                                    '',
+                                                'Plat nomor',
+                                            )
+                                        }
+                                    >
+                                        <CopyIcon />
+                                        Salin Plat Nomor
+                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                    onSelect={() =>
+                                        void copyText(
+                                            row.original.name,
+                                            'Nama mobil',
+                                        )
+                                    }
                                 >
-                                    <PencilSimpleIcon />
-                                    Edit mobil
-                                </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                className="text-red-500 focus:text-red-500"
-                                onSelect={() => onDelete(row.original)}
-                            >
-                                <ArchiveBoxIcon className="text-red-500" />
-                                Arsipkan mobil
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            ),
+                                    <CopyIcon />
+                                    Salin Nama Mobil
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {!isArchived && (
+                                    <>
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                onManageDocuments(row.original)
+                                            }
+                                        >
+                                            <FileTextIcon />
+                                            Kelola dokumen
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                onStatusChange(row.original)
+                                            }
+                                        >
+                                            <TagIcon />
+                                            Ubah status unit
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link
+                                                href={CarController.edit(
+                                                    row.original.id,
+                                                )}
+                                            >
+                                                <PencilSimpleIcon />
+                                                Edit mobil
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                                {isArchived ? (
+                                    <DropdownMenuItem
+                                        className="text-emerald-600 focus:text-emerald-600 dark:text-emerald-500 dark:focus:text-emerald-500"
+                                        onSelect={() => onRestore(row.original)}
+                                    >
+                                        <ArrowCounterClockwiseIcon className="text-emerald-600 dark:text-emerald-500" />
+                                        Pulihkan mobil
+                                    </DropdownMenuItem>
+                                ) : (
+                                    <DropdownMenuItem
+                                        className="text-red-500 focus:text-red-500"
+                                        onSelect={() => onDelete(row.original)}
+                                    >
+                                        <ArchiveBoxIcon className="text-red-500" />
+                                        Arsipkan mobil
+                                    </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                );
+            },
         }),
     ]);
 }
@@ -526,6 +574,7 @@ export const carColumnLabels: Record<string, string> = {
     mileage: 'Kilometer',
     selling_price: 'Harga Jual',
     documents: 'Dokumen',
-    status: 'Status',
+    is_archived: 'Status Data',
+    status: 'Status Unit',
     created_at: 'Tanggal Dibuat',
 };

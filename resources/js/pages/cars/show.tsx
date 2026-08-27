@@ -373,7 +373,7 @@ export default function CarsShow({ car }: Props) {
                                     Kelola
                                 </Button>
                             </CardHeader>
-                            <CardContent className="grid gap-4 xl:grid-cols-3">
+                            <CardContent className="grid gap-4 lg:grid-cols-2">
                                 <DocumentCard title="STNK" document={stnk}>
                                     <DetailItem
                                         label="Nama pemilik"
@@ -404,12 +404,14 @@ export default function CarsShow({ car }: Props) {
                                         )}
                                     />
                                 </DocumentCard>
-                                <DocumentCard
-                                    title="Faktur kendaraan"
-                                    document={invoice}
-                                />
+                                <div className="lg:col-span-2">
+                                    <DocumentCard
+                                        title="Faktur kendaraan"
+                                        document={invoice}
+                                    />
+                                </div>
 
-                                <div className="rounded-xl border border-dashed bg-muted/20 p-4 xl:col-span-3">
+                                <div className="rounded-xl border border-dashed bg-muted/20 p-4 lg:col-span-2">
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                         <div className="flex min-w-0 items-center gap-3">
                                             <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

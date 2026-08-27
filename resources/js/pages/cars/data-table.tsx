@@ -46,6 +46,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { CarDeleteDialog } from '@/pages/cars/car-delete-dialog';
+import { CarRestoreDialog } from '@/pages/cars/car-restore-dialog';
 import { CarStatusDialog } from '@/pages/cars/car-status-dialog';
 import {
     carColumnLabels,
@@ -64,6 +65,9 @@ const initialPagination: PaginationState = {
     pageIndex: 0,
     pageSize: 10,
 };
+const initialColumnFilters: ColumnFiltersState = [
+    { id: 'is_archived', value: false },
+];
 const initialColumnVisibility: ColumnVisibilityState = {
     created_at: false,
 };
@@ -72,8 +76,10 @@ export function CarDataTable({ data }: Props) {
     const [statusCar, setStatusCar] = useState<Car | null>(null);
     const [documentsCar, setDocumentsCar] = useState<Car | null>(null);
     const [deletingCar, setDeletingCar] = useState<Car | null>(null);
+    const [restoringCar, setRestoringCar] = useState<Car | null>(null);
     const [globalFilter, setGlobalFilter] = useState('');
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+    const [columnFilters, setColumnFilters] =
+        useState<ColumnFiltersState>(initialColumnFilters);
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
     const [pagination, setPagination] =
         useState<PaginationState>(initialPagination);
@@ -87,6 +93,7 @@ export function CarDataTable({ data }: Props) {
                 onStatusChange: setStatusCar,
                 onManageDocuments: setDocumentsCar,
                 onDelete: setDeletingCar,
+                onRestore: setRestoringCar,
             }),
         [],
     );
@@ -126,6 +133,8 @@ export function CarDataTable({ data }: Props) {
         CarStatus | undefined;
     const documentFilter = table.getColumn('documents')?.getFilterValue() as
         VehicleDocumentState | undefined;
+    const archiveFilter = table.getColumn('is_archived')?.getFilterValue() as
+        boolean | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
     const selectedCount = table.getSelectedRowIds().length;
     const { pageIndex, pageSize } = pagination;
@@ -135,11 +144,12 @@ export function CarDataTable({ data }: Props) {
     const hasFilters =
         search.length > 0 ||
         statusFilter !== undefined ||
-        documentFilter !== undefined;
+        documentFilter !== undefined ||
+        archiveFilter !== false;
 
     function resetFilters() {
         setGlobalFilter('');
-        setColumnFilters([]);
+        setColumnFilters(initialColumnFilters);
         setPagination((current) => ({ ...current, pageIndex: 0 }));
     }
 
@@ -187,6 +197,44 @@ export function CarDataTable({ data }: Props) {
 
                         <div className="flex flex-wrap items-center gap-2">
                             <Select
+                                value={
+                                    archiveFilter === undefined
+                                        ? 'all'
+                                        : archiveFilter
+                                          ? 'archived'
+                                          : 'active'
+                                }
+                                onValueChange={(value) => {
+                                    table
+                                        .getColumn('is_archived')
+                                        ?.setFilterValue(
+                                            value === 'all'
+                                                ? undefined
+                                                : value === 'archived',
+                                        );
+                                    setPagination((current) => ({
+                                        ...current,
+                                        pageIndex: 0,
+                                    }));
+                                }}
+                            >
+                                <SelectTrigger className="w-38">
+                                    <SelectValue placeholder="Status data" />
+                                </SelectTrigger>
+                                <SelectContent align="end">
+                                    <SelectItem value="active">
+                                        Unit aktif
+                                    </SelectItem>
+                                    <SelectItem value="archived">
+                                        Diarsipkan
+                                    </SelectItem>
+                                    <SelectItem value="all">
+                                        Semua data
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select
                                 value={statusFilter ?? 'all'}
                                 onValueChange={(value) =>
                                     table
@@ -196,7 +244,7 @@ export function CarDataTable({ data }: Props) {
                                         )
                                 }
                             >
-                                <SelectTrigger className="w-44">
+                                <SelectTrigger className="w-40">
                                     <SelectValue placeholder="Semua status" />
                                 </SelectTrigger>
                                 <SelectContent align="end">
@@ -228,7 +276,7 @@ export function CarDataTable({ data }: Props) {
                                         )
                                 }
                             >
-                                <SelectTrigger className="w-44">
+                                <SelectTrigger className="w-40">
                                     <SelectValue placeholder="Semua dokumen" />
                                 </SelectTrigger>
                                 <SelectContent align="end">
@@ -465,6 +513,14 @@ export function CarDataTable({ data }: Props) {
                 onOpenChange={(open) => {
                     if (!open) {
                         setDeletingCar(null);
+                    }
+                }}
+            />
+            <CarRestoreDialog
+                car={restoringCar}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setRestoringCar(null);
                     }
                 }}
             />

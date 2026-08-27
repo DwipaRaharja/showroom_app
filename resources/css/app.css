@@ -2,6 +2,24 @@
 
 @import 'tw-animate-css';
 
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    src: url('../fonts/Plus_Jakarta_Sans/PlusJakartaSans-VariableFont_wght.ttf')
+        format('truetype');
+    font-weight: 200 800;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    src: url('../fonts/Plus_Jakarta_Sans/PlusJakartaSans-Italic-VariableFont_wght.ttf')
+        format('truetype');
+    font-weight: 200 800;
+    font-style: italic;
+    font-display: swap;
+}
+
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 

@@ -113,6 +113,8 @@ export type DocumentProcess = {
     notes: string | null;
     total_cost: number;
     capitalized_cost: number;
+    can_cancel: boolean;
+    can_delete_permanently: boolean;
     car: ProcessCar;
     customer?: Pick<Customer, 'id' | 'name' | 'phone'> | null;
     assignee?: UserOption | null;

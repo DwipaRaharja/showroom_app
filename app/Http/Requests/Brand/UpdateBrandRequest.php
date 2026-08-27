@@ -54,12 +54,13 @@ class UpdateBrandRequest extends FormRequest
     public function messages(): array
     {
         $brand = $this->route('brand');
+        $existingBrandQuery = Brand::query();
 
-        $existingBrand = Brand::query()
-            ->when(
-                $brand instanceof Brand,
-                fn ($query) => $query->where('id', '!=', $brand->getKey()),
-            )
+        if ($brand instanceof Brand) {
+            $existingBrandQuery->whereKeyNot($brand->getKey());
+        }
+
+        $existingBrand = $existingBrandQuery
             ->where(function ($query): void {
                 $query
                     ->where('name', $this->input('name'))

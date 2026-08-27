@@ -36,7 +36,6 @@ export type Payment = {
     payment_method: PaymentMethod;
     destination_account: string;
     reference_number: string | null;
-    proof_file: string | null;
     status: PaymentStatus;
     notes: string | null;
     created_at?: string;

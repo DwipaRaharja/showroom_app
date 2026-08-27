@@ -30,7 +30,8 @@ export default function Login({ status, canResetPassword }: Props) {
                         <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="email">
-                                    Alamat Email <span className="text-red-500">*</span>
+                                    Alamat Email{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="email"
@@ -48,7 +49,8 @@ export default function Login({ status, canResetPassword }: Props) {
                             <div className="grid gap-2">
                                 <div className="flex items-center">
                                     <Label htmlFor="password">
-                                        Password <span className="text-red-500">*</span>
+                                        Password{' '}
+                                        <span className="text-red-500">*</span>
                                     </Label>
                                     {canResetPassword && (
                                         <TextLink

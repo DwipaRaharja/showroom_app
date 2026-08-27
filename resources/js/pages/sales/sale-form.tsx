@@ -223,7 +223,10 @@ export function SaleForm({
                                     {/* Select Car */}
                                     <div className="grid gap-2 sm:col-span-2">
                                         <Label htmlFor="sale-car">
-                                            Pilih Unit Mobil Tersedia <span className="text-red-500">*</span>
+                                            Pilih Unit Mobil Tersedia{' '}
+                                            <span className="text-red-500">
+                                                *
+                                            </span>
                                         </Label>
                                         {availableCars.length > 0 ? (
                                             <Select
@@ -297,7 +300,10 @@ export function SaleForm({
                                     {/* Select Customer */}
                                     <div className="grid gap-2 sm:col-span-2">
                                         <Label htmlFor="sale-customer">
-                                            Pilih Customer Pembeli <span className="text-red-500">*</span>
+                                            Pilih Customer Pembeli{' '}
+                                            <span className="text-red-500">
+                                                *
+                                            </span>
                                         </Label>
                                         <Select
                                             value={selectedCustomerId}
@@ -358,7 +364,10 @@ export function SaleForm({
                                     {/* Deal Price */}
                                     <div className="grid gap-2 sm:col-span-2">
                                         <Label htmlFor="deal_price">
-                                            Harga Kesepakatan Deal <span className="text-red-500">*</span>
+                                            Harga Kesepakatan Deal{' '}
+                                            <span className="text-red-500">
+                                                *
+                                            </span>
                                         </Label>
                                         <PriceInput
                                             id="deal_price"
@@ -593,7 +602,10 @@ export function SaleForm({
                                                     htmlFor="finance_company_id"
                                                     className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
                                                 >
-                                                    1. Mitra Lembaga Pembiayaan <span className="text-red-500">*</span>
+                                                    1. Mitra Lembaga Pembiayaan{' '}
+                                                    <span className="text-red-500">
+                                                        *
+                                                    </span>
                                                 </Label>
                                                 <Select
                                                     value={financeCompanyId}
@@ -1113,134 +1125,175 @@ export function SaleForm({
 
                         {/* Right Column: Order Summary Card */}
                         <div className="space-y-6">
-                            <Card className="sticky top-6 shadow-xs">
-                                <CardHeader>
-                                    <CardTitle className="text-base">
-                                        Ringkasan SPK Penjualan
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Kalkulasi finansial transaksi.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4 text-sm">
-                                    <div className="space-y-3 divide-y">
-                                        <div className="flex items-center justify-between pt-1 text-muted-foreground">
-                                            <span>Unit Mobil:</span>
-                                            <span className="font-semibold text-foreground">
-                                                {selectedCar?.name ?? '—'}
-                                            </span>
+                            <Card className="sticky top-6 overflow-hidden border-primary/20 p-0 shadow-xs">
+                                <div className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                                            <CurrencyCircleDollarIcon
+                                                className="size-6"
+                                                weight="fill"
+                                            />
                                         </div>
-                                        <div className="flex items-center justify-between pt-3 text-muted-foreground">
-                                            <span>Harga Kesepakatan Deal:</span>
-                                            <span className="text-base font-bold text-foreground">
+                                        <div>
+                                            <div className="font-semibold">
+                                                Ringkasan SPK Penjualan
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">
+                                                Kalkulasi finansial transaksi.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <CardContent className="space-y-4 p-5 text-sm">
+                                    <div className="rounded-xl border bg-card p-4">
+                                        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                            <CarProfileIcon className="size-4 text-primary" />
+                                            Unit mobil
+                                        </div>
+                                        <div className="mt-2 font-semibold">
+                                            {[
+                                                selectedCar?.brand?.name,
+                                                selectedCar?.name,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' ') ||
+                                                'Belum memilih unit'}
+                                        </div>
+                                        <div className="mt-0.5 text-xs text-muted-foreground">
+                                            {selectedCar?.license_plate ??
+                                                'Nomor polisi belum tersedia'}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-3">
+                                        <div className="rounded-xl border bg-card p-4">
+                                            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                                <MoneyIcon className="size-4 text-emerald-600" />
+                                                Harga kesepakatan
+                                            </div>
+                                            <div className="mt-2 text-lg font-bold text-emerald-600 tabular-nums dark:text-emerald-500">
                                                 {currencyFormatter.format(
                                                     numDealPrice,
                                                 )}
-                                            </span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center justify-between pt-3 text-muted-foreground">
-                                            <span>Total Modal:</span>
-                                            <span className="font-semibold text-foreground">
+
+                                        <div className="rounded-xl border bg-card p-4">
+                                            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                                <CoinsIcon className="size-4" />
+                                                Total modal
+                                            </div>
+                                            <div className="mt-2 text-lg font-bold tabular-nums">
                                                 {currencyFormatter.format(
                                                     totalCapital,
                                                 )}
-                                            </span>
+                                            </div>
                                         </div>
-                                        <div
-                                            className={`flex items-center justify-between pt-3 font-semibold ${estimatedProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}
-                                        >
-                                            <span>Estimasi Keuntungan:</span>
-                                            <span>
+
+                                        <div className="rounded-xl border bg-card p-4">
+                                            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                                <CurrencyCircleDollarIcon className="size-4" />
+                                                Estimasi keuntungan
+                                            </div>
+                                            <div
+                                                className={`mt-2 text-lg font-bold tabular-nums ${
+                                                    estimatedProfit < 0
+                                                        ? 'text-rose-600'
+                                                        : 'text-blue-600 dark:text-blue-500'
+                                                }`}
+                                            >
                                                 {currencyFormatter.format(
                                                     estimatedProfit,
                                                 )}
-                                            </span>
+                                            </div>
                                         </div>
+                                    </div>
 
-                                        {paymentType === 'cash_full' && (
-                                            <div className="flex items-center justify-between pt-3 font-semibold text-emerald-600">
-                                                <span>
-                                                    Bayar Lunas Hari Ini:
+                                    {paymentType === 'cash_full' && (
+                                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                                            <div className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                                                Bayar lunas hari ini
+                                            </div>
+                                            <div className="mt-1 text-xl font-bold text-emerald-600 tabular-nums dark:text-emerald-500">
+                                                {currencyFormatter.format(
+                                                    numDealPrice,
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {paymentType === 'cash_tempo' && (
+                                        <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <span className="text-muted-foreground">
+                                                    Uang muka (DP)
                                                 </span>
-                                                <span>
+                                                <span className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-500">
                                                     {currencyFormatter.format(
-                                                        numDealPrice,
+                                                        numDownPayment,
                                                     )}
                                                 </span>
                                             </div>
-                                        )}
+                                            <div className="flex items-center justify-between gap-4 border-t pt-3">
+                                                <span className="text-muted-foreground">
+                                                    Sisa pelunasan tempo
+                                                </span>
+                                                <span className="font-semibold text-amber-600 tabular-nums dark:text-amber-500">
+                                                    {currencyFormatter.format(
+                                                        numRemainingTempo,
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
 
-                                        {paymentType === 'cash_tempo' && (
-                                            <>
-                                                <div className="flex items-center justify-between pt-3 font-medium text-emerald-600">
-                                                    <span>Uang Muka (DP):</span>
-                                                    <span>
+                                    {paymentType === 'credit' && (
+                                        <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <span className="text-muted-foreground">
+                                                    DP dari customer
+                                                </span>
+                                                <span className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-500">
+                                                    {currencyFormatter.format(
+                                                        numDownPayment,
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-4 border-t pt-3">
+                                                <span className="text-muted-foreground">
+                                                    Pokok cair leasing
+                                                </span>
+                                                <span className="font-semibold text-blue-600 tabular-nums dark:text-blue-500">
+                                                    {currencyFormatter.format(
+                                                        numFinanceAmount,
+                                                    )}
+                                                </span>
+                                            </div>
+                                            {numLeasingBonus > 0 && (
+                                                <div className="flex items-center justify-between gap-4 border-t pt-3">
+                                                    <span className="text-muted-foreground">
+                                                        Bonus leasing showroom
+                                                    </span>
+                                                    <span className="font-semibold text-indigo-600 tabular-nums dark:text-indigo-400">
+                                                        +
                                                         {currencyFormatter.format(
-                                                            numDownPayment,
+                                                            numLeasingBonus,
                                                         )}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center justify-between pt-3 font-semibold text-amber-600">
-                                                    <span>
-                                                        Sisa Pelunasan Tempo:
-                                                    </span>
-                                                    <span>
-                                                        {currencyFormatter.format(
-                                                            numRemainingTempo,
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            </>
-                                        )}
+                                            )}
+                                        </div>
+                                    )}
 
-                                        {paymentType === 'credit' && (
-                                            <>
-                                                <div className="flex items-center justify-between pt-3 font-medium text-emerald-600">
-                                                    <span>
-                                                        DP dari Customer:
-                                                    </span>
-                                                    <span>
-                                                        {currencyFormatter.format(
-                                                            numDownPayment,
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between pt-3 font-semibold text-blue-600">
-                                                    <span>
-                                                        Pokok Cair Leasing:
-                                                    </span>
-                                                    <span>
-                                                        {currencyFormatter.format(
-                                                            numFinanceAmount,
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                {numLeasingBonus > 0 && (
-                                                    <div className="flex items-center justify-between pt-3 font-semibold text-indigo-600">
-                                                        <span>
-                                                            Bonus Leasing
-                                                            Showroom:
-                                                        </span>
-                                                        <span>
-                                                            +
-                                                            {currencyFormatter.format(
-                                                                numLeasingBonus,
-                                                            )}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-3 pt-4">
+                                    <div className="space-y-3 border-t pt-4">
                                         <Button
                                             type="submit"
                                             disabled={
                                                 processing ||
                                                 availableCars.length === 0
                                             }
-                                            className="h-11 w-full bg-emerald-600 text-base text-white hover:bg-emerald-700"
+                                            className="h-11 w-full text-base"
                                         >
                                             {processing ? (
                                                 <Spinner />

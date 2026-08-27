@@ -2,6 +2,7 @@
 
 use App\Models\Car;
 use App\Models\DocumentProcess;
+use App\Models\DocumentProcessDeletionAudit;
 use App\Models\Purchase;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -110,6 +111,57 @@ test('initial process cost is required when creating a document process', functi
         ]);
 
     expect(DocumentProcess::query()->count())->toBe(0);
+});
+
+test('same car cannot start another active document process with a different type', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), validDocumentProcessPayload($car))
+        ->assertSessionHasNoErrors();
+
+    $activeProcess = DocumentProcess::query()->sole();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), [
+            ...validDocumentProcessPayload($car),
+            'process_type' => 'other',
+        ])
+        ->assertSessionHasErrors([
+            'car_id' => "Mobil ini masih memiliki proses berkas aktif ({$activeProcess->process_number}). Selesaikan atau batalkan proses tersebut terlebih dahulu.",
+        ]);
+
+    expect(DocumentProcess::query()->count())->toBe(1);
+});
+
+test('same car can start a new document process after the previous process is cancelled', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), validDocumentProcessPayload($car));
+
+    $process = DocumentProcess::query()->sole();
+
+    $this->actingAs($user)
+        ->patch(route('document-processes.cancel', $process), [
+            'reason' => 'Pengurusan tidak dilanjutkan.',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), [
+            ...validDocumentProcessPayload($car),
+            'process_type' => 'other',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(DocumentProcess::query()->count())->toBe(2)
+        ->and(DocumentProcess::query()->where('status', 'cancelled')->count())
+        ->toBe(1)
+        ->and(DocumentProcess::query()->where('status', 'waiting_documents')->count())
+        ->toBe(1);
 });
 
 test('only costs paid by the showroom increase vehicle capital', function () {
@@ -232,15 +284,170 @@ test('cancelling a process removes its showroom costs from vehicle capital', fun
     expect($car->capital?->fresh()->document_process_cost)->toBe(900_000);
 
     $this->actingAs($user)
-        ->post(route('document-processes.events.store', $process), [
-            'status' => 'cancelled',
-            'occurred_at' => now()->subHour()->format('Y-m-d\TH:i'),
-            'description' => 'Proses dibatalkan oleh showroom.',
+        ->patch(route('document-processes.cancel', $process), [
+            'reason' => 'Customer membatalkan pengurusan berkas.',
         ])
         ->assertSessionHasNoErrors();
 
     expect($process->fresh()->status)->toBe('cancelled')
+        ->and($process->events()->count())->toBe(2)
+        ->and($process->costs()->count())->toBe(1)
+        ->and($process->events()->latest('id')->first()?->notes)
+        ->toBe('Customer membatalkan pengurusan berkas.')
         ->and($car->capital?->fresh()->document_process_cost)->toBe(0);
+});
+
+test('cancelling returns documents currently held without deleting history', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), validDocumentProcessPayload($car));
+
+    $process = DocumentProcess::query()->with('items')->sole();
+    $stnkItem = $process->items->firstWhere('item_key', 'stnk');
+
+    $this->actingAs($user)
+        ->post(route('document-processes.events.store', $process), [
+            'status' => 'documents_ready',
+            'occurred_at' => now()->subMinute()->format('Y-m-d\TH:i'),
+            'description' => 'STNK sudah diterima showroom.',
+            'received_items' => [$stnkItem?->id],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->patch(route('document-processes.cancel', $process), [
+            'reason' => 'Pengurusan dibatalkan dan dokumen dikembalikan.',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($process->fresh()->status)->toBe('cancelled')
+        ->and($process->events()->count())->toBe(3)
+        ->and($process->costs()->count())->toBe(1)
+        ->and($stnkItem?->fresh()->custody_status)->toBe('returned')
+        ->and($stnkItem?->fresh()->returned_at)->not->toBeNull();
+});
+
+test('permanent deletion removes a new process records files and vehicle capital cost', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+    $payload = [
+        ...validDocumentProcessPayload($car),
+        'initial_cost' => 900_000,
+        'initial_cost_paid_by' => 'showroom',
+    ];
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), $payload);
+
+    $process = DocumentProcess::query()->sole();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.costs.store', $process), [
+            'description' => 'Biaya administrasi',
+            'amount' => 500_000,
+            'paid_by' => 'showroom',
+            'paid_at' => now()->toDateString(),
+            'receipt' => UploadedFile::fake()->create(
+                'bukti-administrasi.pdf',
+                100,
+                'application/pdf',
+            ),
+        ])
+        ->assertSessionHasNoErrors();
+
+    $file = $process->files()->sole();
+    $processNumber = $process->process_number;
+    $processId = $process->id;
+
+    expect($car->capital?->fresh()->document_process_cost)->toBe(1_400_000);
+    Storage::disk('local')->assertExists($file->file_path);
+
+    $this->actingAs($user)
+        ->delete(route('document-processes.destroy', $process), [
+            'reason' => 'Data proses dibuat dua kali.',
+            'process_number' => $processNumber,
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('document-processes.index'));
+
+    $this->assertDatabaseMissing('document_processes', ['id' => $processId]);
+    $this->assertDatabaseMissing('document_process_items', [
+        'document_process_id' => $processId,
+    ]);
+    $this->assertDatabaseMissing('document_process_events', [
+        'document_process_id' => $processId,
+    ]);
+    $this->assertDatabaseMissing('document_process_costs', [
+        'document_process_id' => $processId,
+    ]);
+    $this->assertDatabaseMissing('document_process_files', [
+        'document_process_id' => $processId,
+    ]);
+    $this->assertDatabaseHas('document_process_deletion_audits', [
+        'process_number' => $processNumber,
+        'reason' => 'Data proses dibuat dua kali.',
+        'deleted_by' => $user->id,
+    ]);
+
+    $audit = DocumentProcessDeletionAudit::query()->sole();
+
+    expect($audit->snapshot['event_count'])->toBe(1)
+        ->and($audit->snapshot['cost_count'])->toBe(2)
+        ->and($audit->snapshot['file_count'])->toBe(1)
+        ->and($car->capital?->fresh()->document_process_cost)->toBe(0);
+    Storage::disk('local')->assertMissing($file->file_path);
+});
+
+test('process with tracking progress cannot be deleted permanently', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), validDocumentProcessPayload($car));
+
+    $process = DocumentProcess::query()->sole();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.events.store', $process), [
+            'status' => 'documents_ready',
+            'occurred_at' => now()->subMinute()->format('Y-m-d\TH:i'),
+            'description' => 'Dokumen sudah lengkap.',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->delete(route('document-processes.destroy', $process), [
+            'reason' => 'Mencoba menghapus proses berjalan.',
+            'process_number' => $process->process_number,
+        ])
+        ->assertSessionHasErrors('process_number');
+
+    expect($process->fresh())->not->toBeNull()
+        ->and(DocumentProcessDeletionAudit::query()->count())->toBe(0);
+});
+
+test('completed process cannot be cancelled', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), validDocumentProcessPayload($car));
+
+    $process = DocumentProcess::query()->sole();
+    $process->update(['status' => 'completed', 'completed_at' => now()]);
+
+    $this->actingAs($user)
+        ->patch(route('document-processes.cancel', $process), [
+            'reason' => 'Mencoba membatalkan proses selesai.',
+        ])
+        ->assertSessionHasErrors('reason');
+
+    expect($process->fresh()->status)->toBe('completed')
+        ->and($process->events()->count())->toBe(1);
 });
 
 test('receipt is stored privately and can be downloaded by an authenticated user', function () {

@@ -22,10 +22,6 @@ class VehicleDocumentFactory extends Factory
             'expires_at' => $this->faker->dateTimeBetween('+1 month', '+2 years'),
             'status' => 'complete',
             'original_received' => true,
-            'file_path' => null,
-            'file_name' => null,
-            'file_mime' => null,
-            'file_size' => null,
             'notes' => null,
         ];
     }

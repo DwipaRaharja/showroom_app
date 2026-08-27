@@ -145,7 +145,8 @@ function VehicleDocumentsForm({
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="grid gap-2">
                                     <Label htmlFor="stnk-status">
-                                        Status <span className="text-red-500">*</span>
+                                        Status{' '}
+                                        <span className="text-red-500">*</span>
                                     </Label>
                                     <Select
                                         value={stnkStatus}
@@ -297,7 +298,8 @@ function VehicleDocumentsForm({
                             <div className="grid gap-4 sm:grid-cols-3">
                                 <div className="grid gap-2">
                                     <Label htmlFor="bpkb-status">
-                                        Status <span className="text-red-500">*</span>
+                                        Status{' '}
+                                        <span className="text-red-500">*</span>
                                     </Label>
                                     <Select
                                         value={bpkbStatus}
@@ -394,7 +396,8 @@ function VehicleDocumentsForm({
 
                             <div className="grid max-w-sm gap-2">
                                 <Label htmlFor="invoice-status">
-                                    Status <span className="text-red-500">*</span>
+                                    Status{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Select
                                     value={invoiceStatus}

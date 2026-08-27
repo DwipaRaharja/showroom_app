@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DocumentProcess\CancelDocumentProcessRequest;
+use App\Http\Requests\DocumentProcess\DeleteDocumentProcessRequest;
 use App\Http\Requests\DocumentProcess\StoreDocumentProcessCostRequest;
 use App\Http\Requests\DocumentProcess\StoreDocumentProcessEventRequest;
 use App\Http\Requests\DocumentProcess\StoreDocumentProcessRequest;
 use App\Models\Car;
 use App\Models\DocumentProcess;
 use App\Models\DocumentProcessCost;
+use App\Models\DocumentProcessDeletionAudit;
 use App\Models\DocumentProcessEvent;
 use App\Models\DocumentProcessFile;
 use App\Models\Sale;
@@ -19,6 +22,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -151,6 +155,20 @@ class DocumentProcessController extends Controller
                 ->with(['sale.customer', 'documents'])
                 ->lockForUpdate()
                 ->findOrFail($validated['car_id']);
+
+            $activeProcess = DocumentProcess::query()
+                ->where('car_id', $car->id)
+                ->whereNotIn('status', DocumentProcess::CLOSED_STATUSES)
+                ->oldest('id')
+                ->first(['id', 'process_number']);
+
+            if ($activeProcess !== null) {
+                throw ValidationException::withMessages([
+                    'car_id' => "Mobil ini masih memiliki proses berkas aktif ({$activeProcess->process_number}). Selesaikan atau batalkan proses tersebut terlebih dahulu.",
+                    'car_id_active_process_id' => (string) $activeProcess->id,
+                ]);
+            }
+
             $sale = $this->resolveSale($car, $validated['sale_id'] ?? null);
 
             /** @var DocumentProcess $process */
@@ -264,6 +282,12 @@ class DocumentProcessController extends Controller
                     ->lockForUpdate()
                     ->findOrFail($documentProcess->id);
 
+                if (in_array($process->status, ['returned', 'cancelled'], true)) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Proses yang sudah dikembalikan atau dibatalkan tidak dapat diperbarui.',
+                    ]);
+                }
+
                 /** @var DocumentProcessEvent $event */
                 $event = $process->events()->create([
                     'status' => $validated['status'],
@@ -364,12 +388,6 @@ class DocumentProcessController extends Controller
         StoreDocumentProcessCostRequest $request,
         DocumentProcess $documentProcess,
     ): RedirectResponse {
-        if ($documentProcess->status === 'cancelled') {
-            throw ValidationException::withMessages([
-                'amount' => 'Biaya tidak dapat ditambahkan ke proses yang dibatalkan.',
-            ]);
-        }
-
         $validated = $request->validated();
         $receipt = $request->file('receipt');
         $storedPath = null;
@@ -382,8 +400,19 @@ class DocumentProcessController extends Controller
                 $receipt,
                 &$storedPath,
             ): void {
+                /** @var DocumentProcess $process */
+                $process = DocumentProcess::query()
+                    ->lockForUpdate()
+                    ->findOrFail($documentProcess->id);
+
+                if ($process->status === 'cancelled') {
+                    throw ValidationException::withMessages([
+                        'amount' => 'Biaya tidak dapat ditambahkan ke proses yang dibatalkan.',
+                    ]);
+                }
+
                 /** @var DocumentProcessCost $cost */
-                $cost = $documentProcess->costs()->create([
+                $cost = $process->costs()->create([
                     'cost_type' => 'other',
                     'description' => $validated['description'],
                     'amount' => $validated['amount'],
@@ -395,9 +424,9 @@ class DocumentProcessController extends Controller
                 if ($receipt instanceof UploadedFile) {
                     $storedPath = $this->storeFile(
                         $receipt,
-                        "document-processes/{$documentProcess->id}/costs/{$cost->id}",
+                        "document-processes/{$process->id}/costs/{$cost->id}",
                     );
-                    $documentProcess->files()->create([
+                    $process->files()->create([
                         'document_process_cost_id' => $cost->id,
                         'uploaded_by' => $request->user()?->id,
                         'file_category' => 'cost_receipt',
@@ -419,6 +448,143 @@ class DocumentProcessController extends Controller
         ]);
 
         return back();
+    }
+
+    public function cancel(
+        CancelDocumentProcessRequest $request,
+        DocumentProcess $documentProcess,
+    ): RedirectResponse {
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($request, $documentProcess, $validated): void {
+            /** @var DocumentProcess $process */
+            $process = DocumentProcess::query()
+                ->lockForUpdate()
+                ->findOrFail($documentProcess->id);
+
+            if (! $process->canBeCancelled()) {
+                throw ValidationException::withMessages([
+                    'reason' => 'Proses pada status saat ini tidak dapat dibatalkan.',
+                ]);
+            }
+
+            $cancelledAt = now();
+
+            $process->events()->create([
+                'status' => 'cancelled',
+                'occurred_at' => $cancelledAt,
+                'description' => 'Proses berkas dibatalkan.',
+                'notes' => $validated['reason'],
+                'created_by' => $request->user()?->id,
+            ]);
+
+            $process->items()
+                ->whereIn('custody_status', ['received', 'submitted'])
+                ->update([
+                    'custody_status' => 'returned',
+                    'returned_at' => $cancelledAt,
+                ]);
+
+            $process->update([
+                'status' => 'cancelled',
+                'cancelled_at' => $cancelledAt,
+            ]);
+
+            $process->syncCarCapital();
+        });
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Proses berkas berhasil dibatalkan dan riwayatnya tetap tersimpan.',
+        ]);
+
+        return back();
+    }
+
+    public function destroy(
+        DeleteDocumentProcessRequest $request,
+        DocumentProcess $documentProcess,
+    ): RedirectResponse {
+        $validated = $request->validated();
+
+        /** @var array<int, string> $filePaths */
+        $filePaths = DB::transaction(function () use (
+            $request,
+            $documentProcess,
+            $validated,
+        ): array {
+            /** @var DocumentProcess $process */
+            $process = DocumentProcess::query()
+                ->lockForUpdate()
+                ->findOrFail($documentProcess->id);
+
+            if ($validated['process_number'] !== $process->process_number) {
+                throw ValidationException::withMessages([
+                    'process_number' => 'Nomor proses yang diketik tidak sesuai.',
+                ]);
+            }
+
+            if (! $process->canBeDeletedPermanently()) {
+                throw ValidationException::withMessages([
+                    'process_number' => 'Proses ini sudah memiliki perkembangan dan tidak dapat dihapus permanen. Gunakan pembatalan agar riwayat tetap aman.',
+                ]);
+            }
+
+            $filePaths = $process->files()
+                ->pluck('file_path')
+                ->filter()
+                ->values()
+                ->all();
+            $eventCount = $process->events()->count();
+            $itemCount = $process->items()->count();
+            $costCount = $process->costs()->count();
+            $fileCount = count($filePaths);
+            $totalCost = (int) $process->costs()->sum('amount');
+            $capitalizedCost = (int) $process->costs()
+                ->where('paid_by', 'showroom')
+                ->sum('amount');
+
+            DocumentProcessDeletionAudit::query()->create([
+                'car_id' => $process->car_id,
+                'deleted_by' => $request->user()?->id,
+                'process_number' => $process->process_number,
+                'process_type' => $process->process_type,
+                'status' => $process->status,
+                'reason' => $validated['reason'],
+                'snapshot' => [
+                    'sale_id' => $process->sale_id,
+                    'customer_id' => $process->customer_id,
+                    'started_at' => $process->getRawOriginal('started_at'),
+                    'estimated_completion_date' => $process->getRawOriginal('estimated_completion_date'),
+                    'event_count' => $eventCount,
+                    'item_count' => $itemCount,
+                    'cost_count' => $costCount,
+                    'file_count' => $fileCount,
+                    'total_cost' => $totalCost,
+                    'capitalized_cost' => $capitalizedCost,
+                ],
+                'deleted_at' => now(),
+            ]);
+
+            $process->delete();
+            $process->syncCarCapital();
+
+            return $filePaths;
+        });
+
+        if ($filePaths !== [] && ! Storage::disk('local')->delete($filePaths)) {
+            Log::warning('Sebagian file proses berkas gagal dihapus setelah data dihapus.', [
+                'document_process_id' => $documentProcess->id,
+                'file_paths' => $filePaths,
+            ]);
+        }
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Proses berkas beserta seluruh pencatatannya berhasil dihapus permanen.',
+        ]);
+
+        return to_route('document-processes.index');
     }
 
     public function downloadFile(DocumentProcessFile $file): StreamedResponse

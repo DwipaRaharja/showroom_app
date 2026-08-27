@@ -12,6 +12,21 @@ use Illuminate\Support\Str;
 
 class DocumentProcess extends Model
 {
+    public const CLOSED_STATUSES = [
+        'completed',
+        'returned',
+        'cancelled',
+    ];
+
+    public const CANCELLABLE_STATUSES = [
+        'waiting_documents',
+        'documents_ready',
+        'submitted',
+        'processing',
+        'ready_for_pickup',
+        'issue',
+    ];
+
     public const TYPE_LABELS = [
         'annual_tax' => 'Pajak tahunan',
         'five_year_tax' => 'Pajak lima tahunan / perpanjangan STNK',
@@ -58,6 +73,8 @@ class DocumentProcess extends Model
     protected $appends = [
         'total_cost',
         'capitalized_cost',
+        'can_cancel',
+        'can_delete_permanently',
     ];
 
     protected static function booted(): void
@@ -108,6 +125,40 @@ class DocumentProcess extends Model
             ->sum('amount');
 
         $capital->updateQuietly(['document_process_cost' => $total]);
+    }
+
+    public function canBeCancelled(): bool
+    {
+        return in_array($this->status, self::CANCELLABLE_STATUSES, true);
+    }
+
+    public function canBeDeletedPermanently(): bool
+    {
+        if ($this->status === 'cancelled') {
+            return true;
+        }
+
+        if ($this->status !== 'waiting_documents') {
+            return false;
+        }
+
+        $eventCount = $this->relationLoaded('events')
+            ? $this->events->count()
+            : $this->events()->count();
+
+        return $eventCount <= 1;
+    }
+
+    /** @return Attribute<bool, never> */
+    protected function canCancel(): Attribute
+    {
+        return Attribute::get(fn (): bool => $this->canBeCancelled());
+    }
+
+    /** @return Attribute<bool, never> */
+    protected function canDeletePermanently(): Attribute
+    {
+        return Attribute::get(fn (): bool => $this->canBeDeletedPermanently());
     }
 
     /** @return Attribute<int, never> */

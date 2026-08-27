@@ -26,7 +26,6 @@ import {
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { StatusBadge } from '@/components/status-badge';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -167,9 +166,11 @@ export function createBrandColumns({
             sortFn: (rowA, rowB) => {
                 const timeA = new Date(rowA.original.created_at).getTime();
                 const timeB = new Date(rowB.original.created_at).getTime();
+
                 if (timeA === timeB) {
                     return rowA.original.id - rowB.original.id;
                 }
+
                 return timeA - timeB;
             },
         }),

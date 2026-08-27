@@ -99,6 +99,13 @@ class StoreDocumentProcessEventRequest extends FormRequest
                 );
             }
 
+            if ($this->input('status') === 'cancelled') {
+                $validator->errors()->add(
+                    'status',
+                    'Gunakan aksi Batalkan proses agar alasan pembatalan tercatat.',
+                );
+            }
+
             $receivedItemsInput = $this->input('received_items');
             /** @var array<int, int|string> $receivedItems */
             $receivedItems = is_array($receivedItemsInput)

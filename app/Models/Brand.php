@@ -24,6 +24,8 @@ class Brand extends Model
 
     /**
      * Get the cars for the brand.
+     *
+     * @return HasMany<Car, $this>
      */
     public function cars(): HasMany
     {

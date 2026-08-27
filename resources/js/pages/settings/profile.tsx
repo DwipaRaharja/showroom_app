@@ -48,7 +48,8 @@ export default function Profile({
                         <>
                             <div className="grid gap-2">
                                 <Label htmlFor="name">
-                                    Nama Lengkap <span className="text-red-500">*</span>
+                                    Nama Lengkap{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
 
                                 <Input
@@ -69,7 +70,8 @@ export default function Profile({
 
                             <div className="grid gap-2">
                                 <Label htmlFor="email">
-                                    Alamat Email <span className="text-red-500">*</span>
+                                    Alamat Email{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
 
                                 <Input
