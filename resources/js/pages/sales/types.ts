@@ -1,7 +1,7 @@
 import type { Car } from '@/pages/cars/types';
 import type { Customer } from '@/pages/customers/types';
 
-export type PaymentType = 'cash_full' | 'cash_tempo' | 'credit';
+export type PaymentType = 'cash_full' | 'cash_tempo' | 'credit' | 'trade_in';
 export type SaleStatus = 'pending' | 'partial' | 'completed' | 'cancelled';
 export type PayerType = 'customer' | 'finance';
 export type PaymentCategory =
@@ -156,6 +156,13 @@ export type Sale = {
     due_date: string | null;
     status: SaleStatus;
     notes: string | null;
+    trade_in_license_plate?: string | null;
+    trade_in_brand?: string | null;
+    trade_in_car_name?: string | null;
+    trade_in_year?: number | null;
+    trade_in_color?: string | null;
+    trade_in_mileage?: number | null;
+    trade_in_notes?: string | null;
     created_at: string;
     updated_at: string;
     payments?: Payment[];

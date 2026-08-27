@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Sale\StoreSaleRequest;
+use App\Models\Brand;
 use App\Models\Car;
 use App\Models\Customer;
 use App\Models\FinanceCompany;
@@ -71,6 +72,10 @@ class SaleController extends Controller
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'code', 'pic_name', 'pic_phone']),
+            'brands' => Brand::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']),
         ]);
     }
 
@@ -94,6 +99,8 @@ class SaleController extends Controller
                 $downPayment = $dealPrice;
             }
 
+            $isTradeIn = $paymentType === 'trade_in';
+
             /** @var Sale $sale */
             $sale = Sale::query()->create([
                 'car_id' => $validated['car_id'],
@@ -108,6 +115,13 @@ class SaleController extends Controller
                 'due_date' => $paymentType === 'cash_tempo' ? ($validated['due_date'] ?? null) : null,
                 'status' => $initialStatus,
                 'notes' => $validated['notes'] ?? null,
+                'trade_in_license_plate' => $isTradeIn ? ($validated['trade_in_license_plate'] ?? null) : null,
+                'trade_in_brand' => $isTradeIn ? ($validated['trade_in_brand'] ?? null) : null,
+                'trade_in_car_name' => $isTradeIn ? ($validated['trade_in_car_name'] ?? null) : null,
+                'trade_in_year' => $isTradeIn && isset($validated['trade_in_year']) ? (int) $validated['trade_in_year'] : null,
+                'trade_in_color' => $isTradeIn ? ($validated['trade_in_color'] ?? null) : null,
+                'trade_in_mileage' => $isTradeIn && isset($validated['trade_in_mileage']) ? (int) $validated['trade_in_mileage'] : null,
+                'trade_in_notes' => $isTradeIn ? ($validated['trade_in_notes'] ?? null) : null,
             ]);
 
             // If initial payment is recorded

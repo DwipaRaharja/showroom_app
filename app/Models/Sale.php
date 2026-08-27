@@ -43,6 +43,13 @@ class Sale extends Model
         'due_date',
         'status',
         'notes',
+        'trade_in_license_plate',
+        'trade_in_brand',
+        'trade_in_car_name',
+        'trade_in_year',
+        'trade_in_color',
+        'trade_in_mileage',
+        'trade_in_notes',
     ];
 
     protected $appends = [
@@ -71,6 +78,8 @@ class Sale extends Model
             'down_payment' => 'integer',
             'finance_amount' => 'integer',
             'leasing_bonus' => 'integer',
+            'trade_in_year' => 'integer',
+            'trade_in_mileage' => 'integer',
             'disbursement_estimated_date' => 'date:Y-m-d',
             'disbursement_actual_date' => 'date:Y-m-d',
             'due_date' => 'date:Y-m-d',

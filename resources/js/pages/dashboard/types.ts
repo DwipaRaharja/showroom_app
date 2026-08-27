@@ -64,7 +64,7 @@ export type RecentSale = {
     invoice_number: string;
     car_name: string;
     customer_name: string;
-    payment_type: 'cash_full' | 'cash_tempo' | 'credit';
+    payment_type: 'cash_full' | 'cash_tempo' | 'credit' | 'trade_in';
     status: 'pending' | 'partial' | 'completed' | 'cancelled';
     deal_price: number;
     remaining_bill: number;

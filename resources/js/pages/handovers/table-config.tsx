@@ -1,9 +1,6 @@
 import { Link } from '@inertiajs/react';
 import {
     CalendarBlankIcon,
-    CaretDownIcon,
-    CaretUpDownIcon,
-    CaretUpIcon,
     ClockCounterClockwiseIcon,
     DotsThreeVerticalIcon,
     EyeIcon,
@@ -23,15 +20,14 @@ import {
     filterFn_includesString,
     globalFilteringFeature,
     rowPaginationFeature,
-    rowSelectionFeature,
     rowSortingFeature,
     sortFn_text,
     tableFeatures,
 } from '@tanstack/react-table';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
+import { SortableTableHeader } from '@/components/data-table/sortable-table-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -97,7 +93,6 @@ export const handoverTableFeatures = tableFeatures({
     sortFns: { text: sortFn_text },
     rowPaginationFeature,
     paginatedRowModel: createPaginatedRowModel(),
-    rowSelectionFeature,
     columnVisibilityFeature,
 });
 
@@ -197,76 +192,14 @@ export function createHandoverRecords(sales: Sale[]): HandoverRecord[] {
     });
 }
 
-function SortableHeader({
-    label,
-    isSorted,
-    onToggle,
-}: {
-    label: string;
-    isSorted: false | 'asc' | 'desc';
-    onToggle: ((event: unknown) => void) | undefined;
-}) {
-    return (
-        <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 h-8 px-2"
-            onClick={onToggle}
-            aria-label={`Urutkan berdasarkan ${label}`}
-            aria-sort={
-                isSorted === 'asc'
-                    ? 'ascending'
-                    : isSorted === 'desc'
-                      ? 'descending'
-                      : 'none'
-            }
-        >
-            {label}
-            {isSorted === 'asc' ? (
-                <CaretUpIcon className="size-4" />
-            ) : isSorted === 'desc' ? (
-                <CaretDownIcon className="size-4" />
-            ) : (
-                <CaretUpDownIcon className="size-4 opacity-60" />
-            )}
-        </Button>
-    );
-}
-
 export function createHandoverColumns() {
     return columnHelper.columns([
-        columnHelper.display({
-            id: 'select',
-            enableHiding: false,
-            enableSorting: false,
-            header: ({ table }) => (
-                <Checkbox
-                    checked={
-                        table.getIsAllPageRowsSelected() ||
-                        (table.getIsSomePageRowsSelected() && 'indeterminate')
-                    }
-                    onCheckedChange={(value) =>
-                        table.toggleAllPageRowsSelected(value === true)
-                    }
-                    aria-label="Pilih semua penjualan pada halaman ini"
-                />
-            ),
-            cell: ({ row }) => (
-                <Checkbox
-                    checked={row.getIsSelected()}
-                    onCheckedChange={(value) =>
-                        row.toggleSelected(value === true)
-                    }
-                    aria-label={`Pilih penjualan ${row.original.sale.invoice_number}`}
-                />
-            ),
-        }),
         columnHelper.accessor(
             (record) => record.latestEvent?.occurred_at ?? record.sale.id,
             {
                 id: 'number',
                 header: ({ column }) => (
-                    <SortableHeader
+                    <SortableTableHeader
                         label="No."
                         isSorted={column.getIsSorted()}
                         onToggle={column.getToggleSortingHandler()}
@@ -310,7 +243,7 @@ export function createHandoverColumns() {
             {
                 id: 'transaction',
                 header: ({ column }) => (
-                    <SortableHeader
+                    <SortableTableHeader
                         label="Penjualan & Unit"
                         isSorted={column.getIsSorted()}
                         onToggle={column.getToggleSortingHandler()}

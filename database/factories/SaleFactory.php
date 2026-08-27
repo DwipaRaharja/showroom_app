@@ -69,4 +69,27 @@ class SaleFactory extends Factory
             'updated_at' => $createdDate,
         ];
     }
+
+    /**
+     * Indicate that the sale is a trade-in transaction.
+     */
+    public function tradeIn(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'payment_type' => 'trade_in',
+            'finance_company_id' => null,
+            'finance_amount' => 0,
+            'disbursement_estimated_date' => null,
+            'disbursement_actual_date' => null,
+            'leasing_bonus' => 0,
+            'due_date' => null,
+            'trade_in_license_plate' => fake()->bothify('DT #### ??'),
+            'trade_in_brand' => fake()->randomElement(['Toyota', 'Honda', 'Daihatsu', 'Mitsubishi']),
+            'trade_in_car_name' => fake()->randomElement(['Avanza 1.3 G', 'Brio Satya E', 'Xenia 1.3 R', 'Xpander Ultimate']),
+            'trade_in_year' => fake()->numberBetween(2015, 2022),
+            'trade_in_color' => fake()->randomElement(['Hitam', 'Putih', 'Silver', 'Abu-abu']),
+            'trade_in_mileage' => fake()->numberBetween(20000, 100000),
+            'trade_in_notes' => fake()->optional()->sentence(),
+        ]);
+    }
 }

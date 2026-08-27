@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import type { Brand } from '@/pages/brands/types';
 import type { Car } from '@/pages/cars/types';
 import type { Customer } from '@/pages/customers/types';
 import { SaleForm } from '@/pages/sales/sale-form';
@@ -9,12 +10,14 @@ type Props = {
     available_cars: Car[];
     customers: Pick<Customer, 'id' | 'name' | 'phone' | 'ktp_number'>[];
     finance_companies: FinanceCompany[];
+    brands?: Pick<Brand, 'id' | 'name'>[];
 };
 
 export default function SalesCreate({
     available_cars,
     customers,
     finance_companies,
+    brands = [],
 }: Props) {
     return (
         <>
@@ -27,7 +30,7 @@ export default function SalesCreate({
                     </h1>
                     <p className="text-sm text-muted-foreground">
                         Pilih unit mobil, customer, dan skema pembayaran (Tunai
-                        Lunas, Tunai Tempo, atau Kredit Leasing).
+                        Lunas, Tunai Tempo, Kredit Leasing, atau Tukar Tambah).
                     </p>
                 </div>
 
@@ -35,6 +38,7 @@ export default function SalesCreate({
                     availableCars={available_cars}
                     customers={customers}
                     financeCompanies={finance_companies}
+                    brands={brands}
                 />
             </div>
         </>

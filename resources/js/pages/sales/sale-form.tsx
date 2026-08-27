@@ -1,5 +1,6 @@
 import { Form, Link } from '@inertiajs/react';
 import {
+    ArrowsLeftRightIcon,
     BankIcon,
     CalendarBlankIcon,
     CarProfileIcon,
@@ -12,6 +13,7 @@ import {
 import { useState } from 'react';
 import SaleController from '@/actions/App/Http/Controllers/SaleController';
 import InputError from '@/components/input-error';
+import { MileageInput } from '@/components/mileage-input';
 import { PriceInput } from '@/components/price-input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +35,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import type { Brand } from '@/pages/brands/types';
 import type { Car } from '@/pages/cars/types';
 import type { Customer } from '@/pages/customers/types';
 import type {
@@ -46,6 +49,7 @@ type Props = {
     availableCars: Car[];
     customers: Pick<Customer, 'id' | 'name' | 'phone' | 'ktp_number'>[];
     financeCompanies: FinanceCompany[];
+    brands?: Pick<Brand, 'id' | 'name'>[];
 };
 
 const currencyFormatter = new Intl.NumberFormat('id-ID', {
@@ -74,6 +78,7 @@ export function SaleForm({
     availableCars,
     customers,
     financeCompanies,
+    brands = [],
 }: Props) {
     const [selectedCarId, setSelectedCarId] = useState<string>(
         availableCars[0]?.id ? String(availableCars[0].id) : '',
@@ -99,6 +104,15 @@ export function SaleForm({
     );
     const [leasingBonus, setLeasingBonus] = useState<string>('3000000');
     const [dueDate, setDueDate] = useState<string>(defaultDueDate);
+    const [tradeInLicensePlate, setTradeInLicensePlate] = useState<string>('');
+    const [tradeInBrand, setTradeInBrand] = useState<string>('');
+    const [tradeInCarName, setTradeInCarName] = useState<string>('');
+    const [tradeInYear, setTradeInYear] = useState<string>(
+        String(new Date().getFullYear() - 3),
+    );
+    const [tradeInColor, setTradeInColor] = useState<string>('');
+    const [tradeInMileage, setTradeInMileage] = useState<string>('');
+    const [tradeInNotes, setTradeInNotes] = useState<string>('');
     const [recordInitialPayment, setRecordInitialPayment] = useState(true);
     const [paymentDate, setPaymentDate] = useState<string>(defaultPaymentDate);
     const [paymentMethod, setPaymentMethod] =
@@ -135,6 +149,8 @@ export function SaleForm({
         } else if (type === 'cash_tempo' || type === 'credit') {
             const defaultDp = Math.round(numDeal * 0.2);
             setDownPayment(String(defaultDp));
+        } else if (type === 'trade_in') {
+            setDownPayment('');
         }
     }
 
@@ -413,7 +429,7 @@ export function SaleForm({
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     {/* Payment Type Selection Buttons */}
-                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                                         <button
                                             type="button"
                                             onClick={() =>
@@ -482,7 +498,350 @@ export function SaleForm({
                                                 Bonus Finance.
                                             </div>
                                         </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handlePaymentTypeChange(
+                                                    'trade_in',
+                                                )
+                                            }
+                                            className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all ${
+                                                paymentType === 'trade_in'
+                                                    ? 'border-purple-600 bg-purple-500/5 ring-2 ring-purple-500/20 dark:bg-purple-500/10'
+                                                    : 'hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-1.5 text-sm font-semibold">
+                                                <ArrowsLeftRightIcon className="size-4 text-purple-600 dark:text-purple-400" />
+                                                Tukar Tambah
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                Tukar unit mobil customer +
+                                                selisih pembayaran.
+                                            </div>
+                                        </button>
                                     </div>
+
+                                    {/* Dynamic Fields for Trade In */}
+                                    {paymentType === 'trade_in' && (
+                                        <div className="space-y-4 rounded-xl border border-purple-500/30 bg-purple-500/5 p-4 sm:p-5 dark:bg-purple-500/10">
+                                            <div className="flex items-center gap-2 border-b border-purple-500/20 pb-3">
+                                                <div className="flex size-7 items-center justify-center rounded-md bg-purple-600 text-white shadow-xs">
+                                                    <CarProfileIcon
+                                                        className="size-4"
+                                                        weight="bold"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-foreground">
+                                                        Data Mobil Tukar Tambah
+                                                    </h4>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Masukkan rincian unit
+                                                        kendaraan milik customer
+                                                        yang ditukarkan.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                {/* Baris 1: Merek Mobil & Nama Unit / Model */}
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="trade_in_brand">
+                                                        Merek Mobil{' '}
+                                                        <span className="text-red-500">
+                                                            *
+                                                        </span>
+                                                    </Label>
+                                                    <Input
+                                                        id="trade_in_brand"
+                                                        name="trade_in_brand"
+                                                        list="trade_in_brands_list"
+                                                        placeholder="Pilih / ketik merek (Toyota, Honda, dll)"
+                                                        value={tradeInBrand}
+                                                        onChange={(e) =>
+                                                            setTradeInBrand(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                        autoComplete="off"
+                                                        aria-invalid={Boolean(
+                                                            errors.trade_in_brand,
+                                                        )}
+                                                        className={
+                                                            validationColorClassName
+                                                        }
+                                                    />
+                                                    {brands.length > 0 && (
+                                                        <datalist id="trade_in_brands_list">
+                                                            {brands.map((b) => (
+                                                                <option
+                                                                    key={b.id}
+                                                                    value={
+                                                                        b.name
+                                                                    }
+                                                                />
+                                                            ))}
+                                                        </datalist>
+                                                    )}
+                                                    <InputError
+                                                        message={
+                                                            errors.trade_in_brand
+                                                        }
+                                                        className={
+                                                            errorTextClassName
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="trade_in_car_name">
+                                                        Nama Unit / Tipe Model{' '}
+                                                        <span className="text-red-500">
+                                                            *
+                                                        </span>
+                                                    </Label>
+                                                    <Input
+                                                        id="trade_in_car_name"
+                                                        name="trade_in_car_name"
+                                                        placeholder="misal: Avanza 1.3 G M/T"
+                                                        value={tradeInCarName}
+                                                        onChange={(e) =>
+                                                            setTradeInCarName(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                        aria-invalid={Boolean(
+                                                            errors.trade_in_car_name,
+                                                        )}
+                                                        className={
+                                                            validationColorClassName
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.trade_in_car_name
+                                                        }
+                                                        className={
+                                                            errorTextClassName
+                                                        }
+                                                    />
+                                                </div>
+
+                                                {/* Baris 2: Plat Nomor & Tahun Pembuatan */}
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="trade_in_license_plate">
+                                                        Plat Nomor Kendaraan{' '}
+                                                        <span className="text-red-500">
+                                                            *
+                                                        </span>
+                                                    </Label>
+                                                    <Input
+                                                        id="trade_in_license_plate"
+                                                        name="trade_in_license_plate"
+                                                        placeholder="DT 1234 AB"
+                                                        value={
+                                                            tradeInLicensePlate
+                                                        }
+                                                        onChange={(e) =>
+                                                            setTradeInLicensePlate(
+                                                                e.target.value.toUpperCase(),
+                                                            )
+                                                        }
+                                                        required
+                                                        aria-invalid={Boolean(
+                                                            errors.trade_in_license_plate,
+                                                        )}
+                                                        className={`font-mono uppercase ${validationColorClassName}`}
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.trade_in_license_plate
+                                                        }
+                                                        className={
+                                                            errorTextClassName
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="trade_in_year">
+                                                        Tahun Pembuatan{' '}
+                                                        <span className="text-red-500">
+                                                            *
+                                                        </span>
+                                                    </Label>
+                                                    <Input
+                                                        id="trade_in_year"
+                                                        name="trade_in_year"
+                                                        type="number"
+                                                        min={1900}
+                                                        max={
+                                                            new Date().getFullYear() +
+                                                            1
+                                                        }
+                                                        placeholder="2020"
+                                                        value={tradeInYear}
+                                                        onChange={(e) =>
+                                                            setTradeInYear(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                        aria-invalid={Boolean(
+                                                            errors.trade_in_year,
+                                                        )}
+                                                        className={
+                                                            validationColorClassName
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.trade_in_year
+                                                        }
+                                                        className={
+                                                            errorTextClassName
+                                                        }
+                                                    />
+                                                </div>
+
+                                                {/* Baris 3: Warna Mobil & Kilometer */}
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="trade_in_color">
+                                                        Warna Mobil{' '}
+                                                        <span className="text-red-500">
+                                                            *
+                                                        </span>
+                                                    </Label>
+                                                    <Input
+                                                        id="trade_in_color"
+                                                        name="trade_in_color"
+                                                        placeholder="misal: Hitam Metalik, Putih"
+                                                        value={tradeInColor}
+                                                        onChange={(e) =>
+                                                            setTradeInColor(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                        aria-invalid={Boolean(
+                                                            errors.trade_in_color,
+                                                        )}
+                                                        className={
+                                                            validationColorClassName
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.trade_in_color
+                                                        }
+                                                        className={
+                                                            errorTextClassName
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="trade_in_mileage">
+                                                        Kilometer (Jarak Tempuh){' '}
+                                                        <span className="text-red-500">
+                                                            *
+                                                        </span>
+                                                    </Label>
+                                                    <MileageInput
+                                                        id="trade_in_mileage"
+                                                        name="trade_in_mileage"
+                                                        placeholder="45.000"
+                                                        value={tradeInMileage}
+                                                        onValueChange={
+                                                            setTradeInMileage
+                                                        }
+                                                        required
+                                                        aria-invalid={Boolean(
+                                                            errors.trade_in_mileage,
+                                                        )}
+                                                        className={
+                                                            validationColorClassName
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.trade_in_mileage
+                                                        }
+                                                        className={
+                                                            errorTextClassName
+                                                        }
+                                                    />
+                                                </div>
+
+                                                {/* Baris 4: Tambahan Uang (DP) & Catatan Unit */}
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="down_payment">
+                                                        Tambahan Uang / DP
+                                                        (Opsional)
+                                                    </Label>
+                                                    <PriceInput
+                                                        id="down_payment"
+                                                        name="down_payment"
+                                                        value={downPayment}
+                                                        onValueChange={
+                                                            setDownPayment
+                                                        }
+                                                        placeholder="0"
+                                                        aria-invalid={Boolean(
+                                                            errors.down_payment,
+                                                        )}
+                                                        className={
+                                                            validationColorClassName
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.down_payment
+                                                        }
+                                                        className={
+                                                            errorTextClassName
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="trade_in_notes">
+                                                        Catatan Unit Tukar
+                                                        Tambah (Opsional)
+                                                    </Label>
+                                                    <Input
+                                                        id="trade_in_notes"
+                                                        name="trade_in_notes"
+                                                        placeholder="misal: Pajak hidup, surat lengkap, kondisi orisinil"
+                                                        value={tradeInNotes}
+                                                        onChange={(e) =>
+                                                            setTradeInNotes(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        aria-invalid={Boolean(
+                                                            errors.trade_in_notes,
+                                                        )}
+                                                        className={
+                                                            validationColorClassName
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.trade_in_notes
+                                                        }
+                                                        className={
+                                                            errorTextClassName
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Dynamic Fields for Cash Tempo */}
                                     {paymentType === 'cash_tempo' && (
@@ -1245,6 +1604,52 @@ export function SaleForm({
                                                     )}
                                                 </span>
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {paymentType === 'trade_in' && (
+                                        <div className="space-y-3 rounded-xl border border-purple-500/20 bg-purple-500/5 p-4 dark:bg-purple-500/10">
+                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 dark:text-purple-400">
+                                                <ArrowsLeftRightIcon className="size-4" />
+                                                Skema Tukar Tambah
+                                            </div>
+                                            <div className="space-y-1 text-xs">
+                                                <div className="text-muted-foreground">
+                                                    Unit Ditukar:{' '}
+                                                    <strong className="text-foreground">
+                                                        {tradeInCarName ||
+                                                            'Belum diisi'}{' '}
+                                                        {tradeInBrand
+                                                            ? `(${tradeInBrand})`
+                                                            : ''}
+                                                    </strong>
+                                                </div>
+                                                {tradeInLicensePlate && (
+                                                    <div className="font-mono text-xs font-medium text-foreground">
+                                                        Plat:{' '}
+                                                        {tradeInLicensePlate}
+                                                    </div>
+                                                )}
+                                                {tradeInYear && (
+                                                    <div className="text-muted-foreground">
+                                                        Tahun: {tradeInYear} •
+                                                        Warna:{' '}
+                                                        {tradeInColor || '—'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {numDownPayment > 0 && (
+                                                <div className="flex items-center justify-between gap-4 border-t border-purple-500/20 pt-2 text-xs">
+                                                    <span className="text-muted-foreground">
+                                                        Tambahan uang tunai (DP)
+                                                    </span>
+                                                    <span className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-500">
+                                                        {currencyFormatter.format(
+                                                            numDownPayment,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

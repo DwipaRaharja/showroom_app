@@ -82,6 +82,7 @@ const paymentTypeLabels: Record<RecentSale['payment_type'], string> = {
     cash_full: 'Tunai lunas',
     cash_tempo: 'Tunai tempo',
     credit: 'Kredit leasing',
+    trade_in: 'Tukar tambah',
 };
 
 function parseLocalDate(value: string): Date {
@@ -169,14 +170,14 @@ export default function Dashboard({
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <Button asChild variant="outline">
                             <Link href={CarController.create.url()}>
                                 <CarProfileIcon />
                                 Tambah Mobil
                             </Link>
                         </Button>
-                        <Button asChild>
+                        <Button asChild variant="outline">
                             <Link href={SaleController.create.url()}>
                                 <PlusIcon />
                                 Buat Penjualan

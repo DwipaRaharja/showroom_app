@@ -40,7 +40,7 @@ class StoreSaleRequest extends FormRequest
             ],
             'payment_type' => [
                 'required',
-                Rule::in(['cash_full', 'cash_tempo', 'credit']),
+                Rule::in(['cash_full', 'cash_tempo', 'credit', 'trade_in']),
             ],
             'deal_price' => [
                 'required',
@@ -86,6 +86,47 @@ class StoreSaleRequest extends FormRequest
             'due_date' => [
                 'nullable',
                 'date',
+            ],
+            'trade_in_license_plate' => [
+                'nullable',
+                Rule::requiredIf($this->input('payment_type') === 'trade_in'),
+                'string',
+                'max:20',
+            ],
+            'trade_in_brand' => [
+                'nullable',
+                Rule::requiredIf($this->input('payment_type') === 'trade_in'),
+                'string',
+                'max:100',
+            ],
+            'trade_in_car_name' => [
+                'nullable',
+                Rule::requiredIf($this->input('payment_type') === 'trade_in'),
+                'string',
+                'max:150',
+            ],
+            'trade_in_year' => [
+                'nullable',
+                Rule::requiredIf($this->input('payment_type') === 'trade_in'),
+                'integer',
+                'min:1900',
+                'max:'.(date('Y') + 1),
+            ],
+            'trade_in_color' => [
+                'nullable',
+                Rule::requiredIf($this->input('payment_type') === 'trade_in'),
+                'string',
+                'max:50',
+            ],
+            'trade_in_mileage' => [
+                'nullable',
+                Rule::requiredIf($this->input('payment_type') === 'trade_in'),
+                'integer',
+                'min:0',
+            ],
+            'trade_in_notes' => [
+                'nullable',
+                'string',
             ],
             'notes' => [
                 'nullable',
@@ -134,6 +175,13 @@ class StoreSaleRequest extends FormRequest
             'disbursement_estimated_date' => 'estimasi tanggal cair leasing',
             'leasing_bonus' => 'bonus / komisi leasing',
             'due_date' => 'tanggal jatuh tempo pelunasan',
+            'trade_in_license_plate' => 'plat nomor mobil tukar tambah',
+            'trade_in_brand' => 'merek mobil tukar tambah',
+            'trade_in_car_name' => 'nama mobil tukar tambah',
+            'trade_in_year' => 'tahun mobil tukar tambah',
+            'trade_in_color' => 'warna mobil tukar tambah',
+            'trade_in_mileage' => 'kilometer mobil tukar tambah',
+            'trade_in_notes' => 'catatan mobil tukar tambah',
             'payment_date' => 'tanggal pembayaran',
             'payment_method' => 'metode pembayaran',
             'destination_account' => 'rekening tujuan penerima',

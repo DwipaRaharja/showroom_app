@@ -1,9 +1,6 @@
 import { Link } from '@inertiajs/react';
 import {
     CarProfileIcon,
-    CaretDownIcon,
-    CaretUpDownIcon,
-    CaretUpIcon,
     DotsThreeVerticalIcon,
     EyeIcon,
     ProhibitIcon,
@@ -20,16 +17,15 @@ import {
     filterFn_includesString,
     globalFilteringFeature,
     rowPaginationFeature,
-    rowSelectionFeature,
     rowSortingFeature,
     sortFn_text,
     tableFeatures,
 } from '@tanstack/react-table';
 import CarController from '@/actions/App/Http/Controllers/CarController';
 import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
+import { SortableTableHeader } from '@/components/data-table/sortable-table-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -38,9 +34,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ProcessStatusBadge } from '@/pages/document-processes/process-status-badge';
 import type {
     DocumentProcess,
-    DocumentProcessStatus,
     LabelOptions,
 } from '@/pages/document-processes/types';
 
@@ -57,7 +53,6 @@ export const processTableFeatures = tableFeatures({
     sortFns: { text: sortFn_text },
     rowPaginationFeature,
     paginatedRowModel: createPaginatedRowModel(),
-    rowSelectionFeature,
     columnVisibilityFeature,
 });
 
@@ -87,65 +82,10 @@ const currencyFormatter = new Intl.NumberFormat('id-ID', {
     maximumFractionDigits: 0,
 });
 
-const statusClasses: Record<DocumentProcessStatus, string> = {
-    waiting_documents:
-        'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    documents_ready:
-        'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    submitted:
-        'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    processing:
-        'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300',
-    ready_for_pickup:
-        'border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
-    completed:
-        'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    returned:
-        'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300',
-    issue: 'border-red-500/30 bg-red-500/10 text-red-500',
-    cancelled: 'border-muted bg-muted text-muted-foreground',
-};
-
 function localDateKey(date = new Date()): string {
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
 
     return local.toISOString().slice(0, 10);
-}
-
-function SortableHeader({
-    label,
-    isSorted,
-    onToggle,
-}: {
-    label: string;
-    isSorted: false | 'asc' | 'desc';
-    onToggle: ((event: unknown) => void) | undefined;
-}) {
-    return (
-        <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 h-8 px-2"
-            onClick={onToggle}
-            aria-label={`Urutkan berdasarkan ${label}`}
-            aria-sort={
-                isSorted === 'asc'
-                    ? 'ascending'
-                    : isSorted === 'desc'
-                      ? 'descending'
-                      : 'none'
-            }
-        >
-            {label}
-            {isSorted === 'asc' ? (
-                <CaretUpIcon className="size-4" />
-            ) : isSorted === 'desc' ? (
-                <CaretDownIcon className="size-4" />
-            ) : (
-                <CaretUpDownIcon className="size-4 opacity-60" />
-            )}
-        </Button>
-    );
 }
 
 export function createProcessColumns(
@@ -157,38 +97,12 @@ export function createProcessColumns(
     },
 ) {
     return columnHelper.columns([
-        columnHelper.display({
-            id: 'select',
-            enableHiding: false,
-            enableSorting: false,
-            header: ({ table }) => (
-                <Checkbox
-                    checked={
-                        table.getIsAllPageRowsSelected() ||
-                        (table.getIsSomePageRowsSelected() && 'indeterminate')
-                    }
-                    onCheckedChange={(value) =>
-                        table.toggleAllPageRowsSelected(value === true)
-                    }
-                    aria-label="Pilih semua proses pada halaman ini"
-                />
-            ),
-            cell: ({ row }) => (
-                <Checkbox
-                    checked={row.getIsSelected()}
-                    onCheckedChange={(value) =>
-                        row.toggleSelected(value === true)
-                    }
-                    aria-label={`Pilih ${row.original.process_number}`}
-                />
-            ),
-        }),
         columnHelper.accessor('created_at', {
             id: 'number',
             enableHiding: false,
             enableSorting: true,
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="No."
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -224,7 +138,7 @@ export function createProcessColumns(
             {
                 id: 'process',
                 header: ({ column }) => (
-                    <SortableHeader
+                    <SortableTableHeader
                         label="Proses & Kendaraan"
                         isSorted={column.getIsSorted()}
                         onToggle={column.getToggleSortingHandler()}
@@ -254,7 +168,7 @@ export function createProcessColumns(
         columnHelper.accessor('process_type', {
             id: 'process_type',
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="Jenis Proses"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -301,7 +215,7 @@ export function createProcessColumns(
         columnHelper.accessor('status', {
             id: 'status',
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="Status"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -309,15 +223,16 @@ export function createProcessColumns(
             ),
             filterFn: 'equals',
             cell: ({ getValue }) => (
-                <Badge variant="outline" className={statusClasses[getValue()]}>
-                    {statusOptions[getValue()] ?? getValue()}
-                </Badge>
+                <ProcessStatusBadge
+                    status={getValue()}
+                    labels={statusOptions}
+                />
             ),
         }),
         columnHelper.accessor('estimated_completion_date', {
             id: 'estimated_completion_date',
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="Jadwal Proses"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -357,7 +272,7 @@ export function createProcessColumns(
         columnHelper.accessor('total_cost', {
             id: 'cost',
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="Biaya"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}

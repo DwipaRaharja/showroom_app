@@ -1,6 +1,7 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import {
     ArrowLeftIcon,
+    ArrowsLeftRightIcon,
     BankIcon,
     CarProfileIcon,
     CheckCircleIcon,
@@ -626,6 +627,84 @@ export default function SalesShow({ sale }: Props) {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* Trade-In Details Card (if trade_in) */}
+                        {sale.payment_type === 'trade_in' && (
+                            <Card className="border-purple-500/20 bg-purple-500/5 shadow-xs dark:bg-purple-500/10">
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex size-7 items-center justify-center rounded-md bg-purple-500/20 text-purple-600 dark:text-purple-400">
+                                            <ArrowsLeftRightIcon
+                                                className="size-4"
+                                                weight="bold"
+                                            />
+                                        </div>
+                                        <CardTitle className="text-sm">
+                                            Unit Mobil Tukar Tambah
+                                        </CardTitle>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-2.5 text-xs">
+                                    <div className="text-sm font-semibold text-foreground">
+                                        {[
+                                            sale.trade_in_brand,
+                                            sale.trade_in_car_name,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ') || 'Unit Tukar Tambah'}
+                                    </div>
+                                    {sale.trade_in_license_plate && (
+                                        <div className="flex items-center justify-between font-mono">
+                                            <span className="text-muted-foreground">
+                                                Plat Nomor:
+                                            </span>
+                                            <span className="font-bold text-foreground">
+                                                {sale.trade_in_license_plate}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-2 border-t border-purple-500/20 pt-2">
+                                        <div>
+                                            <span className="text-muted-foreground">
+                                                Tahun:
+                                            </span>{' '}
+                                            <span className="font-medium text-foreground">
+                                                {sale.trade_in_year ?? '—'}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-muted-foreground">
+                                                Warna:
+                                            </span>{' '}
+                                            <span className="font-medium text-foreground">
+                                                {sale.trade_in_color ?? '—'}
+                                            </span>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <span className="text-muted-foreground">
+                                                Kilometer:
+                                            </span>{' '}
+                                            <span className="font-medium text-foreground">
+                                                {sale.trade_in_mileage !==
+                                                    null &&
+                                                sale.trade_in_mileage !==
+                                                    undefined
+                                                    ? `${sale.trade_in_mileage.toLocaleString('id-ID')} km`
+                                                    : '—'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {sale.trade_in_notes && (
+                                        <div className="border-t border-purple-500/20 pt-2 text-muted-foreground">
+                                            <span className="font-medium text-foreground">
+                                                Catatan:
+                                            </span>{' '}
+                                            {sale.trade_in_notes}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Leasing Details Card (if credit) */}
                         {sale.payment_type === 'credit' && (

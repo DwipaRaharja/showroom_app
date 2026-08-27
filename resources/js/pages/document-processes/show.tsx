@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/table';
 import { ProcessCostDialog } from '@/pages/document-processes/process-cost-dialog';
 import { ProcessEventDialog } from '@/pages/document-processes/process-event-dialog';
+import { ProcessStatusBadge } from '@/pages/document-processes/process-status-badge';
 import type {
     DocumentProcess,
     LabelOptions,
@@ -58,25 +59,6 @@ const currencyFormatter = new Intl.NumberFormat('id-ID', {
     currency: 'IDR',
     maximumFractionDigits: 0,
 });
-
-const statusClasses: Record<string, string> = {
-    waiting_documents:
-        'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    documents_ready:
-        'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    submitted:
-        'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    processing:
-        'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300',
-    ready_for_pickup:
-        'border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
-    completed:
-        'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    returned:
-        'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300',
-    issue: 'border-red-500/30 bg-red-500/10 text-red-500',
-    cancelled: 'border-muted bg-muted text-muted-foreground',
-};
 
 const custodyLabels: Record<string, string> = {
     waiting: 'Belum diterima',
@@ -133,12 +115,10 @@ export default function DocumentProcessShow({
                                 <h1 className="font-mono text-xl font-semibold tracking-tight md:text-2xl">
                                     {process.process_number}
                                 </h1>
-                                <Badge
-                                    variant="outline"
-                                    className={statusClasses[process.status]}
-                                >
-                                    {statusOptions[process.status]}
-                                </Badge>
+                                <ProcessStatusBadge
+                                    status={process.status}
+                                    labels={statusOptions}
+                                />
                             </div>
                             <p className="mt-1 text-sm text-muted-foreground">
                                 {carName} ·{' '}
@@ -321,20 +301,10 @@ export default function DocumentProcessShow({
                                             </div>
                                             <div className="min-w-0 rounded-xl border p-4">
                                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                                    <Badge
-                                                        variant="outline"
-                                                        className={
-                                                            statusClasses[
-                                                                event.status
-                                                            ]
-                                                        }
-                                                    >
-                                                        {
-                                                            statusOptions[
-                                                                event.status
-                                                            ]
-                                                        }
-                                                    </Badge>
+                                                    <ProcessStatusBadge
+                                                        status={event.status}
+                                                        labels={statusOptions}
+                                                    />
                                                     <span className="text-xs text-muted-foreground">
                                                         {dateTimeFormatter.format(
                                                             new Date(

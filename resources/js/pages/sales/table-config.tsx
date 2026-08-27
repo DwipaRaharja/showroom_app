@@ -1,8 +1,5 @@
 import {
     CalendarBlankIcon,
-    CaretDownIcon,
-    CaretUpIcon,
-    CaretUpDownIcon,
     CopyIcon,
     DotsThreeVerticalIcon,
     EyeIcon,
@@ -20,16 +17,15 @@ import {
     filterFn_includesString,
     globalFilteringFeature,
     rowPaginationFeature,
-    rowSelectionFeature,
     rowSortingFeature,
     sortFn_text,
     tableFeatures,
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
+import { SortableTableHeader } from '@/components/data-table/sortable-table-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -55,7 +51,6 @@ export const saleTableFeatures = tableFeatures({
     },
     rowPaginationFeature,
     paginatedRowModel: createPaginatedRowModel(),
-    rowSelectionFeature,
     columnVisibilityFeature,
 });
 
@@ -72,42 +67,6 @@ const dateFormatter = new Intl.DateTimeFormat('id-ID', {
     month: 'short',
     year: 'numeric',
 });
-
-function SortableHeader({
-    label,
-    isSorted,
-    onToggle,
-}: {
-    label: string;
-    isSorted: false | 'asc' | 'desc';
-    onToggle: ((event: unknown) => void) | undefined;
-}) {
-    return (
-        <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 h-8 px-2"
-            onClick={onToggle}
-            aria-label={`Urutkan berdasarkan ${label}`}
-            aria-sort={
-                isSorted === 'asc'
-                    ? 'ascending'
-                    : isSorted === 'desc'
-                      ? 'descending'
-                      : 'none'
-            }
-        >
-            {label}
-            {isSorted === 'asc' ? (
-                <CaretUpIcon className="size-4" />
-            ) : isSorted === 'desc' ? (
-                <CaretDownIcon className="size-4" />
-            ) : (
-                <CaretUpDownIcon className="size-4 opacity-60" />
-            )}
-        </Button>
-    );
-}
 
 async function copyText(value: string, label: string) {
     try {
@@ -141,6 +100,12 @@ export function getPaymentTypeBadge(
                     Kredit {financeName ? `• ${financeName}` : ''}
                 </Badge>
             );
+        case 'trade_in':
+            return (
+                <Badge className="bg-purple-600 text-white hover:bg-purple-600 dark:bg-purple-700">
+                    Tukar Tambah
+                </Badge>
+            );
         default:
             return <Badge variant="secondary">{type}</Badge>;
     }
@@ -158,41 +123,10 @@ export function createSaleColumns({
     onDelete,
 }: SaleColumnActions) {
     return columnHelper.columns([
-        columnHelper.display({
-            id: 'select',
-            enableHiding: false,
-            enableSorting: false,
-            header: ({ table }) => (
-                <div className="flex w-4 items-center justify-center">
-                    <Checkbox
-                        checked={
-                            table.getIsAllPageRowsSelected() ||
-                            (table.getIsSomePageRowsSelected() &&
-                                'indeterminate')
-                        }
-                        onCheckedChange={(value) =>
-                            table.toggleAllPageRowsSelected(value === true)
-                        }
-                        aria-label="Pilih semua penjualan pada halaman ini"
-                    />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="flex w-4 items-center justify-center">
-                    <Checkbox
-                        checked={row.getIsSelected()}
-                        onCheckedChange={(value) =>
-                            row.toggleSelected(value === true)
-                        }
-                        aria-label={`Pilih penjualan ${row.original.invoice_number}`}
-                    />
-                </div>
-            ),
-        }),
         columnHelper.accessor('created_at', {
             id: 'number',
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="No."
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -223,7 +157,7 @@ export function createSaleColumns({
         }),
         columnHelper.accessor('invoice_number', {
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="No. Invoice"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -316,7 +250,7 @@ export function createSaleColumns({
         }),
         columnHelper.accessor('deal_price', {
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="Harga Kesepakatan"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -395,7 +329,7 @@ export function createSaleColumns({
         }),
         columnHelper.accessor('status', {
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="Status"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}

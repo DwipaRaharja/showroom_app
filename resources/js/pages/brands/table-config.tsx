@@ -1,7 +1,4 @@
 import {
-    CaretDownIcon,
-    CaretUpIcon,
-    CaretUpDownIcon,
     CheckCircleIcon,
     CopyIcon,
     DotsThreeVerticalIcon,
@@ -19,15 +16,14 @@ import {
     filterFn_includesString,
     globalFilteringFeature,
     rowPaginationFeature,
-    rowSelectionFeature,
     rowSortingFeature,
     sortFn_text,
     tableFeatures,
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
+import { SortableTableHeader } from '@/components/data-table/sortable-table-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -53,7 +49,6 @@ export const brandTableFeatures = tableFeatures({
     },
     rowPaginationFeature,
     paginatedRowModel: createPaginatedRowModel(),
-    rowSelectionFeature,
     columnVisibilityFeature,
 });
 
@@ -64,42 +59,6 @@ const dateFormatter = new Intl.DateTimeFormat('id-ID', {
     month: 'short',
     year: 'numeric',
 });
-
-function SortableHeader({
-    label,
-    isSorted,
-    onToggle,
-}: {
-    label: string;
-    isSorted: false | 'asc' | 'desc';
-    onToggle: ((event: unknown) => void) | undefined;
-}) {
-    return (
-        <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 h-8 px-2"
-            onClick={onToggle}
-            aria-label={`Urutkan berdasarkan ${label}`}
-            aria-sort={
-                isSorted === 'asc'
-                    ? 'ascending'
-                    : isSorted === 'desc'
-                      ? 'descending'
-                      : 'none'
-            }
-        >
-            {label}
-            {isSorted === 'asc' ? (
-                <CaretUpIcon className="size-4" />
-            ) : isSorted === 'desc' ? (
-                <CaretDownIcon className="size-4" />
-            ) : (
-                <CaretUpDownIcon className="size-4 opacity-60" />
-            )}
-        </Button>
-    );
-}
 
 async function copyText(value: string, label: string) {
     try {
@@ -120,36 +79,10 @@ export function createBrandColumns({
     onToggleStatus,
 }: BrandColumnActions) {
     return columnHelper.columns([
-        columnHelper.display({
-            id: 'select',
-            enableHiding: false,
-            enableSorting: false,
-            header: ({ table }) => (
-                <Checkbox
-                    checked={
-                        table.getIsAllPageRowsSelected() ||
-                        (table.getIsSomePageRowsSelected() && 'indeterminate')
-                    }
-                    onCheckedChange={(value) =>
-                        table.toggleAllPageRowsSelected(value === true)
-                    }
-                    aria-label="Pilih semua merek pada halaman ini"
-                />
-            ),
-            cell: ({ row }) => (
-                <Checkbox
-                    checked={row.getIsSelected()}
-                    onCheckedChange={(value) =>
-                        row.toggleSelected(value === true)
-                    }
-                    aria-label={`Pilih merek ${row.original.name}`}
-                />
-            ),
-        }),
         columnHelper.accessor('created_at', {
             id: 'number',
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="No."
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -176,7 +109,7 @@ export function createBrandColumns({
         }),
         columnHelper.accessor('name', {
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="Nama Merek"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -195,7 +128,7 @@ export function createBrandColumns({
         }),
         columnHelper.accessor('slug', {
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="Slug"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -211,7 +144,7 @@ export function createBrandColumns({
         }),
         columnHelper.accessor('is_active', {
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="Status"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
@@ -222,7 +155,7 @@ export function createBrandColumns({
         }),
         columnHelper.accessor('created_at', {
             header: ({ column }) => (
-                <SortableHeader
+                <SortableTableHeader
                     label="Dibuat"
                     isSorted={column.getIsSorted()}
                     onToggle={column.getToggleSortingHandler()}
