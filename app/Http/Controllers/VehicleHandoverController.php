@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\HandlesFileUploads;
 use App\Http\Requests\Handover\StoreHandoverRequest;
 use App\Models\Payment;
 use App\Models\Sale;
@@ -24,17 +25,12 @@ use Throwable;
 
 class VehicleHandoverController extends Controller
 {
+    use HandlesFileUploads;
+
     public function index(): Response
     {
         $sales = Sale::query()
-            ->with([
-                'car' => fn ($query) => $query->with('brand:id,name'),
-                'customer',
-                'financeCompany',
-                'payments',
-                'handover.events.items',
-                'handover.events.photos',
-            ])
+            ->withHandoverDetails()
             ->where('status', '!=', 'cancelled')
             ->latest('id')
             ->get();
@@ -69,17 +65,8 @@ class VehicleHandoverController extends Controller
      */
     public function create(Sale $sale): Response
     {
-        $sale->load([
-            'car' => fn ($query) => $query->with('brand:id,name'),
-            'customer',
-            'financeCompany',
-            'payments',
-            'handover.events.items',
-            'handover.events.photos',
-        ]);
-
         return Inertia::render('handovers/create', [
-            'sale' => $sale,
+            'sale' => $sale->loadHandoverDetails(),
         ]);
     }
 
@@ -88,17 +75,8 @@ class VehicleHandoverController extends Controller
      */
     public function show(Sale $sale): Response
     {
-        $sale->load([
-            'car' => fn ($query) => $query->with('brand:id,name'),
-            'customer',
-            'financeCompany',
-            'payments',
-            'handover.events.items',
-            'handover.events.photos',
-        ]);
-
         return Inertia::render('handovers/show', [
-            'sale' => $sale,
+            'sale' => $sale->loadHandoverDetails(),
         ]);
     }
 
@@ -176,23 +154,18 @@ class VehicleHandoverController extends Controller
                 );
 
                 foreach ($photos as $photo) {
-                    $path = $photo->store(
+                    $attributes = $this->storeAndExtractFileAttributes(
+                        $photo,
                         "vehicle-handovers/{$handover->id}/events/{$event->id}",
-                        'local',
+                        errorKey: 'photos',
+                        errorMessage: 'Salah satu foto bukti gagal disimpan. Silakan coba lagi.',
                     );
 
-                    if ($path === false) {
-                        throw ValidationException::withMessages([
-                            'photos' => 'Salah satu foto bukti gagal disimpan. Silakan coba lagi.',
-                        ]);
-                    }
-
-                    $storedPaths[] = $path;
+                    $storedPaths[] = $attributes['file_path'];
                     $event->photos()->create([
-                        'file_path' => $path,
-                        'file_name' => $photo->getClientOriginalName(),
-                        'file_mime' => $photo->getMimeType(),
-                        'file_size' => $photo->getSize(),
+                        'vehicle_handover_id' => $handover->id,
+                        'uploaded_by' => $request->user()?->id,
+                        ...$attributes,
                     ]);
                 }
 
@@ -200,9 +173,7 @@ class VehicleHandoverController extends Controller
                 $handover->refreshTrackingStatus();
             });
         } catch (Throwable $exception) {
-            foreach ($storedPaths as $path) {
-                Storage::disk('local')->delete($path);
-            }
+            $this->deleteStoredFiles($storedPaths);
 
             throw $exception;
         }
@@ -217,14 +188,7 @@ class VehicleHandoverController extends Controller
 
     public function printBast(Sale $sale): Response
     {
-        $sale->load([
-            'car.brand',
-            'customer',
-            'financeCompany',
-            'payments' => fn ($query) => $query->orderBy('payment_date'),
-            'handover.events.items',
-            'handover.events.photos',
-        ]);
+        $sale->loadHandoverDetails();
 
         $handover = $sale->getRelation('handover');
 
@@ -287,15 +251,6 @@ class VehicleHandoverController extends Controller
         if ($duplicates->isNotEmpty()) {
             throw ValidationException::withMessages([
                 'items' => 'Item berikut sudah pernah diserahkan: '.$duplicates->join(', ').'.',
-            ]);
-        }
-
-        if (
-            in_array('vehicle', $items, true)
-            && $sale->customer_payment_shortfall > 10_000_000
-        ) {
-            throw ValidationException::withMessages([
-                'items' => 'Kekurangan pembayaran customer berubah dan kembali melebihi batas Rp 10.000.000.',
             ]);
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Concerns\HandlesFileUploads;
 use App\Http\Requests\DocumentProcess\CancelDocumentProcessRequest;
 use App\Http\Requests\DocumentProcess\DeleteDocumentProcessRequest;
 use App\Http\Requests\DocumentProcess\StoreDocumentProcessCostRequest;
@@ -32,6 +33,8 @@ use Throwable;
 
 class DocumentProcessController extends Controller
 {
+    use HandlesFileUploads;
+
     /** @var array<string, array<string, string>> */
     private const REQUIREMENT_TEMPLATES = [
         'annual_tax' => [
@@ -353,25 +356,25 @@ class DocumentProcessController extends Controller
                 ]);
 
                 foreach ($files as $file) {
-                    $path = $this->storeFile(
+                    $attributes = $this->storeAndExtractFileAttributes(
                         $file,
                         "document-processes/{$process->id}/events/{$event->id}",
+                        errorKey: 'files',
+                        errorMessage: 'Berkas gagal disimpan. Silakan coba lagi.',
                     );
-                    $storedPaths[] = $path;
+                    $storedPaths[] = $attributes['file_path'];
                     $process->files()->create([
                         'document_process_event_id' => $event->id,
                         'uploaded_by' => $request->user()?->id,
                         'file_category' => 'event_evidence',
-                        ...$this->fileAttributes($file, $path),
+                        ...$attributes,
                     ]);
                 }
 
                 $process->syncCarCapital();
             });
         } catch (Throwable $exception) {
-            foreach ($storedPaths as $path) {
-                Storage::disk('local')->delete($path);
-            }
+            $this->deleteStoredFiles($storedPaths);
 
             throw $exception;
         }
@@ -422,22 +425,23 @@ class DocumentProcessController extends Controller
                 ]);
 
                 if ($receipt instanceof UploadedFile) {
-                    $storedPath = $this->storeFile(
+                    $attributes = $this->storeAndExtractFileAttributes(
                         $receipt,
                         "document-processes/{$process->id}/costs/{$cost->id}",
+                        errorKey: 'receipt',
+                        errorMessage: 'Berkas kuitansi gagal disimpan. Silakan coba lagi.',
                     );
+                    $storedPath = $attributes['file_path'];
                     $process->files()->create([
                         'document_process_cost_id' => $cost->id,
                         'uploaded_by' => $request->user()?->id,
                         'file_category' => 'cost_receipt',
-                        ...$this->fileAttributes($receipt, $storedPath),
+                        ...$attributes,
                     ]);
                 }
             });
         } catch (Throwable $exception) {
-            if ($storedPath !== null) {
-                Storage::disk('local')->delete($storedPath);
-            }
+            $this->deleteStoredFiles($storedPath);
 
             throw $exception;
         }
@@ -646,29 +650,5 @@ class DocumentProcessController extends Controller
         if (isset($result['license_plate'])) {
             $process->car->update(['license_plate' => $result['license_plate']]);
         }
-    }
-
-    private function storeFile(UploadedFile $file, string $directory): string
-    {
-        $path = $file->store($directory, 'local');
-
-        if ($path === false) {
-            throw ValidationException::withMessages([
-                'files' => 'Berkas gagal disimpan. Silakan coba lagi.',
-            ]);
-        }
-
-        return $path;
-    }
-
-    /** @return array{file_path: string, file_name: string, file_mime: string|null, file_size: int} */
-    private function fileAttributes(UploadedFile $file, string $path): array
-    {
-        return [
-            'file_path' => $path,
-            'file_name' => $file->getClientOriginalName(),
-            'file_mime' => $file->getMimeType() ?: null,
-            'file_size' => (int) $file->getSize(),
-        ];
     }
 }

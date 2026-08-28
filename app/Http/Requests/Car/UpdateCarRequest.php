@@ -76,6 +76,8 @@ class UpdateCarRequest extends FormRequest
     public function rules(): array
     {
         $car = $this->route('car');
+        $hasActiveSale = $car instanceof Car && ($car->sale()->exists() || in_array($car->status, ['booked', 'sold'], true));
+        $allowedStatuses = $hasActiveSale ? [$car->status] : ['available', 'maintenance'];
         $isCompleted = $this->input('capital.status') === 'completed';
 
         return [
@@ -138,7 +140,7 @@ class UpdateCarRequest extends FormRequest
             ],
             'status' => [
                 'required',
-                Rule::in(['available', 'booked', 'sold', 'maintenance']),
+                Rule::in($allowedStatuses),
             ],
             'description' => [
                 'nullable',
@@ -211,8 +213,14 @@ class UpdateCarRequest extends FormRequest
      */
     public function messages(): array
     {
+        $car = $this->route('car');
+        $hasActiveSale = $car instanceof Car && ($car->sale()->exists() || in_array($car->status, ['booked', 'sold'], true));
+
         return [
             'license_plate.regex' => 'Format plat nomor tidak valid (contoh: B 1234 ABC atau DK 8888 XY).',
+            'status.in' => $hasActiveSale
+                ? 'Status mobil yang terikat transaksi penjualan tidak dapat diubah secara manual.'
+                : 'Perubahan status mobil hanya diizinkan untuk status Tersedia atau Perbaikan.',
             'selling_price.min' => 'Harga jual harus lebih dari Rp 0 ketika status modal Aktif.',
             'capital.price.min' => 'Harga perolehan modal harus lebih dari Rp 0 ketika status modal Aktif.',
         ];

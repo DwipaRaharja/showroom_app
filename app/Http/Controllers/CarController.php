@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\HandlesFileUploads;
 use App\Http\Requests\Car\StoreCarRequest;
 use App\Http\Requests\Car\UpdateCarRequest;
 use App\Models\Brand;
@@ -21,6 +22,8 @@ use Throwable;
 
 class CarController extends Controller
 {
+    use HandlesFileUploads;
+
     /**
      * Display the car listing.
      */
@@ -28,25 +31,7 @@ class CarController extends Controller
     {
         $cars = Car::query()
             ->withTrashed()
-            ->with([
-                'brand:id,name',
-                'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,document_process_cost,status,notes,created_at',
-                'documents' => fn ($query) => $query->select([
-                    'id',
-                    'car_id',
-                    'document_type',
-                    'document_number',
-                    'owner_name',
-                    'issued_at',
-                    'expires_at',
-                    'annual_tax_due_at',
-                    'status',
-                    'original_received',
-                    'notes',
-                    'created_at',
-                ]),
-                'documentAttachment:id,car_id,file_name,file_mime,file_size,created_at,updated_at',
-            ])
+            ->withInventoryDetails()
             ->latest('id')
             ->get([
                 'id',
@@ -117,28 +102,8 @@ class CarController extends Controller
      */
     public function show(Car $car): Response
     {
-        $car->load([
-            'brand:id,name',
-            'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,document_process_cost,status,notes,created_at',
-            'documents' => fn ($query) => $query->select([
-                'id',
-                'car_id',
-                'document_type',
-                'document_number',
-                'owner_name',
-                'issued_at',
-                'expires_at',
-                'annual_tax_due_at',
-                'status',
-                'original_received',
-                'notes',
-                'created_at',
-            ]),
-            'documentAttachment:id,car_id,file_name,file_mime,file_size,created_at,updated_at',
-        ]);
-
         return Inertia::render('cars/show', [
-            'car' => $car,
+            'car' => $car->loadInventoryDetails(),
         ]);
     }
 
@@ -163,16 +128,19 @@ class CarController extends Controller
                 $car = Car::query()->create($validated);
 
                 if ($image instanceof UploadedFile) {
-                    $storedImagePath = $this->storeImage($image, $car);
+                    $storedImagePath = $this->storeUploadedFile(
+                        $image,
+                        "cars/{$car->id}/images",
+                        errorKey: 'image',
+                        errorMessage: 'Gambar kendaraan gagal disimpan. Silakan coba lagi.',
+                    );
                     $car->update(['image' => $storedImagePath]);
                 }
 
                 $car->capital()->create($capital);
             });
         } catch (Throwable $exception) {
-            if ($storedImagePath !== null) {
-                Storage::disk('local')->delete($storedImagePath);
-            }
+            $this->deleteStoredFiles($storedImagePath);
 
             throw $exception;
         }
@@ -264,12 +232,21 @@ class CarController extends Controller
             ]);
         }
 
+        if ($car->sale()->exists() || in_array($car->status, ['booked', 'sold'], true)) {
+            $validated['status'] = $car->status;
+        }
+
         $oldImagePath = $car->image;
         $storedImagePath = null;
 
         try {
             if ($image instanceof UploadedFile) {
-                $storedImagePath = $this->storeImage($image, $car);
+                $storedImagePath = $this->storeUploadedFile(
+                    $image,
+                    "cars/{$car->id}/images",
+                    errorKey: 'image',
+                    errorMessage: 'Gambar kendaraan gagal disimpan. Silakan coba lagi.',
+                );
                 $validated['image'] = $storedImagePath;
             } elseif ($removeImage) {
                 $validated['image'] = null;
@@ -280,9 +257,7 @@ class CarController extends Controller
                 $car->capital()->updateOrCreate([], $capital);
             });
         } catch (Throwable $exception) {
-            if ($storedImagePath !== null) {
-                Storage::disk('local')->delete($storedImagePath);
-            }
+            $this->deleteStoredFiles($storedImagePath);
 
             throw $exception;
         }
@@ -292,7 +267,7 @@ class CarController extends Controller
             && ($storedImagePath !== null || $removeImage)
             && $oldImagePath !== $storedImagePath
         ) {
-            Storage::disk('local')->delete($oldImagePath);
+            $this->deleteStoredFiles($oldImagePath);
         }
 
         Inertia::flash('toast', [
@@ -330,8 +305,16 @@ class CarController extends Controller
      */
     public function updateStatus(Request $request, Car $car): RedirectResponse
     {
+        if ($car->sale()->exists() || in_array($car->status, ['booked', 'sold'], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Status mobil yang terikat transaksi penjualan dikelola otomatis dan tidak dapat diubah secara manual.',
+            ]);
+        }
+
         $validated = $request->validate([
-            'status' => ['required', Rule::in(['available', 'booked', 'sold', 'maintenance'])],
+            'status' => ['required', Rule::in(['available', 'maintenance'])],
+        ], [
+            'status.in' => 'Perubahan status mobil secara manual hanya diizinkan untuk status Tersedia atau Perbaikan.',
         ]);
 
         $car->update($validated);
@@ -376,18 +359,5 @@ class CarController extends Controller
         ]);
 
         return to_route('cars.index');
-    }
-
-    private function storeImage(UploadedFile $image, Car $car): string
-    {
-        $path = $image->store("cars/{$car->id}/images", 'local');
-
-        if (! is_string($path)) {
-            throw ValidationException::withMessages([
-                'image' => 'Gambar kendaraan gagal disimpan. Silakan coba lagi.',
-            ]);
-        }
-
-        return $path;
     }
 }

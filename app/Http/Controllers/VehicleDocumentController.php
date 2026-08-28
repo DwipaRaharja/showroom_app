@@ -2,19 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\HandlesFileUploads;
 use App\Http\Requests\VehicleDocument\StoreVehicleDocumentRequest;
 use App\Models\Car;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class VehicleDocumentController extends Controller
 {
+    use HandlesFileUploads;
+
     public function store(
         StoreVehicleDocumentRequest $request,
         Car $car,
@@ -24,7 +26,12 @@ class VehicleDocumentController extends Controller
         $newFileAttributes = [];
 
         if ($uploadedFile instanceof UploadedFile) {
-            $newFileAttributes = $this->storeFile($uploadedFile, $car);
+            $newFileAttributes = $this->storeAndExtractFileAttributes(
+                $uploadedFile,
+                "vehicle-documents/{$car->id}/shared",
+                errorKey: 'file',
+                errorMessage: 'Lampiran dokumen gagal disimpan. Silakan coba lagi.',
+            );
         }
 
         $car->loadMissing('documentAttachment');
@@ -100,9 +107,7 @@ class VehicleDocumentController extends Controller
                 }
             });
         } catch (Throwable $exception) {
-            if (isset($newFileAttributes['file_path'])) {
-                Storage::disk('local')->delete($newFileAttributes['file_path']);
-            }
+            $this->deleteStoredFiles($newFileAttributes['file_path'] ?? null);
 
             throw $exception;
         }
@@ -115,7 +120,7 @@ class VehicleDocumentController extends Controller
             && ($fileWasReplaced || $fileWasRemoved)
             && $oldFilePath !== ($newFileAttributes['file_path'] ?? null)
         ) {
-            Storage::disk('local')->delete($oldFilePath);
+            $this->deleteStoredFiles($oldFilePath);
         }
 
         Inertia::flash('toast', [
@@ -141,26 +146,5 @@ class VehicleDocumentController extends Controller
             $attachment->file_path,
             $attachment->file_name ?? basename($attachment->file_path),
         );
-    }
-
-    /**
-     * @return array{file_path: string, file_name: string, file_mime: string|null, file_size: int}
-     */
-    private function storeFile(UploadedFile $file, Car $car): array
-    {
-        $path = $file->store("vehicle-documents/{$car->id}/shared", 'local');
-
-        if ($path === false) {
-            throw ValidationException::withMessages([
-                'file' => 'Lampiran dokumen gagal disimpan. Silakan coba lagi.',
-            ]);
-        }
-
-        return [
-            'file_path' => $path,
-            'file_name' => $file->getClientOriginalName(),
-            'file_mime' => $file->getMimeType() ?: null,
-            'file_size' => (int) $file->getSize(),
-        ];
     }
 }

@@ -137,7 +137,7 @@ class StoreCarRequest extends FormRequest
             ],
             'status' => [
                 'required',
-                Rule::in(['available', 'booked', 'sold', 'maintenance']),
+                Rule::in(['available', 'maintenance']),
             ],
             'description' => [
                 'nullable',
@@ -208,6 +208,7 @@ class StoreCarRequest extends FormRequest
     {
         return [
             'license_plate.regex' => 'Format plat nomor tidak valid (contoh: B 1234 ABC atau DK 8888 XY).',
+            'status.in' => 'Status awal mobil baru hanya boleh Tersedia atau Perbaikan.',
             'selling_price.min' => 'Harga jual harus lebih dari Rp 0 ketika status modal Aktif.',
             'capital.price.min' => 'Harga perolehan modal harus lebih dari Rp 0 ketika status modal Aktif.',
         ];

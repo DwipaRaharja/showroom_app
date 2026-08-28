@@ -92,16 +92,6 @@ class Car extends Model
     }
 
     /**
-     * Alias relationship for purchase/capital.
-     *
-     * @return HasOne<Purchase, $this>
-     */
-    public function purchase(): HasOne
-    {
-        return $this->capital();
-    }
-
-    /**
      * Get the sale transaction for the car.
      *
      * @return HasOne<Sale, $this>
@@ -148,5 +138,60 @@ class Car extends Model
     public function documentProcesses(): HasMany
     {
         return $this->hasMany(DocumentProcess::class)->latest('id');
+    }
+
+    /**
+     * Scope a query to eagerly load all relations needed for vehicle inventory views.
+     *
+     * @param  Builder<Car>  $query
+     * @return Builder<Car>
+     */
+    public function scopeWithInventoryDetails(Builder $query): Builder
+    {
+        return $query->with([
+            'brand:id,name',
+            'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,document_process_cost,status,notes,created_at',
+            'documents' => fn ($docQuery) => $docQuery->select([
+                'id',
+                'car_id',
+                'document_type',
+                'document_number',
+                'owner_name',
+                'issued_at',
+                'expires_at',
+                'annual_tax_due_at',
+                'status',
+                'original_received',
+                'notes',
+                'created_at',
+            ]),
+            'documentAttachment:id,car_id,file_name,file_mime,file_size,created_at,updated_at',
+        ]);
+    }
+
+    /**
+     * Load all relations needed for vehicle inventory views on this model instance.
+     */
+    public function loadInventoryDetails(): self
+    {
+        return $this->load([
+            'brand:id,name',
+            'capital:id,car_id,purchase_number,purchase_date,price,repair_cost,transport_cost,other_cost,document_process_cost,status,notes,created_at',
+            'documents' => fn ($docQuery) => $docQuery->select([
+                'id',
+                'car_id',
+                'document_type',
+                'document_number',
+                'owner_name',
+                'issued_at',
+                'expires_at',
+                'annual_tax_due_at',
+                'status',
+                'original_received',
+                'notes',
+                'created_at',
+            ]),
+            'documentAttachment:id,car_id,file_name,file_mime,file_size,created_at,updated_at',
+        ]);
     }
 }

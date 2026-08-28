@@ -159,17 +159,6 @@ class StoreHandoverRequest extends FormRequest
                 );
             }
 
-            if (
-                in_array('vehicle', $items, true)
-                && $sale->customer_payment_shortfall > 10_000_000
-            ) {
-                $validator->errors()->add(
-                    'items',
-                    'Unit belum dapat diserahkan karena kekurangan pembayaran customer masih '.
-                    'Rp '.number_format($sale->customer_payment_shortfall, 0, ',', '.').'.',
-                );
-            }
-
             $containsBpkb = in_array('bpkb', $items, true);
             $containsOriginalLegalDocument = $containsBpkb
                 || in_array('invoice', $items, true);
