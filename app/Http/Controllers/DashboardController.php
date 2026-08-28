@@ -104,6 +104,8 @@ class DashboardController extends Controller
                     && $date->lessThanOrEqualTo($today);
             });
 
+        $tradeInSalesThisMonth = $salesThisMonth->where('payment_type', 'trade_in');
+
         $summary = [
             'available' => $stockCars->where('status', 'available')->count(),
             'booked' => $stockCars->where('status', 'booked')->count(),
@@ -111,6 +113,8 @@ class DashboardController extends Controller
             'sales_this_month' => $salesThisMonth->count(),
             'turnover_this_month' => (int) $salesThisMonth->sum('deal_price'),
             'payments_this_month' => (int) $paymentsThisMonth->sum('amount'),
+            'trade_in_this_month_count' => $tradeInSalesThisMonth->count(),
+            'trade_in_this_month_value' => (int) $tradeInSalesThisMonth->sum('trade_in_price'),
             'active_capital' => (int) $stockCars->sum(function (Car $car): int {
                 $capital = $car->getRelation('capital');
 
@@ -125,6 +129,25 @@ class DashboardController extends Controller
             })->count(),
             'customer_receivables' => (int) $activeSales->sum('customer_payment_shortfall'),
             'finance_receivables' => (int) $activeSales->sum('remaining_finance_disbursement'),
+            'payment_breakdown' => [
+                'cash_full' => [
+                    'count' => $salesThisMonth->where('payment_type', 'cash_full')->count(),
+                    'turnover' => (int) $salesThisMonth->where('payment_type', 'cash_full')->sum('deal_price'),
+                ],
+                'cash_tempo' => [
+                    'count' => $salesThisMonth->where('payment_type', 'cash_tempo')->count(),
+                    'turnover' => (int) $salesThisMonth->where('payment_type', 'cash_tempo')->sum('deal_price'),
+                ],
+                'credit' => [
+                    'count' => $salesThisMonth->where('payment_type', 'credit')->count(),
+                    'turnover' => (int) $salesThisMonth->where('payment_type', 'credit')->sum('deal_price'),
+                ],
+                'trade_in' => [
+                    'count' => $tradeInSalesThisMonth->count(),
+                    'turnover' => (int) $tradeInSalesThisMonth->sum('deal_price'),
+                    'trade_in_value' => (int) $tradeInSalesThisMonth->sum('trade_in_price'),
+                ],
+            ],
         ];
 
         $financialAttention = $this->financialAttention($activeSales, $today);
@@ -479,6 +502,8 @@ class DashboardController extends Controller
                 'sales_count' => $monthSales->count(),
                 'turnover' => (int) $monthSales->sum('deal_price'),
                 'payments' => (int) $monthPayments->sum('amount'),
+                'trade_in_count' => $monthSales->where('payment_type', 'trade_in')->count(),
+                'trade_in_value' => (int) $monthSales->where('payment_type', 'trade_in')->sum('trade_in_price'),
             ];
         })->all();
     }

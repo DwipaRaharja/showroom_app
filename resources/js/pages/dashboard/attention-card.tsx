@@ -18,20 +18,9 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { AttentionItem, DashboardSeverity } from '@/pages/dashboard/types';
-
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-});
 
 const severityClasses: Record<DashboardSeverity, string> = {
     danger: 'border-red-500/30 bg-red-500/10 text-red-500',
@@ -39,10 +28,6 @@ const severityClasses: Record<DashboardSeverity, string> = {
         'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
     info: 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300',
 };
-
-function parseLocalDate(value: string): Date {
-    return new Date(`${value.slice(0, 10)}T00:00:00`);
-}
 
 function itemIcon(kind: string): Icon {
     if (kind.includes('payment') || kind.includes('shortfall')) {
@@ -131,7 +116,7 @@ export function AttentionCard({ title, description, items, emptyText }: Props) {
                                                             'text-red-500',
                                                     )}
                                                 >
-                                                    {currencyFormatter.format(
+                                                    {formatCurrency(
                                                         item.amount,
                                                     )}
                                                 </span>
@@ -141,10 +126,8 @@ export function AttentionCard({ title, description, items, emptyText }: Props) {
                                             {item.date ? (
                                                 <span className="text-xs text-muted-foreground">
                                                     Tanggal:{' '}
-                                                    {dateFormatter.format(
-                                                        parseLocalDate(
-                                                            item.date,
-                                                        ),
+                                                    {formatDate(
+                                                        item.date.slice(0, 10),
                                                     )}
                                                 </span>
                                             ) : (

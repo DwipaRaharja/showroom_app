@@ -1,6 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
 import {
     ArrowRightIcon,
+    ArrowsLeftRightIcon,
+    BankIcon,
     CalendarDotsIcon,
     CarProfileIcon,
     CheckCircleIcon,
@@ -18,7 +20,10 @@ import CarController from '@/actions/App/Http/Controllers/CarController';
 import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
 import SaleController from '@/actions/App/Http/Controllers/SaleController';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
+import { StatCardGrid } from '@/components/stat-card-grid';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +33,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { AttentionCard } from '@/pages/dashboard/attention-card';
 import { PerformanceChart } from '@/pages/dashboard/performance-chart';
@@ -38,32 +44,10 @@ import type {
 } from '@/pages/dashboard/types';
 import { dashboard } from '@/routes';
 
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
-const compactCurrencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
+const compactCurrencyOptions: Intl.NumberFormatOptions = {
     notation: 'compact',
     maximumFractionDigits: 1,
-});
-
-const fullDateFormatter = new Intl.DateTimeFormat('id-ID', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Asia/Makassar',
-});
-
-const shortDateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-});
+};
 
 const reminderClasses: Record<DashboardSeverity, string> = {
     danger: 'border-red-500/30 bg-red-500/5',
@@ -84,39 +68,6 @@ const paymentTypeLabels: Record<RecentSale['payment_type'], string> = {
     credit: 'Kredit leasing',
     trade_in: 'Tukar tambah',
 };
-
-function parseLocalDate(value: string): Date {
-    return new Date(`${value.slice(0, 10)}T00:00:00`);
-}
-
-function FinancialMetric({
-    label,
-    value,
-    description,
-    tone = 'default',
-}: {
-    label: string;
-    value: string;
-    description: string;
-    tone?: 'default' | 'danger' | 'warning' | 'info';
-}) {
-    return (
-        <div className="rounded-xl border bg-card p-4">
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p
-                className={cn(
-                    'mt-1 text-lg font-bold tracking-tight tabular-nums',
-                    tone === 'danger' && 'text-red-500',
-                    tone === 'warning' && 'text-amber-600 dark:text-amber-400',
-                    tone === 'info' && 'text-blue-600 dark:text-blue-400',
-                )}
-            >
-                {value}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-        </div>
-    );
-}
 
 function SectionHeader({
     title,
@@ -151,54 +102,66 @@ export default function Dashboard({
         <>
             <Head title="Dashboard" />
 
-            <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                Dashboard
-                            </h1>
+            <PageContainer>
+                <PageHeader
+                    className="lg:flex-col xl:flex-row"
+                    title="Dashboard"
+                    titleAddon={
+                        <>
                             {attention.total > 0 && (
                                 <Badge className="border-red-500/30 bg-red-500/10 text-red-500">
                                     {attention.total} perlu ditindaklanjuti
                                 </Badge>
                             )}
-                        </div>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        </>
+                    }
+                    description={
+                        <>
                             Ringkasan operasional showroom untuk{' '}
-                            {fullDateFormatter.format(new Date(generatedAt))}.
-                        </p>
-                    </div>
+                            {formatDate(generatedAt, {
+                                weekday: 'long',
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric',
+                            })}
+                            .
+                        </>
+                    }
+                    actions={
+                        <>
+                            <Button asChild variant="outline">
+                                <Link href={CarController.create.url()}>
+                                    <CarProfileIcon />
+                                    Tambah Mobil
+                                </Link>
+                            </Button>
+                            <Button asChild variant="outline">
+                                <Link href={SaleController.create.url()}>
+                                    <PlusIcon />
+                                    Buat Penjualan
+                                </Link>
+                            </Button>
+                            <Button asChild variant="outline">
+                                <Link
+                                    href={DocumentProcessController.create.url()}
+                                >
+                                    <FileTextIcon />
+                                    Proses Berkas
+                                </Link>
+                            </Button>
+                            <Button asChild variant="outline">
+                                <Link
+                                    href={VehicleHandoverController.index.url()}
+                                >
+                                    <KeyIcon />
+                                    Penyerahan Unit
+                                </Link>
+                            </Button>
+                        </>
+                    }
+                />
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Button asChild variant="outline">
-                            <Link href={CarController.create.url()}>
-                                <CarProfileIcon />
-                                Tambah Mobil
-                            </Link>
-                        </Button>
-                        <Button asChild variant="outline">
-                            <Link href={SaleController.create.url()}>
-                                <PlusIcon />
-                                Buat Penjualan
-                            </Link>
-                        </Button>
-                        <Button asChild variant="outline">
-                            <Link href={DocumentProcessController.create.url()}>
-                                <FileTextIcon />
-                                Proses Berkas
-                            </Link>
-                        </Button>
-                        <Button asChild variant="outline">
-                            <Link href={VehicleHandoverController.index.url()}>
-                                <KeyIcon />
-                                Penyerahan Unit
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCardGrid className="lg:grid-cols-2 xl:grid-cols-4">
                     <StatCard
                         title="Unit Ready"
                         value={`${summary.available} Unit`}
@@ -216,23 +179,25 @@ export default function Dashboard({
                     <StatCard
                         title="Penjualan Bulan Ini"
                         value={`${summary.sales_this_month} Transaksi`}
-                        description={compactCurrencyFormatter.format(
+                        description={formatCurrency(
                             summary.turnover_this_month,
+                            compactCurrencyOptions,
                         )}
                         icon={CarProfileIcon}
                         variant="info"
                     />
                     <StatCard
                         title="Pembayaran Masuk Bulan Ini"
-                        value={compactCurrencyFormatter.format(
+                        value={formatCurrency(
                             summary.payments_this_month,
+                            compactCurrencyOptions,
                         )}
                         description="Pembayaran terkonfirmasi, tanpa bonus leasing"
                         icon={CurrencyCircleDollarIcon}
                         variant="success"
                         valueClassName="text-base"
                     />
-                </div>
+                </StatCardGrid>
 
                 <Card className="gap-0 overflow-hidden py-0">
                     <CardHeader className="border-b px-5 py-5">
@@ -251,40 +216,93 @@ export default function Dashboard({
                         />
                     </CardHeader>
                     <CardContent className="grid gap-3 bg-muted/15 p-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <FinancialMetric
-                            label="Total modal stok aktif"
-                            value={currencyFormatter.format(
-                                summary.active_capital,
-                            )}
+                        <StatCard
+                            title="Total modal stok aktif"
+                            value={formatCurrency(summary.active_capital)}
                             description="Unit ready, booking, dan perbaikan"
-                            tone="warning"
+                            variant="warning"
                         />
-                        <FinancialMetric
-                            label="Piutang customer"
-                            value={currencyFormatter.format(
-                                summary.customer_receivables,
-                            )}
+                        <StatCard
+                            title="Piutang customer"
+                            value={formatCurrency(summary.customer_receivables)}
                             description="Kewajiban pembayaran dari customer"
-                            tone={
+                            variant={
                                 summary.customer_receivables > 0
                                     ? 'danger'
                                     : 'default'
                             }
                         />
-                        <FinancialMetric
-                            label="Dana leasing belum masuk"
-                            value={currencyFormatter.format(
-                                summary.finance_receivables,
-                            )}
+                        <StatCard
+                            title="Dana leasing belum masuk"
+                            value={formatCurrency(summary.finance_receivables)}
                             description="Pokok pembiayaan yang belum dicairkan"
-                            tone="info"
+                            variant="info"
                         />
-                        <FinancialMetric
-                            label="Nilai transaksi bulan ini"
-                            value={currencyFormatter.format(
-                                summary.turnover_this_month,
-                            )}
+                        <StatCard
+                            title="Nilai transaksi bulan ini"
+                            value={formatCurrency(summary.turnover_this_month)}
                             description={`${summary.sales_this_month} transaksi tidak dibatalkan`}
+                            variant="default"
+                        />
+                    </CardContent>
+                </Card>
+
+                <Card className="gap-0 overflow-hidden py-0">
+                    <CardHeader className="border-b px-5 py-5">
+                        <SectionHeader
+                            title="Distribusi Skema Penjualan Bulan Ini"
+                            description="Rincian transaksi berdasarkan metode pembayaran dan nilai unit tukar tambah."
+                            action={
+                                summary.trade_in_this_month_count > 0 ? (
+                                    <Badge className="border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300">
+                                        <ArrowsLeftRightIcon className="mr-1 size-3.5" weight="bold" />
+                                        {summary.trade_in_this_month_count} Tukar Tambah
+                                    </Badge>
+                                ) : undefined
+                            }
+                        />
+                    </CardHeader>
+                    <CardContent className="grid gap-3 bg-muted/15 p-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <StatCard
+                            title="Tunai Lunas"
+                            value={`${summary.payment_breakdown?.cash_full?.count ?? 0} SPK`}
+                            description={`Omzet: ${formatCurrency(
+                                summary.payment_breakdown?.cash_full?.turnover ?? 0,
+                                compactCurrencyOptions,
+                            )}`}
+                            icon={CurrencyCircleDollarIcon}
+                            variant="success"
+                        />
+                        <StatCard
+                            title="Tunai Tempo"
+                            value={`${summary.payment_breakdown?.cash_tempo?.count ?? 0} SPK`}
+                            description={`Omzet: ${formatCurrency(
+                                summary.payment_breakdown?.cash_tempo?.turnover ?? 0,
+                                compactCurrencyOptions,
+                            )}`}
+                            icon={ClockCountdownIcon}
+                            variant="warning"
+                        />
+                        <StatCard
+                            title="Kredit Leasing"
+                            value={`${summary.payment_breakdown?.credit?.count ?? 0} SPK`}
+                            description={`Omzet: ${formatCurrency(
+                                summary.payment_breakdown?.credit?.turnover ?? 0,
+                                compactCurrencyOptions,
+                            )}`}
+                            icon={BankIcon}
+                            variant="info"
+                        />
+                        <StatCard
+                            title="Tukar Tambah (Trade-in)"
+                            value={`${summary.trade_in_this_month_count ?? 0} SPK`}
+                            description={`Nilai Mobil: ${formatCurrency(
+                                summary.trade_in_this_month_value ?? 0,
+                                compactCurrencyOptions,
+                            )}`}
+                            icon={ArrowsLeftRightIcon}
+                            variant="purple"
+                            className="border-purple-500/30 bg-purple-500/5 dark:bg-purple-500/10"
                         />
                     </CardContent>
                 </Card>
@@ -377,9 +395,10 @@ export default function Dashboard({
                                                                     variant="outline"
                                                                     className="bg-background/70"
                                                                 >
-                                                                    {shortDateFormatter.format(
-                                                                        parseLocalDate(
-                                                                            reminder.due_date,
+                                                                    {formatDate(
+                                                                        reminder.due_date.slice(
+                                                                            0,
+                                                                            10,
                                                                         ),
                                                                     )}
                                                                 </Badge>
@@ -465,8 +484,9 @@ export default function Dashboard({
                                                     {car.license_plate ??
                                                         'Tanpa plat'}{' '}
                                                     · Jual{' '}
-                                                    {compactCurrencyFormatter.format(
+                                                    {formatCurrency(
                                                         car.selling_price,
+                                                        compactCurrencyOptions,
                                                     )}
                                                 </p>
                                             </div>
@@ -477,8 +497,9 @@ export default function Dashboard({
                                                             Modal
                                                         </p>
                                                         <p className="text-sm font-semibold tabular-nums">
-                                                            {compactCurrencyFormatter.format(
+                                                            {formatCurrency(
                                                                 car.capital,
+                                                                compactCurrencyOptions,
                                                             )}
                                                         </p>
                                                     </>
@@ -563,15 +584,17 @@ export default function Dashboard({
                                             </div>
                                             <div className="shrink-0 text-right">
                                                 <p className="text-sm font-semibold tabular-nums">
-                                                    {compactCurrencyFormatter.format(
+                                                    {formatCurrency(
                                                         sale.deal_price,
+                                                        compactCurrencyOptions,
                                                     )}
                                                 </p>
                                                 {sale.remaining_bill > 0 && (
                                                     <p className="mt-1 text-xs text-red-500">
                                                         Sisa{' '}
-                                                        {compactCurrencyFormatter.format(
+                                                        {formatCurrency(
                                                             sale.remaining_bill,
+                                                            compactCurrencyOptions,
                                                         )}
                                                     </p>
                                                 )}
@@ -594,7 +617,7 @@ export default function Dashboard({
                         Data diperbarui saat halaman dibuka
                     </div>
                 </div>
-            </div>
+            </PageContainer>
         </>
     );
 }

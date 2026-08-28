@@ -11,20 +11,13 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { formatCurrency } from '@/lib/formatters';
 import type { PerformancePoint } from '@/pages/dashboard/types';
 
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
-const compactCurrencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
+const compactCurrencyOptions: Intl.NumberFormatOptions = {
     notation: 'compact',
     maximumFractionDigits: 1,
-});
+};
 
 type Props = {
     data: PerformancePoint[];
@@ -87,7 +80,7 @@ export function PerformanceChart({ data }: Props) {
                                                     }}
                                                     tabIndex={0}
                                                     role="button"
-                                                    aria-label={`${point.label}, Nilai Penjualan: ${currencyFormatter.format(point.turnover)}`}
+                                                    aria-label={`${point.label}, Nilai Penjualan: ${formatCurrency(point.turnover)}`}
                                                 />
                                             </TooltipTrigger>
                                             <TooltipContent
@@ -103,7 +96,7 @@ export function PerformanceChart({ data }: Props) {
                                                         </span>
                                                     </div>
                                                     <div className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
-                                                        {currencyFormatter.format(
+                                                        {formatCurrency(
                                                             point.turnover,
                                                         )}
                                                     </div>
@@ -111,6 +104,24 @@ export function PerformanceChart({ data }: Props) {
                                                         {point.sales_count}{' '}
                                                         transaksi penjualan
                                                     </div>
+                                                    {Boolean(
+                                                        point.trade_in_count &&
+                                                            point.trade_in_count >
+                                                                0,
+                                                    ) && (
+                                                        <div className="text-[10px] font-medium text-purple-600 dark:text-purple-400">
+                                                            {
+                                                                point.trade_in_count
+                                                            }{' '}
+                                                            unit tukar tambah (
+                                                            {formatCurrency(
+                                                                point.trade_in_value ??
+                                                                    0,
+                                                                compactCurrencyOptions,
+                                                            )}
+                                                            )
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </TooltipContent>
                                         </Tooltip>
@@ -124,7 +135,7 @@ export function PerformanceChart({ data }: Props) {
                                                     }}
                                                     tabIndex={0}
                                                     role="button"
-                                                    aria-label={`${point.label}, Pembayaran Masuk: ${currencyFormatter.format(point.payments)}`}
+                                                    aria-label={`${point.label}, Pembayaran Masuk: ${formatCurrency(point.payments)}`}
                                                 />
                                             </TooltipTrigger>
                                             <TooltipContent
@@ -140,7 +151,7 @@ export function PerformanceChart({ data }: Props) {
                                                         </span>
                                                     </div>
                                                     <div className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                                                        {currencyFormatter.format(
+                                                        {formatCurrency(
                                                             point.payments,
                                                         )}
                                                     </div>
@@ -169,22 +180,24 @@ export function PerformanceChart({ data }: Props) {
                     <p>
                         Total nilai penjualan:{' '}
                         <span className="font-semibold text-foreground">
-                            {compactCurrencyFormatter.format(
+                            {formatCurrency(
                                 data.reduce(
                                     (total, point) => total + point.turnover,
                                     0,
                                 ),
+                                compactCurrencyOptions,
                             )}
                         </span>
                     </p>
                     <p className="sm:text-right">
                         Total pembayaran masuk:{' '}
                         <span className="font-semibold text-foreground">
-                            {compactCurrencyFormatter.format(
+                            {formatCurrency(
                                 data.reduce(
                                     (total, point) => total + point.payments,
                                     0,
                                 ),
+                                compactCurrencyOptions,
                             )}
                         </span>
                     </p>

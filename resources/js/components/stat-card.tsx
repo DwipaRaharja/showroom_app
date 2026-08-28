@@ -4,7 +4,12 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 export type StatCardVariant =
-    'default' | 'success' | 'warning' | 'info' | 'danger';
+    | 'default'
+    | 'success'
+    | 'warning'
+    | 'info'
+    | 'danger'
+    | 'purple';
 
 export type StatCardProps = {
     title: string;
@@ -39,6 +44,10 @@ const variantStyles: Record<
     danger: {
         iconBox: 'bg-red-500/10 text-red-600 dark:text-red-400',
         value: 'text-red-600 dark:text-red-400',
+    },
+    purple: {
+        iconBox: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+        value: 'text-purple-600 dark:text-purple-400',
     },
 };
 

@@ -1,5 +1,11 @@
 export type DashboardSeverity = 'danger' | 'warning' | 'info';
 
+export type PaymentTypeBreakdown = {
+    count: number;
+    turnover: number;
+    trade_in_value?: number;
+};
+
 export type DashboardSummary = {
     available: number;
     booked: number;
@@ -7,10 +13,16 @@ export type DashboardSummary = {
     sales_this_month: number;
     turnover_this_month: number;
     payments_this_month: number;
+    trade_in_this_month_count: number;
+    trade_in_this_month_value: number;
     active_capital: number;
     incomplete_capital: number;
     customer_receivables: number;
     finance_receivables: number;
+    payment_breakdown: Record<
+        'cash_full' | 'cash_tempo' | 'credit' | 'trade_in',
+        PaymentTypeBreakdown
+    >;
 };
 
 export type AttentionItem = {
@@ -45,6 +57,8 @@ export type PerformancePoint = {
     sales_count: number;
     turnover: number;
     payments: number;
+    trade_in_count?: number;
+    trade_in_value?: number;
 };
 
 export type StockAgingItem = {

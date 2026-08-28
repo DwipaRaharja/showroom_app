@@ -89,31 +89,67 @@ test('dashboard summarizes current business data and prioritizes actionable item
         'status' => 'confirmed',
     ]);
 
+    $tradeInCar = Car::factory()->create([
+        'status' => 'booked',
+        'selling_price' => 150_000_000,
+    ]);
+    $tradeInCustomer = Customer::factory()->create(['name' => 'Dewi Lestari']);
+    $tradeInSale = Sale::factory()->for($tradeInCar)->for($tradeInCustomer)->create([
+        'payment_type' => 'trade_in',
+        'deal_price' => 150_000_000,
+        'trade_in_price' => 80_000_000,
+        'trade_in_brand' => 'Honda',
+        'trade_in_car_name' => 'Brio 1.2 E M/T',
+        'trade_in_license_plate' => 'KT 8888 XX',
+        'down_payment' => 20_000_000,
+        'finance_amount' => 0,
+        'status' => 'partial',
+        'created_at' => '2026-08-15 11:00:00',
+        'updated_at' => '2026-08-15 11:00:00',
+    ]);
+
+    Payment::factory()->for($tradeInSale)->create([
+        'payment_date' => '2026-08-15',
+        'payer_type' => 'customer',
+        'payment_category' => 'down_payment',
+        'amount' => 20_000_000,
+        'status' => 'confirmed',
+    ]);
+
     $this->actingAs($user)
         ->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboard')
             ->where('summary.available', 1)
-            ->where('summary.booked', 1)
+            ->where('summary.booked', 2)
             ->where('summary.maintenance', 0)
-            ->where('summary.sales_this_month', 1)
-            ->where('summary.turnover_this_month', 100_000_000)
-            ->where('summary.payments_this_month', 20_000_000)
+            ->where('summary.sales_this_month', 2)
+            ->where('summary.turnover_this_month', 250_000_000)
+            ->where('summary.payments_this_month', 40_000_000)
+            ->where('summary.trade_in_this_month_count', 1)
+            ->where('summary.trade_in_this_month_value', 80_000_000)
             ->where('summary.active_capital', 100_000_000)
-            ->where('summary.incomplete_capital', 1)
-            ->where('summary.customer_receivables', 80_000_000)
+            ->where('summary.incomplete_capital', 2)
+            ->where('summary.customer_receivables', 130_000_000)
             ->where('summary.finance_receivables', 0)
+            ->where('summary.payment_breakdown.trade_in.count', 1)
+            ->where('summary.payment_breakdown.trade_in.turnover', 150_000_000)
+            ->where('summary.payment_breakdown.trade_in.trade_in_value', 80_000_000)
+            ->where('summary.payment_breakdown.cash_tempo.count', 1)
+            ->where('summary.payment_breakdown.cash_tempo.turnover', 100_000_000)
             ->has('attention.financial', 1)
             ->where('attention.financial.0.kind', 'payment_overdue')
             ->where('attention.financial.0.amount', 80_000_000)
             ->has('document_reminders', 2)
             ->where('document_reminders.0.kind', 'annual_tax')
             ->where('performance.5.key', '2026-08')
-            ->where('performance.5.turnover', 100_000_000)
-            ->where('performance.5.payments', 20_000_000)
+            ->where('performance.5.turnover', 250_000_000)
+            ->where('performance.5.payments', 40_000_000)
+            ->where('performance.5.trade_in_count', 1)
+            ->where('performance.5.trade_in_value', 80_000_000)
             ->where('stock_aging.0.id', $readyCar->id)
-            ->where('recent_sales.0.id', $sale->id));
+            ->where('recent_sales.0.id', $tradeInSale->id));
 
     Carbon::setTestNow();
 });
