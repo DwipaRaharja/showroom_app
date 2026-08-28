@@ -20,7 +20,6 @@ import {
     sortFn_text,
     tableFeatures,
 } from '@tanstack/react-table';
-import { toast } from 'sonner';
 import { SortableTableHeader } from '@/components/data-table/sortable-table-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -32,6 +31,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { copyToClipboard } from '@/lib/clipboard';
+import { formatDate } from '@/lib/formatters';
 import type { Brand } from '@/pages/brands/types';
 
 export const brandTableFeatures = tableFeatures({
@@ -53,21 +54,6 @@ export const brandTableFeatures = tableFeatures({
 });
 
 const columnHelper = createColumnHelper<typeof brandTableFeatures, Brand>();
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-});
-
-async function copyText(value: string, label: string) {
-    try {
-        await navigator.clipboard.writeText(value);
-        toast.success(`${label} berhasil disalin.`);
-    } catch {
-        toast.error(`${label} gagal disalin.`);
-    }
-}
 
 type BrandColumnActions = {
     onEdit: (brand: Brand) => void;
@@ -161,7 +147,7 @@ export function createBrandColumns({
                     onToggle={column.getToggleSortingHandler()}
                 />
             ),
-            cell: ({ getValue }) => dateFormatter.format(new Date(getValue())),
+            cell: ({ getValue }) => formatDate(getValue()),
             sortFn: 'text',
         }),
         columnHelper.display({
@@ -187,7 +173,7 @@ export function createBrandColumns({
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                                 onSelect={() =>
-                                    void copyText(
+                                    void copyToClipboard(
                                         String(row.original.id),
                                         'ID merek',
                                     )
@@ -198,7 +184,10 @@ export function createBrandColumns({
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 onSelect={() =>
-                                    void copyText(row.original.slug, 'Slug')
+                                    void copyToClipboard(
+                                        row.original.slug,
+                                        'Slug',
+                                    )
                                 }
                             >
                                 <CopyIcon />

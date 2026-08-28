@@ -1,4 +1,6 @@
 import { Head } from '@inertiajs/react';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import type { Brand } from '@/pages/brands/types';
 import { CarForm } from '@/pages/cars/car-form';
 import type { Car } from '@/pages/cars/types';
@@ -14,19 +16,14 @@ export default function CarsEdit({ car, brands }: Props) {
         <>
             <Head title={`Edit ${car.name}`} />
 
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Edit unit mobil
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Perbarui informasi {car.name} tanpa meninggalkan alur
-                        pengelolaan inventaris.
-                    </p>
-                </div>
+            <PageContainer className="mx-auto w-full max-w-5xl">
+                <PageHeader
+                    title="Edit unit mobil"
+                    description={`Perbarui informasi ${car.name} tanpa meninggalkan alur pengelolaan inventaris.`}
+                />
 
                 <CarForm car={car} brands={brands} />
-            </div>
+            </PageContainer>
         </>
     );
 }

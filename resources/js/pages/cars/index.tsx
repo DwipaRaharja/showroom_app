@@ -5,7 +5,11 @@ import {
     TagIcon,
     WrenchIcon,
 } from '@phosphor-icons/react';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
+import { StatCardGrid } from '@/components/stat-card-grid';
+import { formatCurrency } from '@/lib/formatters';
 import { CarDataTable } from '@/pages/cars/data-table';
 import type { Car, CarSummary } from '@/pages/cars/types';
 import { index as carsIndex } from '@/routes/cars';
@@ -15,28 +19,18 @@ type Props = {
     summary: CarSummary;
 };
 
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
 export default function CarsIndex({ cars, summary }: Props) {
     return (
         <>
             <Head title="Mobil" />
 
-            <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Mobil
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Kelola dan pantau seluruh unit mobil showroom.
-                    </p>
-                </div>
+            <PageContainer>
+                <PageHeader
+                    title="Mobil"
+                    description="Kelola dan pantau seluruh unit mobil showroom."
+                />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCardGrid>
                     <StatCard
                         title="Unit Tersedia (Ready)"
                         value={`${summary.available} Unit`}
@@ -46,9 +40,7 @@ export default function CarsIndex({ cars, summary }: Props) {
                     />
                     <StatCard
                         title="Total Modal Stok Aktif"
-                        value={currencyFormatter.format(
-                            summary.total_active_capital,
-                        )}
+                        value={formatCurrency(summary.total_active_capital)}
                         description="Modal tertahan di unit belum terjual"
                         icon={CoinsIcon}
                         variant="warning"
@@ -56,7 +48,7 @@ export default function CarsIndex({ cars, summary }: Props) {
                     />
                     <StatCard
                         title="Potensi Nilai Jual Stok"
-                        value={currencyFormatter.format(
+                        value={formatCurrency(
                             summary.potential_selling_turnover,
                         )}
                         description="Estimasi omzet unit ready"
@@ -71,10 +63,10 @@ export default function CarsIndex({ cars, summary }: Props) {
                         icon={WrenchIcon}
                         variant="danger"
                     />
-                </div>
+                </StatCardGrid>
 
                 <CarDataTable data={cars} />
-            </div>
+            </PageContainer>
         </>
     );
 }

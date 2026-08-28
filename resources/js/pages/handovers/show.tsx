@@ -12,7 +12,12 @@ import {
     UserIcon,
 } from '@phosphor-icons/react';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
+import { CardSectionHeader } from '@/components/card-section-header';
+import { DataRow } from '@/components/detail-item';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
+import { StatCardGrid } from '@/components/stat-card-grid';
 import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +28,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/formatters';
 import { TimelineEvent } from '@/pages/handovers/timeline-event';
 import type { Sale } from '@/pages/sales/types';
 import { index as handoversIndex } from '@/routes/handovers';
@@ -31,16 +37,11 @@ type Props = {
     sale: Sale;
 };
 
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
 const paymentTypeLabels: Record<string, string> = {
     cash_full: 'Cash Keras',
     cash_tempo: 'Cash Tempo',
     credit: 'Kredit Leasing',
+    trade_in: 'Tukar Tambah',
 };
 
 export default function HandoverShow({ sale }: Props) {
@@ -86,68 +87,56 @@ export default function HandoverShow({ sale }: Props) {
         <>
             <Head title={`Tracking ${sale.invoice_number}`} />
 
-            <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                {/* Page Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex items-start gap-3">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="mt-0.5 shrink-0"
-                            asChild
-                        >
-                            <Link href={handoversIndex.url()}>
-                                <ArrowLeftIcon />
-                            </Link>
-                        </Button>
-                        <div>
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                Tracking Penyerahan
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                {sale.invoice_number} · {sale.car?.brand?.name}{' '}
-                                {sale.car?.name}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {canAddTracking ? (
-                            <Button asChild>
-                                <Link
-                                    href={VehicleHandoverController.create.url(
-                                        sale.id,
-                                    )}
-                                >
+            <PageContainer>
+                <PageHeader
+                    backHref={handoversIndex.url()}
+                    backLabel="Kembali ke penyerahan"
+                    title="Tracking Penyerahan"
+                    description={
+                        <>
+                            {sale.invoice_number} · {sale.car?.brand?.name}{' '}
+                            {sale.car?.name}
+                        </>
+                    }
+                    actions={
+                        <>
+                            {canAddTracking ? (
+                                <Button asChild>
+                                    <Link
+                                        href={VehicleHandoverController.create.url(
+                                            sale.id,
+                                        )}
+                                    >
+                                        <PlusIcon className="size-4" />
+                                        Tambah Tracking
+                                    </Link>
+                                </Button>
+                            ) : (
+                                <Button disabled>
                                     <PlusIcon className="size-4" />
                                     Tambah Tracking
-                                </Link>
-                            </Button>
-                        ) : (
-                            <Button disabled>
-                                <PlusIcon className="size-4" />
-                                Tambah Tracking
-                            </Button>
-                        )}
-                        {unitDelivered && (
-                            <Button variant="outline" asChild>
-                                <Link
-                                    href={VehicleHandoverController.printBast.url(
-                                        sale.id,
-                                    )}
-                                >
-                                    <PrinterIcon className="size-4" />
-                                    Cetak BAST
-                                </Link>
-                            </Button>
-                        )}
-                    </div>
-                </div>
+                                </Button>
+                            )}
+                            {unitDelivered && (
+                                <Button variant="outline" asChild>
+                                    <Link
+                                        href={VehicleHandoverController.printBast.url(
+                                            sale.id,
+                                        )}
+                                    >
+                                        <PrinterIcon className="size-4" />
+                                        Cetak BAST
+                                    </Link>
+                                </Button>
+                            )}
+                        </>
+                    }
+                />
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCardGrid>
                     <StatCard
                         title="Sisa Tagihan"
-                        value={currencyFormatter.format(remainingBill)}
+                        value={formatCurrency(remainingBill)}
                         icon={KeyIcon}
                         variant={remainingBill <= 0 ? 'success' : 'danger'}
                         valueClassName="text-base"
@@ -179,15 +168,15 @@ export default function HandoverShow({ sale }: Props) {
                                 : 'Belum ada tracking'
                         }
                     />
-                </div>
+                </StatCardGrid>
 
                 {/* Transaction Info */}
                 <Card className="shadow-xs">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm">
-                            Informasi Transaksi
-                        </CardTitle>
-                    </CardHeader>
+                    <CardSectionHeader
+                        className="pb-3"
+                        title="Informasi Transaksi"
+                        titleClassName="text-sm font-semibold"
+                    />
                     <CardContent>
                         <div className="grid gap-6 sm:grid-cols-2">
                             {/* Car info */}
@@ -196,59 +185,30 @@ export default function HandoverShow({ sale }: Props) {
                                     <CarProfileIcon className="size-3.5" />
                                     Data Kendaraan
                                 </h4>
-                                <div className="grid gap-2 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Unit
-                                        </span>
-                                        <span className="font-medium">
-                                            {sale.car?.brand?.name}{' '}
-                                            {sale.car?.name}
-                                        </span>
-                                    </div>
+                                <div className="divide-y divide-border/40 text-sm">
+                                    <DataRow
+                                        label="Unit"
+                                        value={`${sale.car?.brand?.name ?? ''} ${sale.car?.name ?? ''}`}
+                                    />
                                     {sale.car?.license_plate && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">
-                                                Plat Nomor
-                                            </span>
-                                            <Badge
-                                                variant="outline"
-                                                className="font-mono"
-                                            >
-                                                {sale.car.license_plate}
-                                            </Badge>
-                                        </div>
+                                        <DataRow
+                                            label="Plat Nomor"
+                                            value={sale.car.license_plate}
+                                            mono
+                                        />
                                     )}
                                     {sale.car?.year && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">
-                                                Tahun
-                                            </span>
-                                            <span className="font-medium">
-                                                {sale.car.year}
-                                            </span>
-                                        </div>
+                                        <DataRow
+                                            label="Tahun"
+                                            value={sale.car.year}
+                                        />
                                     )}
                                     {sale.car?.color && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">
-                                                Warna
-                                            </span>
-                                            <span className="font-medium">
-                                                {sale.car.color}
-                                            </span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Status
-                                        </span>
-                                        <StatusBadge
-                                            status={
-                                                sale.car?.status ?? 'booked'
-                                            }
+                                        <DataRow
+                                            label="Warna"
+                                            value={sale.car.color}
                                         />
-                                    </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -258,61 +218,43 @@ export default function HandoverShow({ sale }: Props) {
                                     <UserIcon className="size-3.5" />
                                     Data Pembeli & Keuangan
                                 </h4>
-                                <div className="grid gap-2 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Pembeli
-                                        </span>
-                                        <span className="font-medium">
-                                            {sale.customer?.name ?? '—'}
-                                        </span>
-                                    </div>
+                                <div className="divide-y divide-border/40 text-sm">
+                                    <DataRow
+                                        label="Pembeli"
+                                        value={sale.customer?.name ?? '—'}
+                                    />
                                     {sale.customer?.phone && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">
-                                                No. HP
-                                            </span>
-                                            <span className="font-medium">
-                                                {sale.customer.phone}
-                                            </span>
-                                        </div>
+                                        <DataRow
+                                            label="No. HP"
+                                            value={sale.customer.phone}
+                                            mono
+                                        />
                                     )}
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Metode Bayar
-                                        </span>
-                                        <span className="font-medium">
-                                            {paymentTypeLabels[
+                                    <DataRow
+                                        label="Metode Bayar"
+                                        value={
+                                            paymentTypeLabels[
                                                 sale.payment_type
-                                            ] ?? sale.payment_type}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Harga Deal
-                                        </span>
-                                        <span className="font-semibold">
-                                            {currencyFormatter.format(
-                                                sale.deal_price,
-                                            )}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Terbayar
-                                        </span>
-                                        <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                                            {currencyFormatter.format(
-                                                sale.total_paid ?? 0,
-                                            )}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
-                                            Status
-                                        </span>
-                                        <StatusBadge status={sale.status} />
-                                    </div>
+                                            ] ?? sale.payment_type
+                                        }
+                                    />
+                                    <DataRow
+                                        label="Harga Deal"
+                                        value={formatCurrency(sale.deal_price)}
+                                        valueClassName="font-semibold"
+                                    />
+                                    <DataRow
+                                        label="Terbayar"
+                                        value={formatCurrency(
+                                            sale.total_paid ?? 0,
+                                        )}
+                                        valueClassName="font-medium text-emerald-600 dark:text-emerald-400"
+                                    />
+                                    <DataRow
+                                        label="Status"
+                                        value=""
+                                        badge={<StatusBadge status={sale.status} />}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -321,26 +263,25 @@ export default function HandoverShow({ sale }: Props) {
 
                 {/* Timeline */}
                 <Card className="shadow-xs">
-                    <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle className="text-sm">
-                                    Riwayat Tracking
-                                </CardTitle>
-                                <CardDescription className="text-xs">
-                                    {events.length > 0
-                                        ? `${events.length} kejadian tercatat`
-                                        : 'Belum ada riwayat penyerahan'}
-                                </CardDescription>
-                            </div>
-                            {events.length > 0 && (
+                    <CardSectionHeader
+                        className="pb-3"
+                        title="Riwayat Tracking"
+                        titleClassName="text-sm font-semibold"
+                        description={
+                            events.length > 0
+                                ? `${events.length} kejadian tercatat`
+                                : 'Belum ada riwayat penyerahan'
+                        }
+                        descriptionClassName="text-xs"
+                        action={
+                            events.length > 0 ? (
                                 <Badge variant="outline">
                                     <CalendarBlankIcon className="size-3" />
                                     {events.length} event
                                 </Badge>
-                            )}
-                        </div>
-                    </CardHeader>
+                            ) : null
+                        }
+                    />
                     <CardContent>
                         {events.length > 0 ? (
                             <div className="space-y-4">
@@ -387,7 +328,7 @@ export default function HandoverShow({ sale }: Props) {
                         )}
                     </CardContent>
                 </Card>
-            </div>
+            </PageContainer>
         </>
     );
 }

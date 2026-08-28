@@ -130,6 +130,7 @@ export function ProcessLifecycleDialog({
                                         onChange={(event) =>
                                             setReason(event.target.value)
                                         }
+                                        aria-invalid={Boolean(errors.reason)}
                                         placeholder={
                                             isDelete
                                                 ? 'Contoh: Data proses dibuat dua kali'
@@ -160,6 +161,9 @@ export function ProcessLifecycleDialog({
                                                     event.target.value,
                                                 )
                                             }
+                                            aria-invalid={Boolean(
+                                                errors.process_number,
+                                            )}
                                             placeholder={`Ketik ${process.process_number}`}
                                             autoComplete="off"
                                         />

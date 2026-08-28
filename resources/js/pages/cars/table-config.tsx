@@ -26,7 +26,6 @@ import {
     sortFn_text,
     tableFeatures,
 } from '@tanstack/react-table';
-import { toast } from 'sonner';
 import CarController from '@/actions/App/Http/Controllers/CarController';
 import { SortableTableHeader } from '@/components/data-table/sortable-table-header';
 import { StatusBadge } from '@/components/status-badge';
@@ -39,6 +38,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { copyToClipboard } from '@/lib/clipboard';
+import { formatCurrency, formatDate, formatNumber } from '@/lib/formatters';
 import type {
     Car,
     CarStatus,
@@ -70,29 +71,6 @@ export const carTableFeatures = tableFeatures({
 });
 
 const columnHelper = createColumnHelper<typeof carTableFeatures, Car>();
-
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
-const numberFormatter = new Intl.NumberFormat('id-ID');
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-});
-
-async function copyText(value: string, label: string) {
-    try {
-        await navigator.clipboard.writeText(value);
-        toast.success(`${label} berhasil disalin.`);
-    } catch {
-        toast.error(`${label} gagal disalin.`);
-    }
-}
 
 export function getStatusBadge(status: CarStatus) {
     return <StatusBadge status={status} />;
@@ -264,7 +242,7 @@ export function createCarColumns({
             ),
             cell: ({ getValue }) => (
                 <div className="text-sm font-medium">
-                    {numberFormatter.format(getValue())} km
+                    {formatNumber(getValue())} km
                 </div>
             ),
             sortFn: (rowA, rowB) =>
@@ -281,14 +259,12 @@ export function createCarColumns({
             cell: ({ row }) => (
                 <div className="min-w-32">
                     <div className="font-semibold text-emerald-600 dark:text-emerald-500">
-                        {currencyFormatter.format(row.original.selling_price)}
+                        {formatCurrency(row.original.selling_price)}
                     </div>
                     {row.original.capital && (
                         <div className="text-xs text-muted-foreground">
                             Modal:{' '}
-                            {currencyFormatter.format(
-                                row.original.capital.total_capital,
-                            )}
+                            {formatCurrency(row.original.capital.total_capital)}
                             {row.original.capital.status !== 'completed' &&
                                 ` · ${
                                     row.original.capital.status === 'draft'
@@ -370,7 +346,7 @@ export function createCarColumns({
                     onToggle={column.getToggleSortingHandler()}
                 />
             ),
-            cell: ({ getValue }) => dateFormatter.format(new Date(getValue())),
+            cell: ({ getValue }) => formatDate(getValue()),
             sortFn: 'text',
         }),
         columnHelper.display({
@@ -409,7 +385,7 @@ export function createCarColumns({
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onSelect={() =>
-                                        void copyText(
+                                        void copyToClipboard(
                                             String(row.original.id),
                                             'ID mobil',
                                         )
@@ -421,7 +397,7 @@ export function createCarColumns({
                                 {row.original.license_plate && (
                                     <DropdownMenuItem
                                         onSelect={() =>
-                                            void copyText(
+                                            void copyToClipboard(
                                                 row.original.license_plate ??
                                                     '',
                                                 'Plat nomor',
@@ -434,7 +410,7 @@ export function createCarColumns({
                                 )}
                                 <DropdownMenuItem
                                     onSelect={() =>
-                                        void copyText(
+                                        void copyToClipboard(
                                             row.original.name,
                                             'Nama mobil',
                                         )

@@ -23,7 +23,6 @@ import {
     sortFn_text,
     tableFeatures,
 } from '@tanstack/react-table';
-import { toast } from 'sonner';
 import { SortableTableHeader } from '@/components/data-table/sortable-table-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +35,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { copyToClipboard } from '@/lib/clipboard';
+import { formatDate } from '@/lib/formatters';
 import type { FinanceCompany } from '@/pages/finance-companies/types';
 
 export const financeCompanyTableFeatures = tableFeatures({
@@ -61,12 +62,6 @@ const columnHelper = createColumnHelper<
     FinanceCompany
 >();
 
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-});
-
 function whatsappUrl(phone: string | null): string | null {
     const normalized = phone?.replace(/\D/g, '') ?? '';
 
@@ -81,15 +76,6 @@ function whatsappUrl(phone: string | null): string | null {
           : normalized;
 
     return `https://wa.me/${internationalNumber}`;
-}
-
-async function copyText(value: string, label: string) {
-    try {
-        await navigator.clipboard.writeText(value);
-        toast.success(`${label} berhasil disalin.`);
-    } catch {
-        toast.error(`${label} gagal disalin.`);
-    }
 }
 
 type FinanceCompanyColumnActions = {
@@ -306,7 +292,7 @@ export function createFinanceCompanyColumns({
 
                 return value ? (
                     <span className="text-xs whitespace-nowrap text-muted-foreground">
-                        {dateFormatter.format(new Date(value))}
+                        {formatDate(value)}
                     </span>
                 ) : (
                     '—'
@@ -340,7 +326,7 @@ export function createFinanceCompanyColumns({
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     onSelect={() =>
-                                        void copyText(
+                                        void copyToClipboard(
                                             company.name,
                                             'Nama perusahaan',
                                         )
@@ -352,7 +338,7 @@ export function createFinanceCompanyColumns({
                                 {company.pic_phone && (
                                     <DropdownMenuItem
                                         onSelect={() =>
-                                            void copyText(
+                                            void copyToClipboard(
                                                 company.pic_phone ?? '',
                                                 'Nomor PIC',
                                             )

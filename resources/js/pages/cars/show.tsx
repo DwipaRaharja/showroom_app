@@ -17,6 +17,10 @@ import { useState } from 'react';
 import CarController from '@/actions/App/Http/Controllers/CarController';
 import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
 import VehicleDocumentController from '@/actions/App/Http/Controllers/VehicleDocumentController';
+import { CardSectionHeader } from '@/components/card-section-header';
+import { DetailItem } from '@/components/detail-item';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +30,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    formatCurrency,
+    formatDate,
+    formatDateTime,
+    formatNumber,
+} from '@/lib/formatters';
 import { CarStatusDialog } from '@/pages/cars/car-status-dialog';
 import { formatFuel, formatTransmission } from '@/pages/cars/table-config';
 import type {
@@ -48,34 +58,12 @@ type Props = {
     car: Car;
 };
 
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
-const numberFormatter = new Intl.NumberFormat('id-ID');
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-});
-
-const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-});
-
-function formatDate(value: string | null): string {
-    if (!value) {
-        return '—';
-    }
-
-    return dateFormatter.format(new Date(`${value.slice(0, 10)}T00:00:00`));
+function formatCalendarDate(value: string | null): string {
+    return formatDate(value?.slice(0, 10), {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
 }
 
 function findDocument(
@@ -83,17 +71,6 @@ function findDocument(
     type: VehicleDocumentType,
 ): VehicleDocument | undefined {
     return documents.find((document) => document.document_type === type);
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="space-y-1">
-            <div className="text-xs text-muted-foreground">{label}</div>
-            <div className="text-sm font-semibold break-words text-foreground">
-                {value}
-            </div>
-        </div>
-    );
 }
 
 function DocumentCard({
@@ -154,69 +131,57 @@ export default function CarsShow({ car }: Props) {
         <>
             <Head title={`Detail ${car.name}`} />
 
-            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:p-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex items-start gap-3">
-                        <Button variant="outline" size="icon" asChild>
-                            <Link
-                                href={carsIndex()}
-                                aria-label="Kembali ke mobil"
+            <PageContainer className="mx-auto w-full max-w-7xl">
+                <PageHeader
+                    className="lg:items-center"
+                    backHref={carsIndex.url()}
+                    backLabel="Kembali ke mobil"
+                    title={car.name}
+                    titleAddon={<StatusBadge status={car.status} />}
+                    description={
+                        <>
+                            {car.brand?.name ?? 'Merek belum tersedia'} · Tahun{' '}
+                            {car.year}
+                            {car.license_plate ? ` · ${car.license_plate}` : ''}
+                        </>
+                    }
+                    actions={
+                        <>
+                            <Button type="button" variant="outline" asChild>
+                                <Link
+                                    href={DocumentProcessController.create.url({
+                                        query: { car_id: car.id },
+                                    })}
+                                >
+                                    <ClipboardTextIcon />
+                                    Proses berkas
+                                </Link>
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsStatusOpen(true)}
                             >
-                                <ArrowLeftIcon />
-                            </Link>
-                        </Button>
-                        <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <h1 className="text-2xl font-semibold tracking-tight">
-                                    {car.name}
-                                </h1>
-                                <StatusBadge status={car.status} />
-                            </div>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {car.brand?.name ?? 'Merek belum tersedia'} ·{' '}
-                                Tahun {car.year}
-                                {car.license_plate
-                                    ? ` · ${car.license_plate}`
-                                    : ''}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                        <Button type="button" variant="outline" asChild>
-                            <Link
-                                href={DocumentProcessController.create.url({
-                                    query: { car_id: car.id },
-                                })}
+                                <TagIcon />
+                                Ubah status
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsDocumentsOpen(true)}
                             >
-                                <ClipboardTextIcon />
-                                Proses berkas
-                            </Link>
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsStatusOpen(true)}
-                        >
-                            <TagIcon />
-                            Ubah status
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsDocumentsOpen(true)}
-                        >
-                            <FileTextIcon />
-                            Kelola dokumen
-                        </Button>
-                        <Button asChild>
-                            <Link href={CarController.edit(car.id)}>
-                                <PencilSimpleIcon />
-                                Edit mobil
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
+                                <FileTextIcon />
+                                Kelola dokumen
+                            </Button>
+                            <Button asChild>
+                                <Link href={CarController.edit(car.id)}>
+                                    <PencilSimpleIcon />
+                                    Edit mobil
+                                </Link>
+                            </Button>
+                        </>
+                    }
+                />
 
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.85fr)]">
                     <div className="space-y-6">
@@ -258,9 +223,7 @@ export default function CarsShow({ car }: Props) {
                                         Harga jual
                                     </div>
                                     <div className="mt-2 text-lg font-bold text-emerald-600 dark:text-emerald-500">
-                                        {currencyFormatter.format(
-                                            car.selling_price,
-                                        )}
+                                        {formatCurrency(car.selling_price)}
                                     </div>
                                 </div>
                                 <div className="rounded-xl border bg-card p-4">
@@ -270,7 +233,7 @@ export default function CarsShow({ car }: Props) {
                                     </div>
                                     <div className="mt-2 text-lg font-bold">
                                         {car.capital
-                                            ? currencyFormatter.format(
+                                            ? formatCurrency(
                                                   car.capital.total_capital,
                                               )
                                             : '—'}
@@ -290,9 +253,7 @@ export default function CarsShow({ car }: Props) {
                                     >
                                         {estimatedMargin === null
                                             ? '—'
-                                            : currencyFormatter.format(
-                                                  estimatedMargin,
-                                              )}
+                                            : formatCurrency(estimatedMargin)}
                                     </div>
                                 </div>
                             </CardContent>
@@ -325,7 +286,7 @@ export default function CarsShow({ car }: Props) {
                                     </div>
                                     <div className="flex items-center gap-1.5 text-sm font-semibold">
                                         <GaugeIcon className="size-4 text-muted-foreground" />
-                                        {numberFormatter.format(car.mileage)} km
+                                        {formatNumber(car.mileage)} km
                                     </div>
                                 </div>
                                 <DetailItem
@@ -352,27 +313,25 @@ export default function CarsShow({ car }: Props) {
                         </Card>
 
                         <Card>
-                            <CardHeader className="flex-row items-start justify-between gap-4">
-                                <div className="space-y-1.5">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <CardTitle>Dokumen kendaraan</CardTitle>
-                                        <StatusBadge status={documentState} />
-                                    </div>
-                                    <CardDescription>
-                                        {completeDocuments}/
-                                        {requiredDocumentTypes.length} dokumen
-                                        inti siap digunakan.
-                                    </CardDescription>
-                                </div>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setIsDocumentsOpen(true)}
-                                >
-                                    Kelola
-                                </Button>
-                            </CardHeader>
+                            <CardSectionHeader
+                                title="Dokumen kendaraan"
+                                badge={
+                                    <StatusBadge status={documentState} />
+                                }
+                                description={`${completeDocuments}/${requiredDocumentTypes.length} dokumen inti siap digunakan.`}
+                                action={
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            setIsDocumentsOpen(true)
+                                        }
+                                    >
+                                        Kelola
+                                    </Button>
+                                }
+                            />
                             <CardContent className="grid gap-4 lg:grid-cols-2">
                                 <DocumentCard title="STNK" document={stnk}>
                                     <DetailItem
@@ -381,13 +340,13 @@ export default function CarsShow({ car }: Props) {
                                     />
                                     <DetailItem
                                         label="Tanggal terbit"
-                                        value={formatDate(
+                                        value={formatCalendarDate(
                                             stnk?.issued_at ?? null,
                                         )}
                                     />
                                     <DetailItem
                                         label="Berlaku sampai"
-                                        value={formatDate(
+                                        value={formatCalendarDate(
                                             stnk?.expires_at ?? null,
                                         )}
                                     />
@@ -399,7 +358,7 @@ export default function CarsShow({ car }: Props) {
                                     />
                                     <DetailItem
                                         label="Tanggal terbit"
-                                        value={formatDate(
+                                        value={formatCalendarDate(
                                             bpkb?.issued_at ?? null,
                                         )}
                                     />
@@ -470,10 +429,10 @@ export default function CarsShow({ car }: Props) {
 
                     <div className="space-y-6">
                         <Card>
-                            <CardHeader>
-                                <div className="flex items-center justify-between gap-3">
-                                    <CardTitle>Modal mobil</CardTitle>
-                                    {car.capital && (
+                            <CardSectionHeader
+                                title="Modal mobil"
+                                badge={
+                                    car.capital ? (
                                         <StatusBadge
                                             status={car.capital.status}
                                             label={
@@ -486,12 +445,10 @@ export default function CarsShow({ car }: Props) {
                                                       : 'Dibatalkan'
                                             }
                                         />
-                                    )}
-                                </div>
-                                <CardDescription>
-                                    Rincian biaya perolehan unit.
-                                </CardDescription>
-                            </CardHeader>
+                                    ) : null
+                                }
+                                description="Rincian biaya perolehan unit."
+                            />
                             <CardContent className="space-y-3 text-sm">
                                 {car.capital ? (
                                     <>
@@ -500,7 +457,7 @@ export default function CarsShow({ car }: Props) {
                                                 Harga beli
                                             </span>
                                             <span className="font-medium">
-                                                {currencyFormatter.format(
+                                                {formatCurrency(
                                                     car.capital.price,
                                                 )}
                                             </span>
@@ -510,7 +467,7 @@ export default function CarsShow({ car }: Props) {
                                                 Biaya perbaikan
                                             </span>
                                             <span className="font-medium">
-                                                {currencyFormatter.format(
+                                                {formatCurrency(
                                                     car.capital.repair_cost,
                                                 )}
                                             </span>
@@ -520,7 +477,7 @@ export default function CarsShow({ car }: Props) {
                                                 Biaya transportasi
                                             </span>
                                             <span className="font-medium">
-                                                {currencyFormatter.format(
+                                                {formatCurrency(
                                                     car.capital.transport_cost,
                                                 )}
                                             </span>
@@ -530,7 +487,7 @@ export default function CarsShow({ car }: Props) {
                                                 Biaya lainnya
                                             </span>
                                             <span className="font-medium">
-                                                {currencyFormatter.format(
+                                                {formatCurrency(
                                                     car.capital.other_cost,
                                                 )}
                                             </span>
@@ -540,7 +497,7 @@ export default function CarsShow({ car }: Props) {
                                                 Proses berkas
                                             </span>
                                             <span className="font-medium">
-                                                {currencyFormatter.format(
+                                                {formatCurrency(
                                                     car.capital
                                                         .document_process_cost,
                                                 )}
@@ -549,7 +506,7 @@ export default function CarsShow({ car }: Props) {
                                         <div className="flex justify-between gap-4 border-t pt-3 font-semibold">
                                             <span>Total modal</span>
                                             <span>
-                                                {currencyFormatter.format(
+                                                {formatCurrency(
                                                     car.capital.total_capital,
                                                 )}
                                             </span>
@@ -567,7 +524,7 @@ export default function CarsShow({ car }: Props) {
                                             <div>
                                                 Tanggal:{' '}
                                                 <span className="font-medium text-foreground">
-                                                    {formatDate(
+                                                    {formatCalendarDate(
                                                         car.capital
                                                             .purchase_date,
                                                     )}
@@ -608,9 +565,13 @@ export default function CarsShow({ car }: Props) {
                                             Diinput pada
                                         </div>
                                         <div className="mt-0.5 text-sm font-medium">
-                                            {dateTimeFormatter.format(
-                                                new Date(car.created_at),
-                                            )}
+                                            {formatDateTime(car.created_at, {
+                                                day: 'numeric',
+                                                month: 'long',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
                                         </div>
                                     </div>
                                 </div>
@@ -622,7 +583,7 @@ export default function CarsShow({ car }: Props) {
                         </Card>
                     </div>
                 </div>
-            </div>
+            </PageContainer>
 
             <CarStatusDialog
                 car={isStatusOpen ? car : null}

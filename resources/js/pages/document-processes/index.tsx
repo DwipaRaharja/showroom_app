@@ -6,7 +6,11 @@ import {
     WarningCircleIcon,
 } from '@phosphor-icons/react';
 import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
+import { StatCardGrid } from '@/components/stat-card-grid';
+import { formatCurrency } from '@/lib/formatters';
 import { ProcessDataTable } from '@/pages/document-processes/data-table';
 import type {
     DocumentProcess,
@@ -21,12 +25,6 @@ type Props = {
     status_options: LabelOptions;
 };
 
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
 export default function DocumentProcessesIndex({
     processes,
     summary,
@@ -37,18 +35,13 @@ export default function DocumentProcessesIndex({
         <>
             <Head title="Proses Berkas" />
 
-            <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Proses Berkas
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Kelola pengurusan pajak, balik nama, mutasi, dokumen,
-                        biaya, dan riwayat progres setiap kendaraan.
-                    </p>
-                </div>
+            <PageContainer>
+                <PageHeader
+                    title="Proses Berkas"
+                    description="Kelola pengurusan pajak, balik nama, mutasi, dokumen, biaya, dan riwayat progres setiap kendaraan."
+                />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCardGrid className="lg:grid-cols-2 xl:grid-cols-4">
                     <StatCard
                         title="Proses Aktif"
                         value={summary.active}
@@ -69,21 +62,19 @@ export default function DocumentProcessesIndex({
                     />
                     <StatCard
                         title="Biaya Masuk Modal"
-                        value={currencyFormatter.format(
-                            summary.capitalized_cost,
-                        )}
+                        value={formatCurrency(summary.capitalized_cost)}
                         icon={CurrencyCircleDollarIcon}
                         variant="warning"
                         valueClassName="text-base"
                     />
-                </div>
+                </StatCardGrid>
 
                 <ProcessDataTable
                     processes={processes}
                     typeOptions={typeOptions}
                     statusOptions={statusOptions}
                 />
-            </div>
+            </PageContainer>
         </>
     );
 }

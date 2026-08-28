@@ -76,6 +76,7 @@ export function ProcessCostDialog({ open, onOpenChange, process }: Props) {
                                     id="cost-description"
                                     name="description"
                                     placeholder="Contoh: Pembayaran pajak dan denda"
+                                    aria-invalid={Boolean(errors.description)}
                                 />
                                 <InputError message={errors.description} />
                             </div>
@@ -87,6 +88,7 @@ export function ProcessCostDialog({ open, onOpenChange, process }: Props) {
                                     value={amount}
                                     onValueChange={setAmount}
                                     placeholder="Contoh: 1.500.000"
+                                    aria-invalid={Boolean(errors.amount)}
                                 />
                                 <InputError message={errors.amount} />
                             </div>
@@ -98,7 +100,11 @@ export function ProcessCostDialog({ open, onOpenChange, process }: Props) {
                                         value={paidBy}
                                         onValueChange={setPaidBy}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger
+                                            aria-invalid={Boolean(
+                                                errors.paid_by,
+                                            )}
+                                        >
                                             <SelectValue placeholder="Pilih pihak pembayar" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -121,6 +127,7 @@ export function ProcessCostDialog({ open, onOpenChange, process }: Props) {
                                         type="date"
                                         max={today()}
                                         defaultValue={today()}
+                                        aria-invalid={Boolean(errors.paid_at)}
                                     />
                                     <InputError message={errors.paid_at} />
                                 </div>
@@ -135,6 +142,7 @@ export function ProcessCostDialog({ open, onOpenChange, process }: Props) {
                                     name="receipt"
                                     type="file"
                                     accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                    aria-invalid={Boolean(errors.receipt)}
                                 />
                                 <p className="text-xs text-muted-foreground">
                                     PDF atau gambar, maksimal 5 MB.

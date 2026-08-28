@@ -160,15 +160,15 @@ test('tracking history and tracking form use separate pages', function () {
             ->where('sale.id', $sale->id));
 });
 
-test('vehicle tracking is blocked while the remaining bill exceeds ten million', function () {
-    $sale = createSaleForHandover();
+test('vehicle delivery is permitted for active sale regardless of remaining bill', function () {
+    $sale = createSaleForHandover(100_000_000); // 100M remaining
 
     $this->post(
         route('handovers.store'),
-        validHandoverTrackingPayload($sale),
-    )->assertSessionHasErrors('items');
+        validHandoverTrackingPayload($sale, ['vehicle', 'stnk', 'keys']),
+    )->assertSessionHasNoErrors();
 
-    expect(VehicleHandover::query()->whereBelongsTo($sale)->exists())->toBeFalse();
+    expect(VehicleHandover::query()->whereBelongsTo($sale)->exists())->toBeTrue();
 });
 
 test('a tracking event requires at least one delivered item and one photo', function () {
@@ -365,19 +365,27 @@ test('credit sale becomes sold when BPKB handover confirms the leasing disbursem
         ->and($sale->car->status)->toBe('sold');
 });
 
-test('credit handover stays blocked while the customer portion is unpaid', function () {
+test('credit handover allows vehicle delivery but keeps BPKB blocked while the customer portion is unpaid', function () {
     $sale = createCreditSaleForHandover();
 
     expect($sale->remaining_bill)->toBe(100_000_000)
         ->and($sale->remaining_finance_disbursement)->toBe(80_000_000)
         ->and($sale->customer_payment_shortfall)->toBe(20_000_000)
-        ->and($sale->can_deliver_vehicle)->toBeFalse()
+        ->and($sale->can_deliver_vehicle)->toBeTrue()
+        ->and($sale->can_deliver_bpkb)->toBeFalse()
         ->and($sale->car->status)->toBe('booked');
 
+    // Vehicle delivery is allowed
     $this->post(
         route('handovers.store'),
-        validHandoverTrackingPayload($sale),
-    )->assertSessionHasErrors('items');
+        validHandoverTrackingPayload($sale, ['vehicle', 'stnk', 'keys']),
+    )->assertSessionHasNoErrors();
+
+    // BPKB delivery remains blocked
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale, ['bpkb', 'invoice']),
+    )->assertSessionHasErrors('recipient_relation');
 
     expect($sale->payments()->where(
         'payment_category',

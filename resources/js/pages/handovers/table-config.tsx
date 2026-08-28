@@ -36,6 +36,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatDateTime } from '@/lib/formatters';
 import { HandoverPhotoPreview } from '@/pages/handovers/photo-preview';
 import type {
     Sale,
@@ -101,14 +102,6 @@ const columnHelper = createColumnHelper<
     HandoverRecord
 >();
 
-const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-});
-
 const relationLabels = {
     buyer_self: 'Pembeli sendiri',
     family: 'Keluarga',
@@ -163,9 +156,8 @@ function resolveStatus(
         return 'pending';
     }
 
-    const remainingBill = sale.remaining_bill ?? sale.deal_price;
     const canDeliverVehicle =
-        sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
+        sale.can_deliver_vehicle ?? sale.status !== 'cancelled';
 
     return canDeliverVehicle ? 'ready' : 'locked';
 }
@@ -328,9 +320,7 @@ export function createHandoverColumns() {
                             </div>
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <CalendarBlankIcon className="size-3.5" />
-                                {dateTimeFormatter.format(
-                                    new Date(latestEvent.occurred_at),
-                                )}
+                                {formatDateTime(latestEvent.occurred_at)}
                             </div>
                             <div className="text-xs text-muted-foreground">
                                 {latestEvent.officer_name} ·{' '}
@@ -452,9 +442,8 @@ export function createHandoverColumns() {
             enableSorting: false,
             cell: ({ row }) => {
                 const { sale, handover, photos } = row.original;
-                const remainingBill = sale.remaining_bill ?? sale.deal_price;
                 const canDeliverVehicle =
-                    sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
+                    sale.can_deliver_vehicle ?? sale.status !== 'cancelled';
                 const canAddTracking =
                     sale.status !== 'cancelled' &&
                     (canDeliverVehicle ||

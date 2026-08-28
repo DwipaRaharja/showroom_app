@@ -1,5 +1,7 @@
 import { Head } from '@inertiajs/react';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { HandoverForm } from '@/pages/handovers/handover-form';
 import type { Sale } from '@/pages/sales/types';
 
@@ -16,19 +18,19 @@ export default function HandoverCreate({ sale }: Props) {
         <>
             <Head title={`Tambah Tracking ${sale.invoice_number}`} />
 
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Tambah tracking penyerahan
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        {sale.invoice_number} · {carName} ·{' '}
-                        {sale.car?.license_plate ?? 'Tanpa plat'}
-                    </p>
-                </div>
+            <PageContainer className="mx-auto w-full max-w-5xl">
+                <PageHeader
+                    title="Tambah tracking penyerahan"
+                    description={
+                        <>
+                            {sale.invoice_number} · {carName} ·{' '}
+                            {sale.car?.license_plate ?? 'Tanpa plat'}
+                        </>
+                    }
+                />
 
                 <HandoverForm sale={sale} />
-            </div>
+            </PageContainer>
         </>
     );
 }

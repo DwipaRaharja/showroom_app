@@ -21,7 +21,6 @@ import {
     sortFn_text,
     tableFeatures,
 } from '@tanstack/react-table';
-import { toast } from 'sonner';
 import { SortableTableHeader } from '@/components/data-table/sortable-table-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +32,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { copyToClipboard } from '@/lib/clipboard';
+import { formatDate } from '@/lib/formatters';
 import type { Customer } from '@/pages/customers/types';
 
 export const customerTableFeatures = tableFeatures({
@@ -57,21 +58,6 @@ const columnHelper = createColumnHelper<
     typeof customerTableFeatures,
     Customer
 >();
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-});
-
-async function copyText(value: string, label: string) {
-    try {
-        await navigator.clipboard.writeText(value);
-        toast.success(`${label} berhasil disalin.`);
-    } catch {
-        toast.error(`${label} gagal disalin.`);
-    }
-}
 
 function maskNik(value: string): string {
     return `${value.slice(0, 6)}••••••${value.slice(-4)}`;
@@ -226,7 +212,7 @@ export function createCustomerColumns({
                     onToggle={column.getToggleSortingHandler()}
                 />
             ),
-            cell: ({ getValue }) => dateFormatter.format(new Date(getValue())),
+            cell: ({ getValue }) => formatDate(getValue()),
             sortFn: 'text',
         }),
         columnHelper.display({
@@ -259,7 +245,7 @@ export function createCustomerColumns({
                             {row.original.phone && (
                                 <DropdownMenuItem
                                     onSelect={() =>
-                                        void copyText(
+                                        void copyToClipboard(
                                             row.original.phone ?? '',
                                             'Nomor telepon',
                                         )

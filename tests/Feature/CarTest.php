@@ -180,7 +180,7 @@ test('authenticated user can update a car from the dedicated form', function () 
 
     $user = User::factory()->create();
     $brand = Brand::factory()->create(['is_active' => true]);
-    $car = Car::factory()->for($brand)->create();
+    $car = Car::factory()->for($brand)->create(['status' => 'available']);
     $capital = $car->capital()->create([
         'purchase_date' => '2026-08-20',
         'price' => 380000000,
@@ -205,8 +205,8 @@ test('authenticated user can update a car from the dedicated form', function () 
             'fuel_type' => 'hybrid',
             'mileage' => 9000,
             'selling_price' => 425000000,
-            'status' => 'booked',
-            'description' => 'Sudah dibooking customer.',
+            'status' => 'maintenance',
+            'description' => 'Dalam servis berkala.',
             'image' => UploadedFile::fake()
                 ->image('innova-baru.jpg', 1200, 800)
                 ->size(1024),
@@ -229,7 +229,7 @@ test('authenticated user can update a car from the dedicated form', function () 
         'transmission' => 'cvt',
         'fuel_type' => 'hybrid',
         'selling_price' => 425000000,
-        'status' => 'booked',
+        'status' => 'maintenance',
     ]);
     $this->assertDatabaseHas('purchases', [
         'id' => $capital->id,
@@ -258,8 +258,8 @@ test('authenticated user can update a car from the dedicated form', function () 
             'fuel_type' => 'hybrid',
             'mileage' => 9000,
             'selling_price' => 425000000,
-            'status' => 'booked',
-            'description' => 'Sudah dibooking customer.',
+            'status' => 'maintenance',
+            'description' => 'Dalam servis berkala.',
             'remove_image' => true,
             'capital' => [
                 'purchase_date' => '2026-08-21',
@@ -346,4 +346,95 @@ test('authenticated user can view car listing with status summary metrics', func
             ->where('summary.total_active_capital', 658000000)
             ->where('summary.potential_selling_turnover', 500000000)
         );
+});
+
+test('authenticated user can toggle car status between available and maintenance', function () {
+    $user = User::factory()->create();
+    $car = Car::factory()->create(['status' => 'available']);
+
+    $this->actingAs($user)
+        ->patch(route('cars.status.update', $car), [
+            'status' => 'maintenance',
+        ])
+        ->assertRedirect(route('cars.show', $car))
+        ->assertSessionHasNoErrors();
+
+    expect($car->fresh()->status)->toBe('maintenance');
+
+    $this->actingAs($user)
+        ->patch(route('cars.status.update', $car), [
+            'status' => 'available',
+        ])
+        ->assertRedirect(route('cars.show', $car))
+        ->assertSessionHasNoErrors();
+
+    expect($car->fresh()->status)->toBe('available');
+});
+
+test('authenticated user cannot manually update car status to booked or sold', function () {
+    $user = User::factory()->create();
+    $car = Car::factory()->create(['status' => 'available']);
+
+    $this->actingAs($user)
+        ->patch(route('cars.status.update', $car), [
+            'status' => 'sold',
+        ])
+        ->assertSessionHasErrors('status');
+
+    expect($car->fresh()->status)->toBe('available');
+
+    $this->actingAs($user)
+        ->patch(route('cars.status.update', $car), [
+            'status' => 'booked',
+        ])
+        ->assertSessionHasErrors('status');
+
+    expect($car->fresh()->status)->toBe('available');
+});
+
+test('authenticated user cannot manually update status of a car linked to a sale', function () {
+    $user = User::factory()->create();
+    $car = Car::factory()->create(['status' => 'booked']);
+    $customer = \App\Models\Customer::factory()->create();
+    $sale = \App\Models\Sale::factory()->create([
+        'car_id' => $car->id,
+        'customer_id' => $customer->id,
+        'deal_price' => 200000000,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($user)
+        ->patch(route('cars.status.update', $car), [
+            'status' => 'available',
+        ])
+        ->assertSessionHasErrors('status');
+
+    expect($car->fresh()->status)->toBe('booked');
+});
+
+test('car creation rejects booked or sold status', function () {
+    $user = User::factory()->create();
+    $brand = Brand::factory()->create(['is_active' => true]);
+
+    $this->actingAs($user)
+        ->post(route('cars.store'), [
+            'brand_id' => $brand->id,
+            'name' => 'Avanza Test',
+            'license_plate' => 'B 9999 XYZ',
+            'year' => 2023,
+            'transmission' => 'manual',
+            'fuel_type' => 'bensin',
+            'mileage' => 10000,
+            'selling_price' => 180000000,
+            'status' => 'sold',
+            'capital' => [
+                'purchase_date' => '2026-08-24',
+                'price' => 150000000,
+                'repair_cost' => 0,
+                'transport_cost' => 0,
+                'other_cost' => 0,
+                'status' => 'completed',
+            ],
+        ])
+        ->assertSessionHasErrors('status');
 });

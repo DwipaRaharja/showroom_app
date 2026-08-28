@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { formatCurrency } from '@/lib/formatters';
 import type { Brand } from '@/pages/brands/types';
 import type {
     Car,
@@ -51,12 +52,6 @@ type Props = {
 const validationColorClassName =
     'aria-invalid:border-red-500 aria-invalid:ring-red-500/20 dark:aria-invalid:ring-red-500/40';
 const errorTextClassName = 'text-red-500 dark:text-red-500';
-
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
 
 function today(): string {
     const date = new Date();
@@ -621,7 +616,12 @@ export function CarForm({ car, brands }: Props) {
                                         setTransmission(value as Transmission)
                                     }
                                 >
-                                    <SelectTrigger id="car-transmission">
+                                    <SelectTrigger
+                                        id="car-transmission"
+                                        aria-invalid={Boolean(
+                                            errors.transmission,
+                                        )}
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -651,7 +651,10 @@ export function CarForm({ car, brands }: Props) {
                                         setFuelType(value as FuelType)
                                     }
                                 >
-                                    <SelectTrigger id="car-fuel">
+                                    <SelectTrigger
+                                        id="car-fuel"
+                                        aria-invalid={Boolean(errors.fuel_type)}
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -727,7 +730,12 @@ export function CarForm({ car, brands }: Props) {
                                         )
                                     }
                                 >
-                                    <SelectTrigger id="car-capital-status">
+                                    <SelectTrigger
+                                        id="car-capital-status"
+                                        aria-invalid={Boolean(
+                                            errors['capital.status'],
+                                        )}
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -888,9 +896,7 @@ export function CarForm({ car, brands }: Props) {
                                             Total modal kendaraan
                                         </div>
                                         <div className="mt-0.5 text-2xl font-bold text-primary tabular-nums">
-                                            {currencyFormatter.format(
-                                                totalCapital,
-                                            )}
+                                            {formatCurrency(totalCapital)}
                                         </div>
                                         <p className="mt-1 text-xs text-muted-foreground">
                                             Penjualan hanya dapat dibuat ketika
@@ -939,33 +945,39 @@ export function CarForm({ car, brands }: Props) {
                                     Status unit{' '}
                                     <span className="text-red-500">*</span>
                                 </Label>
-                                <Select
-                                    value={status}
-                                    onValueChange={(value) =>
-                                        setStatus(value as CarStatus)
-                                    }
-                                >
-                                    <SelectTrigger
-                                        id="car-status"
-                                        className="sm:max-w-sm"
+                                {car?.status === 'booked' || car?.status === 'sold' ? (
+                                    <div className="rounded-lg border bg-muted/40 p-3 sm:max-w-md">
+                                        <div className="text-sm font-semibold text-foreground">
+                                            {car.status === 'booked' ? 'Dibooking' : 'Terjual'}
+                                        </div>
+                                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                            Status unit ini dikelola secara otomatis melalui modul transaksi penjualan.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <Select
+                                        value={status}
+                                        onValueChange={(value) =>
+                                            setStatus(value as CarStatus)
+                                        }
                                     >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="available">
-                                            Tersedia
-                                        </SelectItem>
-                                        <SelectItem value="booked">
-                                            Dibooking
-                                        </SelectItem>
-                                        <SelectItem value="sold">
-                                            Terjual
-                                        </SelectItem>
-                                        <SelectItem value="maintenance">
-                                            Dalam perbaikan / servis
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                        <SelectTrigger
+                                            id="car-status"
+                                            className="sm:max-w-sm"
+                                            aria-invalid={Boolean(errors.status)}
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="available">
+                                                Tersedia
+                                            </SelectItem>
+                                            <SelectItem value="maintenance">
+                                                Dalam perbaikan / servis
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
                                 <InputError
                                     message={errors.status}
                                     className={errorTextClassName}

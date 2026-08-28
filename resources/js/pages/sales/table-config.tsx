@@ -21,7 +21,6 @@ import {
     sortFn_text,
     tableFeatures,
 } from '@tanstack/react-table';
-import { toast } from 'sonner';
 import { SortableTableHeader } from '@/components/data-table/sortable-table-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +33,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { copyToClipboard } from '@/lib/clipboard';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 import type { PaymentType, Sale } from '@/pages/sales/types';
 
 export const saleTableFeatures = tableFeatures({
@@ -55,27 +56,6 @@ export const saleTableFeatures = tableFeatures({
 });
 
 const columnHelper = createColumnHelper<typeof saleTableFeatures, Sale>();
-
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-});
-
-async function copyText(value: string, label: string) {
-    try {
-        await navigator.clipboard.writeText(value);
-        toast.success(`${label} berhasil disalin.`);
-    } catch {
-        toast.error(`${label} gagal disalin.`);
-    }
-}
 
 export function getPaymentTypeBadge(
     type: PaymentType,
@@ -258,7 +238,7 @@ export function createSaleColumns({
             ),
             cell: ({ getValue }) => (
                 <div className="min-w-40 font-semibold text-foreground">
-                    {currencyFormatter.format(getValue())}
+                    {formatCurrency(getValue())}
                 </div>
             ),
             sortFn: (rowA, rowB) =>
@@ -284,12 +264,12 @@ export function createSaleColumns({
                             >
                                 {isSettled
                                     ? 'Lunas'
-                                    : currencyFormatter.format(remaining)}
+                                    : formatCurrency(remaining)}
                             </div>
                             {!isSettled && (
                                 <div className="text-xs text-muted-foreground">
                                     Masuk:{' '}
-                                    {currencyFormatter.format(
+                                    {formatCurrency(
                                         row.original.total_paid ?? 0,
                                     )}
                                 </div>
@@ -312,13 +292,11 @@ export function createSaleColumns({
                     return <span className="text-muted-foreground">—</span>;
                 }
 
-                const targetDate = new Date(dateStr);
-
                 return (
                     <div className="min-w-36 space-y-1 text-xs">
                         <div className="flex items-center gap-1 font-medium">
                             <CalendarBlankIcon className="size-3.5 text-muted-foreground" />
-                            {dateFormatter.format(targetDate)}
+                            {formatDate(dateStr.slice(0, 10))}
                         </div>
                         <div className="text-[11px] text-muted-foreground">
                             {isCredit ? 'Est. Cair Leasing' : 'Jatuh Tempo'}
@@ -387,7 +365,7 @@ export function createSaleColumns({
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onSelect={() =>
-                                        void copyText(
+                                        void copyToClipboard(
                                             row.original.invoice_number,
                                             'Nomor invoice',
                                         )
@@ -399,11 +377,12 @@ export function createSaleColumns({
                                 <DropdownMenuSeparator />
                                 {canAcceptPayment && (
                                     <DropdownMenuItem
+                                        className="text-emerald-600 focus:text-emerald-600 dark:text-emerald-500 dark:focus:text-emerald-500 font-medium"
                                         onSelect={() =>
                                             onRecordPayment(row.original)
                                         }
                                     >
-                                        <MoneyIcon className="text-emerald-600" />
+                                        <MoneyIcon className="text-emerald-600 dark:text-emerald-500" />
                                         Catat pembayaran
                                     </DropdownMenuItem>
                                 )}

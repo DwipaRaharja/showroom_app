@@ -8,7 +8,7 @@ import {
     UserIcon,
     WhatsappLogoIcon,
 } from '@phosphor-icons/react';
-import { toast } from 'sonner';
+import { DetailItem } from '@/components/detail-item';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,8 @@ import {
     DialogFooter,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { copyToClipboard } from '@/lib/clipboard';
+import { formatDateTime } from '@/lib/formatters';
 import type { Customer } from '@/pages/customers/types';
 
 type Props = {
@@ -27,23 +29,6 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     onEdit?: (customer: Customer) => void;
 };
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-});
-
-async function copyText(value: string, label: string) {
-    try {
-        await navigator.clipboard.writeText(value);
-        toast.success(`${label} berhasil disalin.`);
-    } catch {
-        toast.error(`${label} gagal disalin.`);
-    }
-}
 
 export function CustomerDetailDialog({
     customer,
@@ -102,131 +87,56 @@ export function CustomerDetailDialog({
                 {/* Content Cards */}
                 <div className="space-y-4 p-6 text-sm">
                     {/* Contact & WA */}
-                    <div className="rounded-xl border bg-card p-3.5 shadow-xs transition-colors hover:bg-accent/20">
-                        <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3">
-                                <div className="mt-0.5 rounded-lg bg-emerald-500/10 p-2 text-emerald-600 dark:text-emerald-500">
-                                    <PhoneIcon
-                                        className="size-4"
-                                        weight="bold"
-                                    />
-                                </div>
-                                <div>
-                                    <div className="text-xs font-medium text-muted-foreground">
-                                        Telepon / WhatsApp
-                                    </div>
-                                    <div className="mt-0.5 font-mono text-base font-semibold text-foreground">
-                                        {customer.phone || (
-                                            <span className="font-sans text-sm font-normal text-muted-foreground">
-                                                Belum diisi
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            {customer.phone && (
-                                <div className="flex items-center gap-1.5">
-                                    {whatsappUrl && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-8 gap-1.5 border-emerald-200 text-xs text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:border-emerald-800 dark:hover:bg-emerald-950/40"
-                                            asChild
-                                        >
-                                            <a
-                                                href={whatsappUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                <WhatsappLogoIcon
-                                                    className="size-4"
-                                                    weight="fill"
-                                                />
-                                                Chat WA
-                                            </a>
-                                        </Button>
-                                    )}
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-8"
-                                        onClick={() =>
-                                            void copyText(
-                                                customer.phone ?? '',
-                                                'Nomor telepon',
-                                            )
-                                        }
-                                        title="Salin No. HP"
+                    <DetailItem
+                        variant="card"
+                        label="Telepon / WhatsApp"
+                        value={customer.phone}
+                        mono
+                        icon={PhoneIcon}
+                        copyable={customer.phone ?? false}
+                        copyLabel="Nomor telepon"
+                        action={
+                            whatsappUrl && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 gap-1.5 border-emerald-200 text-xs text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:border-emerald-800 dark:hover:bg-emerald-950/40"
+                                    asChild
+                                >
+                                    <a
+                                        href={whatsappUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                     >
-                                        <CopyIcon className="size-4" />
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                                        <WhatsappLogoIcon
+                                            className="size-4"
+                                            weight="fill"
+                                        />
+                                        Chat WA
+                                    </a>
+                                </Button>
+                            )
+                        }
+                    />
 
                     {/* KTP / NIK */}
-                    <div className="rounded-xl border bg-card p-3.5 shadow-xs transition-colors hover:bg-accent/20">
-                        <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3">
-                                <div className="mt-0.5 rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-500">
-                                    <IdentificationCardIcon
-                                        className="size-4"
-                                        weight="bold"
-                                    />
-                                </div>
-                                <div>
-                                    <div className="text-xs font-medium text-muted-foreground">
-                                        Nomor KTP / NIK
-                                    </div>
-                                    <div className="mt-0.5 font-mono text-sm font-semibold text-foreground">
-                                        {customer.ktp_number || (
-                                            <span className="font-sans text-sm font-normal text-muted-foreground">
-                                                Belum diisi
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            {customer.ktp_number && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8"
-                                    onClick={() =>
-                                        void copyText(
-                                            customer.ktp_number ?? '',
-                                            'NIK',
-                                        )
-                                    }
-                                    title="Salin NIK"
-                                >
-                                    <CopyIcon className="size-4" />
-                                </Button>
-                            )}
-                        </div>
-                    </div>
+                    <DetailItem
+                        variant="card"
+                        label="Nomor KTP / NIK"
+                        value={customer.ktp_number}
+                        mono
+                        icon={IdentificationCardIcon}
+                        copyable={customer.ktp_number ?? false}
+                        copyLabel="NIK"
+                    />
 
                     {/* Address */}
-                    <div className="rounded-xl border bg-card p-3.5 shadow-xs transition-colors hover:bg-accent/20">
-                        <div className="flex items-start gap-3">
-                            <div className="mt-0.5 shrink-0 rounded-lg bg-amber-500/10 p-2 text-amber-600 dark:text-amber-500">
-                                <MapPinIcon className="size-4" weight="bold" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <div className="text-xs font-medium text-muted-foreground">
-                                    Alamat Lengkap
-                                </div>
-                                <div className="mt-0.5 text-sm leading-relaxed font-medium text-foreground">
-                                    {customer.address || (
-                                        <span className="font-normal text-muted-foreground">
-                                            Belum diisi
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <DetailItem
+                        variant="card"
+                        label="Alamat Lengkap"
+                        value={customer.address}
+                        icon={MapPinIcon}
+                    />
 
                     {/* Registration Date Banner */}
                     <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
@@ -234,9 +144,13 @@ export function CustomerDetailDialog({
                         <span>
                             Terdaftar sejak{' '}
                             <strong className="font-medium text-foreground">
-                                {dateFormatter.format(
-                                    new Date(customer.created_at),
-                                )}
+                                {formatDateTime(customer.created_at, {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                })}
                             </strong>
                         </span>
                     </div>

@@ -2,6 +2,7 @@ import { Form, Link } from '@inertiajs/react';
 import { CameraIcon, FloppyDiskIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
+import { CardSectionHeader } from '@/components/card-section-header';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { formatCurrency } from '@/lib/formatters';
 import type {
     HandoverItemCode,
     RecipientRelation,
@@ -47,12 +49,6 @@ const itemOptions: Array<{ value: HandoverItemCode; label: string }> = [
     { value: 'blanko', label: 'Blanko dokumen' },
     { value: 'other', label: 'Barang lainnya' },
 ];
-
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
 
 const relationLabels: Record<RecipientRelation, string> = {
     buyer_self: 'Pembeli sendiri',
@@ -91,7 +87,7 @@ export function HandoverForm({ sale }: Props) {
     const deliveredItems = getDeliveredItems(events);
     const remainingBill = sale.remaining_bill ?? sale.deal_price;
     const canDeliverVehicle =
-        sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
+        sale.can_deliver_vehicle ?? sale.status !== 'cancelled';
     const canDeliverBpkb = sale.can_deliver_bpkb ?? remainingBill <= 0;
     const unitAlreadyDelivered = deliveredItems.has('vehicle');
     const bpkbAlreadyDelivered = deliveredItems.has('bpkb');
@@ -256,7 +252,7 @@ export function HandoverForm({ sale }: Props) {
                                 Sisa tagihan
                             </p>
                             <p className="text-base font-semibold">
-                                {currencyFormatter.format(remainingBill)}
+                                {formatCurrency(remainingBill)}
                             </p>
                         </div>
                         <div>
@@ -291,13 +287,10 @@ export function HandoverForm({ sale }: Props) {
 
                     {/* Card 1: Waktu & Item yang Diserahkan */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Waktu & item yang diserahkan</CardTitle>
-                            <CardDescription>
-                                Pilih waktu penyerahan dan centang barang atau
-                                dokumen yang diserahkan pada tahap ini.
-                            </CardDescription>
-                        </CardHeader>
+                        <CardSectionHeader
+                            title="Waktu & item yang diserahkan"
+                            description="Pilih waktu penyerahan dan centang barang atau dokumen yang diserahkan pada tahap ini."
+                        />
                         <CardContent className="grid gap-5">
                             <div className="grid gap-2 sm:max-w-sm">
                                 <Label htmlFor="handover-occurred-at">
@@ -322,7 +315,13 @@ export function HandoverForm({ sale }: Props) {
                                 />
                             </div>
 
-                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            <div
+                                className={`grid gap-2 rounded-xl p-1 sm:grid-cols-2 lg:grid-cols-3 ${
+                                    errors.items
+                                        ? 'border border-destructive/50 bg-destructive/5'
+                                        : ''
+                                }`}
+                            >
                                 {itemOptions.map((item) => {
                                     const disabled = isItemDisabled(item.value);
                                     const checked = selectedItems.includes(
@@ -381,7 +380,11 @@ export function HandoverForm({ sale }: Props) {
                                                 value={keyCount}
                                                 onValueChange={setKeyCount}
                                             >
-                                                <SelectTrigger>
+                                                <SelectTrigger
+                                                    aria-invalid={Boolean(
+                                                        errors.key_count,
+                                                    )}
+                                                >
                                                     <SelectValue placeholder="Pilih jumlah kunci" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -440,7 +443,11 @@ export function HandoverForm({ sale }: Props) {
                                                     value={fuelLevel}
                                                     onValueChange={setFuelLevel}
                                                 >
-                                                    <SelectTrigger>
+                                                    <SelectTrigger
+                                                        aria-invalid={Boolean(
+                                                            errors.fuel_level,
+                                                        )}
+                                                    >
                                                         <SelectValue placeholder="Pilih level BBM" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -471,7 +478,11 @@ export function HandoverForm({ sale }: Props) {
                                                         setCleanliness
                                                     }
                                                 >
-                                                    <SelectTrigger>
+                                                    <SelectTrigger
+                                                        aria-invalid={Boolean(
+                                                            errors.cleanliness,
+                                                        )}
+                                                    >
                                                         <SelectValue placeholder="Pilih kondisi kebersihan" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -499,23 +510,20 @@ export function HandoverForm({ sale }: Props) {
 
                     {/* Card 2: Data Penerima */}
                     <Card>
-                        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <CardTitle>Data penerima</CardTitle>
-                                <CardDescription>
-                                    Pihak yang menerima unit atau dokumen pada
-                                    kejadian ini.
-                                </CardDescription>
-                            </div>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={fillBuyerData}
-                            >
-                                Gunakan data pembeli
-                            </Button>
-                        </CardHeader>
+                        <CardSectionHeader
+                            title="Data penerima"
+                            description="Pihak yang menerima unit atau dokumen pada kejadian ini."
+                            action={
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={fillBuyerData}
+                                >
+                                    Gunakan data pembeli
+                                </Button>
+                            }
+                        />
                         <CardContent className="grid gap-5 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="recipient-name">
@@ -625,13 +633,10 @@ export function HandoverForm({ sale }: Props) {
 
                     {/* Card 3: Petugas & Lokasi Serah Terima */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Petugas & lokasi serah terima</CardTitle>
-                            <CardDescription>
-                                Informasi staf pelaksana penyerahan dan alamat
-                                lokasi serah terima.
-                            </CardDescription>
-                        </CardHeader>
+                        <CardSectionHeader
+                            title="Petugas & lokasi serah terima"
+                            description="Informasi staf pelaksana penyerahan dan alamat lokasi serah terima."
+                        />
                         <CardContent className="grid gap-5 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="officer-name">
@@ -711,13 +716,10 @@ export function HandoverForm({ sale }: Props) {
 
                     {/* Card 4: Foto Bukti & Catatan */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Foto bukti & catatan</CardTitle>
-                            <CardDescription>
-                                Unggah foto serah terima dan tambahkan catatan
-                                kejadian jika diperlukan.
-                            </CardDescription>
-                        </CardHeader>
+                        <CardSectionHeader
+                            title="Foto bukti & catatan"
+                            description="Unggah foto serah terima dan tambahkan catatan kejadian jika diperlukan."
+                        />
                         <CardContent className="grid gap-5 sm:grid-cols-2">
                             <div className="grid content-start gap-2">
                                 <Label htmlFor="handover-photos">

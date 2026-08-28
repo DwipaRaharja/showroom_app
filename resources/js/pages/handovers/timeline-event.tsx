@@ -1,5 +1,6 @@
 import { CalendarBlankIcon, MapPinIcon, UserIcon } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
+import { formatDateTime } from '@/lib/formatters';
 import { HandoverPhotoPreview } from '@/pages/handovers/photo-preview';
 import type {
     RecipientRelation,
@@ -14,14 +15,6 @@ const relationLabels: Record<RecipientRelation, string> = {
     other: 'Pihak lainnya',
 };
 
-const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-});
-
 export function TimelineEvent({ event }: { event: VehicleHandoverEvent }) {
     return (
         <article className="relative border-l-2 border-primary/20 pl-5 last:pb-0">
@@ -31,9 +24,7 @@ export function TimelineEvent({ event }: { event: VehicleHandoverEvent }) {
                     <div>
                         <div className="flex items-center gap-2 font-semibold">
                             <CalendarBlankIcon className="size-4 text-primary" />
-                            {dateTimeFormatter.format(
-                                new Date(event.occurred_at),
-                            )}
+                            {formatDateTime(event.occurred_at)}
                         </div>
                         <div className="mt-1 text-xs text-muted-foreground">
                             Dicatat oleh {event.officer_name}

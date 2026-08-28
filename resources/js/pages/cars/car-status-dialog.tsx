@@ -1,9 +1,8 @@
 import { Form } from '@inertiajs/react';
 import {
     CheckCircleIcon,
-    ClockIcon,
     FloppyDiskIcon,
-    TagIcon,
+    InfoIcon,
     WrenchIcon,
 } from '@phosphor-icons/react';
 import { useState } from 'react';
@@ -26,8 +25,8 @@ type Props = {
     onOpenChange: (open: boolean) => void;
 };
 
-const statusOptions: {
-    value: CarStatus;
+const manualStatusOptions: {
+    value: 'available' | 'maintenance';
     label: string;
     description: string;
     icon: typeof CheckCircleIcon;
@@ -36,23 +35,9 @@ const statusOptions: {
     {
         value: 'available',
         label: 'Tersedia',
-        description: 'Mobil siap untuk dijual atau dipajang di showroom.',
+        description: 'Mobil siap untuk dipajang dan dijual di showroom.',
         icon: CheckCircleIcon,
         colorClass: 'text-emerald-600 dark:text-emerald-500',
-    },
-    {
-        value: 'booked',
-        label: 'Dibooking',
-        description: 'Mobil telah dibooking oleh calon customer.',
-        icon: ClockIcon,
-        colorClass: 'text-amber-600 dark:text-amber-500',
-    },
-    {
-        value: 'sold',
-        label: 'Terjual',
-        description: 'Mobil telah berhasil terjual ke customer.',
-        icon: TagIcon,
-        colorClass: 'text-blue-600 dark:text-blue-500',
     },
     {
         value: 'maintenance',
@@ -70,86 +55,129 @@ function CarStatusContent({
     car: Car;
     onOpenChange: (open: boolean) => void;
 }) {
-    const [status, setStatus] = useState<CarStatus>(car.status);
+    const isSaleManaged = car.status === 'booked' || car.status === 'sold';
+    const initialStatus =
+        car.status === 'maintenance' ? 'maintenance' : 'available';
+    const [status, setStatus] = useState<'available' | 'maintenance'>(
+        initialStatus,
+    );
 
     return (
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
-                <DialogTitle>Ubah Status Mobil</DialogTitle>
+                <DialogTitle>Ubah Status Operasional Mobil</DialogTitle>
                 <DialogDescription>
-                    Pilih status terbaru untuk <strong>{car.name}</strong> (
+                    Pilih status operasional untuk <strong>{car.name}</strong> (
                     {car.license_plate ?? 'Tanpa Plat'}).
                 </DialogDescription>
             </DialogHeader>
 
-            <Form
-                {...CarController.updateStatus.form(car.id)}
-                options={{ preserveScroll: true }}
-                onSuccess={() => onOpenChange(false)}
-                className="space-y-4"
-            >
-                {({ processing }) => (
-                    <>
-                        <input type="hidden" name="status" value={status} />
-
-                        <div className="space-y-2">
-                            {statusOptions.map((option) => {
-                                const Icon = option.icon;
-                                const isSelected = status === option.value;
-
-                                return (
-                                    <div
-                                        key={option.value}
-                                        onClick={() => setStatus(option.value)}
-                                        className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
-                                            isSelected
-                                                ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                                : 'hover:bg-muted/50'
-                                        }`}
-                                    >
-                                        <div
-                                            className={`mt-0.5 ${option.colorClass}`}
-                                        >
-                                            <Icon
-                                                className="size-5"
-                                                weight={
-                                                    isSelected
-                                                        ? 'fill'
-                                                        : 'regular'
-                                                }
-                                            />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="text-sm font-medium">
-                                                {option.label}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {option.description}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+            {isSaleManaged ? (
+                <div className="space-y-4">
+                    <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+                        <InfoIcon className="mt-0.5 size-5 shrink-0" weight="fill" />
+                        <div className="text-sm">
+                            <p className="font-semibold">
+                                Status Dikelola Transaksi Penjualan
+                            </p>
+                            <p className="mt-1 text-xs leading-relaxed opacity-90">
+                                Mobil ini saat ini berstatus{' '}
+                                <strong>
+                                    {car.status === 'booked'
+                                        ? 'Dibooking'
+                                        : 'Terjual'}
+                                </strong>
+                                . Perubahan status dilakukan secara otomatis
+                                melalui alur transaksi penjualan dan penerimaan
+                                pembayaran.
+                            </p>
                         </div>
+                    </div>
 
-                        <DialogFooter className="pt-2">
-                            <DialogClose asChild>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={processing}
-                                >
-                                    Batal
-                                </Button>
-                            </DialogClose>
-                            <Button type="submit" disabled={processing}>
-                                {processing ? <Spinner /> : <FloppyDiskIcon />}
-                                Simpan status
+                    <DialogFooter className="pt-2">
+                        <DialogClose asChild>
+                            <Button type="button" variant="outline">
+                                Tutup
                             </Button>
-                        </DialogFooter>
-                    </>
-                )}
-            </Form>
+                        </DialogClose>
+                    </DialogFooter>
+                </div>
+            ) : (
+                <Form
+                    {...CarController.updateStatus.form(car.id)}
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => onOpenChange(false)}
+                    className="space-y-4"
+                >
+                    {({ processing }) => (
+                        <>
+                            <input type="hidden" name="status" value={status} />
+
+                            <div className="space-y-2">
+                                {manualStatusOptions.map((option) => {
+                                    const Icon = option.icon;
+                                    const isSelected = status === option.value;
+
+                                    return (
+                                        <div
+                                            key={option.value}
+                                            onClick={() =>
+                                                setStatus(option.value)
+                                            }
+                                            className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                                                isSelected
+                                                    ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                                                    : 'hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            <div
+                                                className={`mt-0.5 ${option.colorClass}`}
+                                            >
+                                                <Icon
+                                                    className="size-5"
+                                                    weight={
+                                                        isSelected
+                                                            ? 'fill'
+                                                            : 'regular'
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-sm font-medium">
+                                                    {option.label}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {option.description}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <DialogFooter className="pt-2">
+                                <DialogClose asChild>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        disabled={processing}
+                                    >
+                                        Batal
+                                    </Button>
+                                </DialogClose>
+                                <Button type="submit" disabled={processing}>
+                                    {processing ? (
+                                        <Spinner />
+                                    ) : (
+                                        <FloppyDiskIcon />
+                                    )}
+                                    Simpan status
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </Form>
+            )}
         </DialogContent>
     );
 }

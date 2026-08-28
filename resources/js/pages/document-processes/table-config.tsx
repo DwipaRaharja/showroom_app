@@ -34,6 +34,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 import { ProcessStatusBadge } from '@/pages/document-processes/process-status-badge';
 import type {
     DocumentProcess,
@@ -69,18 +70,6 @@ const columnHelper = createColumnHelper<
     typeof processTableFeatures,
     DocumentProcess
 >();
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-});
-
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
 
 function localDateKey(date = new Date()): string {
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
@@ -251,9 +240,7 @@ export function createProcessColumns(
                     <div className="min-w-36 space-y-0.5 text-sm">
                         <div className="text-xs text-muted-foreground">
                             Mulai:{' '}
-                            {dateFormatter.format(
-                                new Date(row.original.started_at),
-                            )}
+                            {formatDate(row.original.started_at.slice(0, 10))}
                         </div>
                         <div
                             className={
@@ -262,7 +249,7 @@ export function createProcessColumns(
                         >
                             Target:{' '}
                             {value
-                                ? dateFormatter.format(new Date(value))
+                                ? formatDate(value.slice(0, 10))
                                 : 'Belum ditentukan'}
                         </div>
                     </div>
@@ -281,13 +268,10 @@ export function createProcessColumns(
             cell: ({ row }) => (
                 <div className="min-w-36 text-sm">
                     <div className="font-semibold">
-                        {currencyFormatter.format(row.original.total_cost)}
+                        {formatCurrency(row.original.total_cost)}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                        Modal:{' '}
-                        {currencyFormatter.format(
-                            row.original.capitalized_cost,
-                        )}
+                        Modal: {formatCurrency(row.original.capitalized_cost)}
                     </div>
                 </div>
             ),

@@ -5,7 +5,10 @@ import {
     HandCoinsIcon,
     PowerIcon,
 } from '@phosphor-icons/react';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
+import { StatCardGrid } from '@/components/stat-card-grid';
 import { FinanceCompanyDataTable } from '@/pages/finance-companies/data-table';
 import type {
     FinanceCompany,
@@ -26,18 +29,13 @@ export default function FinanceCompaniesIndex({
         <>
             <Head title="Perusahaan Leasing" />
 
-            <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Perusahaan Leasing
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Kelola data rekanan perusahaan pembiayaan (leasing) dan
-                        kontak PIC untuk transaksi penjualan kredit.
-                    </p>
-                </div>
+            <PageContainer>
+                <PageHeader
+                    title="Perusahaan Leasing"
+                    description="Kelola data rekanan perusahaan pembiayaan (leasing) dan kontak PIC untuk transaksi penjualan kredit."
+                />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCardGrid>
                     <StatCard
                         title="Total Rekanan Leasing"
                         value={summary.total}
@@ -62,10 +60,10 @@ export default function FinanceCompaniesIndex({
                         icon={HandCoinsIcon}
                         variant="info"
                     />
-                </div>
+                </StatCardGrid>
 
                 <FinanceCompanyDataTable data={finance_companies} />
-            </div>
+            </PageContainer>
         </>
     );
 }

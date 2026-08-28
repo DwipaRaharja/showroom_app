@@ -5,7 +5,10 @@ import {
     LockIcon,
     ShieldCheckIcon,
 } from '@phosphor-icons/react';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
+import { StatCardGrid } from '@/components/stat-card-grid';
 import { HandoverDataTable } from '@/pages/handovers/data-table';
 import type { Sale } from '@/pages/sales/types';
 import { index as handoversIndex } from '@/routes/handovers';
@@ -26,19 +29,13 @@ export default function HandoversIndex({ sales, summary }: Props) {
         <>
             <Head title="Penyerahan Unit" />
 
-            <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Penyerahan Unit
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Setiap penjualan otomatis ditampilkan satu kali dengan
-                        ringkasan seluruh tracking, penerima, barang, dan bukti
-                        foto.
-                    </p>
-                </div>
+            <PageContainer>
+                <PageHeader
+                    title="Penyerahan Unit"
+                    description="Setiap penjualan otomatis ditampilkan satu kali dengan ringkasan seluruh tracking, penerima, barang, dan bukti foto."
+                />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCardGrid>
                     <StatCard
                         title="Siap Serah Unit (≤ 10jt)"
                         value={summary.ready_to_deliver}
@@ -63,10 +60,10 @@ export default function HandoversIndex({ sales, summary }: Props) {
                         icon={LockIcon}
                         variant="danger"
                     />
-                </div>
+                </StatCardGrid>
 
                 <HandoverDataTable sales={sales} />
-            </div>
+            </PageContainer>
         </>
     );
 }
