@@ -113,8 +113,6 @@ export function FinanceCompanyDataTable({ data }: Props) {
     const statusFilter = table.getColumn('is_active')?.getFilterValue() as
         boolean | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
-    const { pageIndex, pageSize } = pagination;
-    const pageCount = Math.max(table.getPageCount(), 1);
     const hasFilters = globalFilter.length > 0 || statusFilter !== undefined;
 
     function resetFilters() {
@@ -194,21 +192,7 @@ export function FinanceCompanyDataTable({ data }: Props) {
                         )}
                     </DataTableToolbar>
                 }
-                footer={
-                    <DataTablePagination
-                        pageIndex={pageIndex}
-                        pageSize={pageSize}
-                        pageCount={pageCount}
-                        filteredCount={filteredCount}
-                        canPreviousPage={table.getCanPreviousPage()}
-                        canNextPage={table.getCanNextPage()}
-                        onPageSizeChange={(size) => table.setPageSize(size)}
-                        onFirstPage={() => table.firstPage()}
-                        onPreviousPage={() => table.previousPage()}
-                        onNextPage={() => table.nextPage()}
-                        onLastPage={() => table.lastPage()}
-                    />
-                }
+                footer={<DataTablePagination table={table} />}
             >
                 <div>
                     <Table className="min-w-250">

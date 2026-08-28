@@ -117,8 +117,6 @@ export function ProcessDataTable({
     const statusFilter = table.getColumn('status')?.getFilterValue() as
         string | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
-    const { pageIndex, pageSize } = pagination;
-    const pageCount = Math.max(table.getPageCount(), 1);
     const hasFilters =
         globalFilter.length > 0 ||
         typeFilter !== undefined ||
@@ -221,21 +219,7 @@ export function ProcessDataTable({
                         )}
                     </DataTableToolbar>
                 }
-                footer={
-                    <DataTablePagination
-                        pageIndex={pageIndex}
-                        pageSize={pageSize}
-                        pageCount={pageCount}
-                        filteredCount={filteredCount}
-                        canPreviousPage={table.getCanPreviousPage()}
-                        canNextPage={table.getCanNextPage()}
-                        onPageSizeChange={(size) => table.setPageSize(size)}
-                        onFirstPage={() => table.firstPage()}
-                        onPreviousPage={() => table.previousPage()}
-                        onNextPage={() => table.nextPage()}
-                        onLastPage={() => table.lastPage()}
-                    />
-                }
+                footer={<DataTablePagination table={table} />}
             >
                 <div>
                     <Table className="min-w-250">

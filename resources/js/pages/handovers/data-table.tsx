@@ -91,8 +91,6 @@ export function HandoverDataTable({ sales }: Props) {
     const statusFilter = table.getColumn('status')?.getFilterValue() as
         HandoverFilterStatus | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
-    const { pageIndex, pageSize } = pagination;
-    const pageCount = Math.max(table.getPageCount(), 1);
     const hasFilters = globalFilter.length > 0 || statusFilter !== undefined;
 
     function resetFilters() {
@@ -114,8 +112,8 @@ export function HandoverDataTable({ sales }: Props) {
                                 table.setGlobalFilter(value);
                                 table.setPageIndex(0);
                             }}
-                            placeholder="Cari invoice, unit, customer, penerima, atau barang..."
-                            ariaLabel="Cari penyerahan unit"
+                            placeholder="Cari transaksi, mobil, plat, customer..."
+                            ariaLabel="Cari data penyerahan unit"
                         />
                     }
                 >
@@ -130,13 +128,11 @@ export function HandoverDataTable({ sales }: Props) {
                             table.setPageIndex(0);
                         }}
                     >
-                        <SelectTrigger className="w-52">
+                        <SelectTrigger className="w-48">
                             <SelectValue placeholder="Semua status" />
                         </SelectTrigger>
                         <SelectContent align="end">
-                            <SelectItem value="all">
-                                Semua status penyerahan
-                            </SelectItem>
+                            <SelectItem value="all">Semua status</SelectItem>
                             {handoverStatusOptions.map((option) => (
                                 <SelectItem
                                     key={option.value}
@@ -161,21 +157,7 @@ export function HandoverDataTable({ sales }: Props) {
                     )}
                 </DataTableToolbar>
             }
-            footer={
-                <DataTablePagination
-                    pageIndex={pageIndex}
-                    pageSize={pageSize}
-                    pageCount={pageCount}
-                    filteredCount={filteredCount}
-                    canPreviousPage={table.getCanPreviousPage()}
-                    canNextPage={table.getCanNextPage()}
-                    onPageSizeChange={(size) => table.setPageSize(size)}
-                    onFirstPage={() => table.firstPage()}
-                    onPreviousPage={() => table.previousPage()}
-                    onNextPage={() => table.nextPage()}
-                    onLastPage={() => table.lastPage()}
-                />
-            }
+            footer={<DataTablePagination table={table} />}
         >
             <div>
                 <Table className="min-w-240">

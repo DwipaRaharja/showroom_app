@@ -13,7 +13,32 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-type Props = {
+export type DataTablePaginationTable = {
+    state: {
+        pagination: {
+            pageIndex: number;
+            pageSize: number;
+        };
+    };
+    getPageCount: () => number;
+    getFilteredRowModel: () => {
+        rows: unknown[];
+    };
+    getCanPreviousPage: () => boolean;
+    getCanNextPage: () => boolean;
+    setPageSize: (pageSize: number) => void;
+    firstPage: () => void;
+    previousPage: () => void;
+    nextPage: () => void;
+    lastPage: () => void;
+};
+
+type TableProps = {
+    table: DataTablePaginationTable;
+    pageSizeOptions?: number[];
+};
+
+type ManualProps = {
     pageIndex: number;
     pageSize: number;
     pageCount: number;
@@ -25,23 +50,54 @@ type Props = {
     onPreviousPage: () => void;
     onNextPage: () => void;
     onLastPage: () => void;
+    pageSizeOptions?: number[];
 };
 
-const pageSizeOptions = [10, 20, 50];
+type Props = TableProps | ManualProps;
 
-export function DataTablePagination({
-    pageIndex,
-    pageSize,
-    pageCount,
-    filteredCount,
-    canPreviousPage,
-    canNextPage,
-    onPageSizeChange,
-    onFirstPage,
-    onPreviousPage,
-    onNextPage,
-    onLastPage,
-}: Props) {
+const defaultPageSizeOptions = [10, 20, 50];
+
+export function DataTablePagination(props: Props) {
+    const pageSizeOptions = props.pageSizeOptions ?? defaultPageSizeOptions;
+
+    let pageIndex: number;
+    let pageSize: number;
+    let pageCount: number;
+    let filteredCount: number;
+    let canPreviousPage: boolean;
+    let canNextPage: boolean;
+    let onPageSizeChange: (pageSize: number) => void;
+    let onFirstPage: () => void;
+    let onPreviousPage: () => void;
+    let onNextPage: () => void;
+    let onLastPage: () => void;
+
+    if ('table' in props) {
+        const { table } = props;
+        pageIndex = table.state.pagination.pageIndex;
+        pageSize = table.state.pagination.pageSize;
+        pageCount = Math.max(table.getPageCount(), 1);
+        filteredCount = table.getFilteredRowModel().rows.length;
+        canPreviousPage = table.getCanPreviousPage();
+        canNextPage = table.getCanNextPage();
+        onPageSizeChange = (size) => table.setPageSize(size);
+        onFirstPage = () => table.firstPage();
+        onPreviousPage = () => table.previousPage();
+        onNextPage = () => table.nextPage();
+        onLastPage = () => table.lastPage();
+    } else {
+        pageIndex = props.pageIndex;
+        pageSize = props.pageSize;
+        pageCount = props.pageCount;
+        filteredCount = props.filteredCount;
+        canPreviousPage = props.canPreviousPage;
+        canNextPage = props.canNextPage;
+        onPageSizeChange = props.onPageSizeChange;
+        onFirstPage = props.onFirstPage;
+        onPreviousPage = props.onPreviousPage;
+        onNextPage = props.onNextPage;
+        onLastPage = props.onLastPage;
+    }
     const firstVisibleRow = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
     const lastVisibleRow = Math.min((pageIndex + 1) * pageSize, filteredCount);
 
