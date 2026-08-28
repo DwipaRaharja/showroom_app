@@ -136,19 +136,23 @@ const statusMap: Record<string, StatusConfig> = {
         className:
             'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
     },
-    waiting_documents: {
-        label: 'Menunggu kelengkapan',
-        className:
-            'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
-    },
-    waiting: {
-        label: 'Menunggu dokumen',
-        className:
-            'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
+    printing: {
+        label: 'Proses cetak',
+        className: 'bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-700',
     },
     ready: {
-        label: 'Siap diproses',
-        className: 'bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-700',
+        label: 'Siap',
+        className: 'bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-700',
+    },
+    uncollected: {
+        label: 'Belum diambil',
+        className:
+            'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
+    },
+    not_ready: {
+        label: 'Belum terbit',
+        className:
+            'bg-slate-500 text-white hover:bg-slate-500 dark:bg-slate-600',
     },
     handed_over: {
         label: 'Sudah diserahkan',
@@ -158,6 +162,41 @@ const statusMap: Record<string, StatusConfig> = {
     issue: {
         label: 'Bermasalah',
         className: 'bg-red-500 text-white hover:bg-red-500 dark:bg-red-500',
+    },
+
+    // Document process lifecycle statuses
+    waiting_documents: {
+        label: 'Menunggu kelengkapan',
+        className:
+            'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
+    },
+    documents_ready: {
+        label: 'Dokumen lengkap',
+        className: 'bg-sky-600 text-white hover:bg-sky-600 dark:bg-sky-700',
+    },
+    submitted: {
+        label: 'Diajukan',
+        className: 'bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-700',
+    },
+    ready_for_pickup: {
+        label: 'Siap diambil',
+        className: 'bg-cyan-600 text-white hover:bg-cyan-600 dark:bg-cyan-700',
+    },
+    returned: {
+        label: 'Diserahkan',
+        className:
+            'bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-700',
+    },
+
+    // Custody physical item statuses
+    waiting: {
+        label: 'Menunggu fisik',
+        className:
+            'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
+    },
+    received: {
+        label: 'Diterima showroom',
+        className: 'bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-700',
     },
 };
 

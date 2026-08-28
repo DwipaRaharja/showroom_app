@@ -13,6 +13,10 @@ import {
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
+import { DetailItem } from '@/components/detail-item';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +28,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    formatCurrency,
+    formatDate as formatCalendarDate,
+    formatDateTime,
+} from '@/lib/formatters';
 import { ProcessCostDialog } from '@/pages/document-processes/process-cost-dialog';
 import { ProcessEventDialog } from '@/pages/document-processes/process-event-dialog';
 import { ProcessStatusBadge } from '@/pages/document-processes/process-status-badge';
@@ -38,28 +47,6 @@ type Props = {
     status_options: LabelOptions;
 };
 
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-});
-
-const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Makassar',
-    timeZoneName: 'short',
-});
-
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
 const custodyLabels: Record<string, string> = {
     waiting: 'Belum diterima',
     received: 'Diterima showroom',
@@ -68,19 +55,13 @@ const custodyLabels: Record<string, string> = {
     missing: 'Bermasalah / hilang',
 };
 
-function formatDate(value: string | null): string {
-    return value ? dateFormatter.format(new Date(value)) : 'Belum ditentukan';
-}
-
-function Detail({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="grid gap-0.5">
-            <span className="text-xs font-medium text-muted-foreground">
-                {label}
-            </span>
-            <span className="text-sm font-medium">{value}</span>
-        </div>
-    );
+function formatProcessDate(value: string | null): string {
+    return formatCalendarDate(value?.slice(0, 10), {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        fallback: 'Belum ditentukan',
+    });
 }
 
 export default function DocumentProcessShow({
@@ -99,52 +80,44 @@ export default function DocumentProcessShow({
         <>
             <Head title={`Proses ${process.process_number}`} />
 
-            <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="flex items-start gap-3">
-                        <Button variant="outline" size="icon" asChild>
-                            <Link
-                                href={DocumentProcessController.index.url()}
-                                aria-label="Kembali ke proses berkas"
+            <PageContainer>
+                <PageHeader
+                    backHref={DocumentProcessController.index.url()}
+                    backLabel="Kembali ke proses berkas"
+                    title={process.process_number}
+                    titleClassName="font-mono text-xl md:text-2xl"
+                    titleAddon={
+                        <ProcessStatusBadge
+                            status={process.status}
+                            labels={statusOptions}
+                        />
+                    }
+                    description={
+                        <>
+                            {carName} ·{' '}
+                            {process.car.license_plate ?? 'Tanpa plat'}
+                        </>
+                    }
+                    actions={
+                        <>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsCostOpen(true)}
+                                disabled={process.status === 'cancelled'}
                             >
-                                <ArrowLeftIcon />
-                            </Link>
-                        </Button>
-                        <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <h1 className="font-mono text-xl font-semibold tracking-tight md:text-2xl">
-                                    {process.process_number}
-                                </h1>
-                                <ProcessStatusBadge
-                                    status={process.status}
-                                    labels={statusOptions}
-                                />
-                            </div>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {carName} ·{' '}
-                                {process.car.license_plate ?? 'Tanpa plat'}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsCostOpen(true)}
-                            disabled={process.status === 'cancelled'}
-                        >
-                            <CurrencyCircleDollarIcon />
-                            Tambah Biaya
-                        </Button>
-                        <Button
-                            onClick={() => setIsEventOpen(true)}
-                            disabled={isTerminal}
-                        >
-                            <PlusIcon />
-                            Catat Perkembangan
-                        </Button>
-                    </div>
-                </div>
+                                <CurrencyCircleDollarIcon />
+                                Tambah Biaya
+                            </Button>
+                            <Button
+                                onClick={() => setIsEventOpen(true)}
+                                disabled={isTerminal}
+                            >
+                                <PlusIcon />
+                                Catat Perkembangan
+                            </Button>
+                        </>
+                    }
+                />
 
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)]">
                     <div className="grid min-w-0 gap-6">
@@ -153,42 +126,44 @@ export default function DocumentProcessShow({
                                 <CardTitle>Informasi Proses</CardTitle>
                             </CardHeader>
                             <CardContent className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                                <Detail
+                                <DetailItem
                                     label="Jenis proses"
                                     value={
                                         typeOptions[process.process_type] ??
                                         process.process_type
                                     }
                                 />
-                                <Detail
+                                <DetailItem
                                     label="Kendaraan"
                                     value={`${carName} · ${process.car.license_plate ?? 'Tanpa plat'}`}
                                 />
-                                <Detail
+                                <DetailItem
                                     label="Customer"
                                     value={
                                         process.customer?.name ??
                                         'Proses internal showroom'
                                     }
                                 />
-                                <Detail
+                                <DetailItem
                                     label="Penanggung jawab"
                                     value={
                                         process.assignee?.name ??
                                         'Belum ditentukan'
                                     }
                                 />
-                                <Detail
+                                <DetailItem
                                     label="Tanggal mulai"
-                                    value={formatDate(process.started_at)}
+                                    value={formatProcessDate(
+                                        process.started_at,
+                                    )}
                                 />
-                                <Detail
+                                <DetailItem
                                     label="Target selesai"
-                                    value={formatDate(
+                                    value={formatProcessDate(
                                         process.estimated_completion_date,
                                     )}
                                 />
-                                <Detail
+                                <DetailItem
                                     label="Biro jasa / petugas luar"
                                     value={
                                         process.processor_name ??
@@ -196,25 +171,26 @@ export default function DocumentProcessShow({
                                     }
                                 />
                                 {process.processor_phone && (
-                                    <Detail
+                                    <DetailItem
                                         label="Nomor kontak biro jasa"
                                         value={process.processor_phone}
+                                        copyable
                                     />
                                 )}
                                 {process.origin_region && (
-                                    <Detail
+                                    <DetailItem
                                         label="Daerah asal"
                                         value={process.origin_region}
                                     />
                                 )}
                                 {process.destination_region && (
-                                    <Detail
+                                    <DetailItem
                                         label="Daerah tujuan"
                                         value={process.destination_region}
                                     />
                                 )}
                                 {process.target_owner_name && (
-                                    <Detail
+                                    <DetailItem
                                         label="Pemilik tujuan"
                                         value={process.target_owner_name}
                                     />
@@ -260,20 +236,31 @@ export default function DocumentProcessShow({
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Badge variant="outline">
-                                                            {custodyLabels[
-                                                                item
-                                                                    .custody_status
-                                                            ] ??
-                                                                item.custody_status}
-                                                        </Badge>
+                                                        <StatusBadge
+                                                            status={
+                                                                item.custody_status
+                                                            }
+                                                            label={
+                                                                custodyLabels[
+                                                                    item
+                                                                        .custody_status
+                                                                ]
+                                                            }
+                                                        />
                                                     </TableCell>
                                                     <TableCell>
                                                         {item.received_at
-                                                            ? dateTimeFormatter.format(
-                                                                  new Date(
-                                                                      item.received_at,
-                                                                  ),
+                                                            ? formatDateTime(
+                                                                  item.received_at,
+                                                                  {
+                                                                      day: '2-digit',
+                                                                      month: 'short',
+                                                                      year: 'numeric',
+                                                                      hour: '2-digit',
+                                                                      minute: '2-digit',
+                                                                      timeZoneName:
+                                                                          'short',
+                                                                  },
                                                               )
                                                             : '—'}
                                                     </TableCell>
@@ -306,10 +293,17 @@ export default function DocumentProcessShow({
                                                         labels={statusOptions}
                                                     />
                                                     <span className="text-xs text-muted-foreground">
-                                                        {dateTimeFormatter.format(
-                                                            new Date(
-                                                                event.occurred_at,
-                                                            ),
+                                                        {formatDateTime(
+                                                            event.occurred_at,
+                                                            {
+                                                                day: '2-digit',
+                                                                month: 'short',
+                                                                year: 'numeric',
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                                timeZoneName:
+                                                                    'short',
+                                                            },
                                                         )}
                                                     </span>
                                                 </div>
@@ -390,9 +384,7 @@ export default function DocumentProcessShow({
                                         Total seluruh biaya
                                     </span>
                                     <p className="mt-1 text-xl font-bold">
-                                        {currencyFormatter.format(
-                                            process.total_cost,
-                                        )}
+                                        {formatCurrency(process.total_cost)}
                                     </p>
                                 </div>
                                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
@@ -400,7 +392,7 @@ export default function DocumentProcessShow({
                                         Masuk modal kendaraan
                                     </span>
                                     <p className="mt-1 text-xl font-bold text-amber-700 dark:text-amber-300">
-                                        {currencyFormatter.format(
+                                        {formatCurrency(
                                             process.capitalized_cost,
                                         )}
                                     </p>
@@ -432,7 +424,7 @@ export default function DocumentProcessShow({
                                                         {cost.description}
                                                     </p>
                                                     <p className="shrink-0 text-sm font-bold">
-                                                        {currencyFormatter.format(
+                                                        {formatCurrency(
                                                             cost.amount,
                                                         )}
                                                     </p>
@@ -440,7 +432,7 @@ export default function DocumentProcessShow({
                                                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                                                     <span className="inline-flex items-center gap-1">
                                                         <CalendarDotsIcon />
-                                                        {formatDate(
+                                                        {formatProcessDate(
                                                             cost.paid_at,
                                                         )}
                                                     </span>
@@ -483,7 +475,7 @@ export default function DocumentProcessShow({
                         </Card>
                     </div>
                 </div>
-            </div>
+            </PageContainer>
 
             <ProcessEventDialog
                 open={isEventOpen}
