@@ -60,6 +60,7 @@ export default function Profile({
                                     required
                                     autoComplete="name"
                                     placeholder="Nama lengkap"
+                                    aria-invalid={Boolean(errors.name)}
                                 />
 
                                 <InputError
@@ -83,6 +84,7 @@ export default function Profile({
                                     required
                                     autoComplete="username"
                                     placeholder="Alamat email"
+                                    aria-invalid={Boolean(errors.email)}
                                 />
 
                                 <InputError

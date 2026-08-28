@@ -55,6 +55,7 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 autoFocus
                                 placeholder="Password baru"
                                 passwordrules={passwordRules}
+                                aria-invalid={Boolean(errors.password)}
                             />
                             <InputError message={errors.password} />
                         </div>
@@ -71,6 +72,9 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 className="mt-1 block w-full"
                                 placeholder="Konfirmasi password baru"
                                 passwordrules={passwordRules}
+                                aria-invalid={Boolean(
+                                    errors.password_confirmation,
+                                )}
                             />
                             <InputError
                                 message={errors.password_confirmation}

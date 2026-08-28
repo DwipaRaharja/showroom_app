@@ -66,6 +66,9 @@ export default function Security(props: Props) {
                                     className="mt-1 block w-full"
                                     autoComplete="current-password"
                                     placeholder="Password saat ini"
+                                    aria-invalid={Boolean(
+                                        errors.current_password,
+                                    )}
                                 />
 
                                 <InputError message={errors.current_password} />
@@ -85,6 +88,7 @@ export default function Security(props: Props) {
                                     autoComplete="new-password"
                                     placeholder="Password baru"
                                     passwordrules={props.passwordRules}
+                                    aria-invalid={Boolean(errors.password)}
                                 />
 
                                 <InputError message={errors.password} />
@@ -103,6 +107,9 @@ export default function Security(props: Props) {
                                     autoComplete="new-password"
                                     placeholder="Konfirmasi password baru"
                                     passwordrules={props.passwordRules}
+                                    aria-invalid={Boolean(
+                                        errors.password_confirmation,
+                                    )}
                                 />
 
                                 <InputError

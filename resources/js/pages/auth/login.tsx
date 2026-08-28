@@ -42,6 +42,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={1}
                                     autoComplete="email"
                                     placeholder="email@contoh.com"
+                                    aria-invalid={Boolean(errors.email)}
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -69,6 +70,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Password"
+                                    aria-invalid={Boolean(errors.password)}
                                 />
                                 <InputError message={errors.password} />
                             </div>

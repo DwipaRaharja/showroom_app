@@ -36,6 +36,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     autoComplete="off"
                                     autoFocus
                                     placeholder="email@contoh.com"
+                                    aria-invalid={Boolean(errors.email)}
                                 />
 
                                 <InputError message={errors.email} />

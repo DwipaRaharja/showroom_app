@@ -24,6 +24,7 @@ export default function ConfirmPassword() {
                                 placeholder="Masukkan password"
                                 autoComplete="current-password"
                                 autoFocus
+                                aria-invalid={Boolean(errors.password)}
                             />
 
                             <InputError message={errors.password} />
