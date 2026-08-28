@@ -185,3 +185,34 @@ test('deleting a settlement returns the sale and car to unpaid status', function
     expect($sale->fresh()->status)->toBe('pending')
         ->and($sale->car->fresh()->status)->toBe('booked');
 });
+
+test('cannot create a sale for a car that is already sold or booked', function () {
+    $user = User::factory()->create();
+    $car = Car::factory()->create(['status' => 'available']);
+    $customer = Customer::factory()->create();
+
+    // First sale succeeds
+    $this->actingAs($user)
+        ->post(route('sales.store'), [
+            'car_id' => $car->id,
+            'customer_id' => $customer->id,
+            'payment_type' => 'cash_full',
+            'deal_price' => 150_000_000,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($car->fresh()->status)->toBe('sold');
+
+    // Second simultaneous attempt fails with validation error
+    $customer2 = Customer::factory()->create();
+    $this->actingAs($user)
+        ->post(route('sales.store'), [
+            'car_id' => $car->id,
+            'customer_id' => $customer2->id,
+            'payment_type' => 'cash_full',
+            'deal_price' => 150_000_000,
+        ])
+        ->assertSessionHasErrors(['car_id']);
+});
+
+

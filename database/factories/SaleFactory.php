@@ -83,6 +83,7 @@ class SaleFactory extends Factory
             'disbursement_actual_date' => null,
             'leasing_bonus' => 0,
             'due_date' => null,
+            'trade_in_price' => fake()->numberBetween(50, 150) * 1_000_000,
             'trade_in_license_plate' => fake()->bothify('DT #### ??'),
             'trade_in_brand' => fake()->randomElement(['Toyota', 'Honda', 'Daihatsu', 'Mitsubishi']),
             'trade_in_car_name' => fake()->randomElement(['Avanza 1.3 G', 'Brio Satya E', 'Xenia 1.3 R', 'Xpander Ultimate']),

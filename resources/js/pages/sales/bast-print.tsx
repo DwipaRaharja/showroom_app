@@ -6,6 +6,7 @@ import {
     XIcon,
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
+import { formatDate, formatDateTime as formatTime } from '@/lib/formatters';
 import type {
     HandoverChecklist,
     Sale,
@@ -18,28 +19,20 @@ type Props = {
     handover: VehicleHandover;
 };
 
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Asia/Makassar',
-});
-
-const timeFormatter = new Intl.DateTimeFormat('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-    timeZone: 'Asia/Makassar',
-});
-
 function formatDateTime(value: string | null): string {
     if (!value) {
         return '—';
     }
 
-    const date = new Date(value);
-
-    return `${dateFormatter.format(date)}, pukul ${timeFormatter.format(date)} WITA`;
+    return `${formatDate(value, {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    })}, pukul ${formatTime(value, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+    })} WITA`;
 }
 
 function relationLabel(relation: string | null | undefined): string {

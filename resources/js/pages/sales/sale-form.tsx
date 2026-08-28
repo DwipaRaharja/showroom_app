@@ -12,6 +12,7 @@ import {
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import SaleController from '@/actions/App/Http/Controllers/SaleController';
+import { CardSectionHeader } from '@/components/card-section-header';
 import InputError from '@/components/input-error';
 import { MileageInput } from '@/components/mileage-input';
 import { PriceInput } from '@/components/price-input';
@@ -35,6 +36,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { formatCurrency } from '@/lib/formatters';
 import type { Brand } from '@/pages/brands/types';
 import type { Car } from '@/pages/cars/types';
 import type { Customer } from '@/pages/customers/types';
@@ -51,12 +53,6 @@ type Props = {
     financeCompanies: FinanceCompany[];
     brands?: Pick<Brand, 'id' | 'name'>[];
 };
-
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
 
 const validationColorClassName =
     'aria-invalid:border-red-500 aria-invalid:ring-red-500/20 dark:aria-invalid:ring-red-500/40';
@@ -112,6 +108,7 @@ export function SaleForm({
     );
     const [tradeInColor, setTradeInColor] = useState<string>('');
     const [tradeInMileage, setTradeInMileage] = useState<string>('');
+    const [tradeInPrice, setTradeInPrice] = useState<string>('');
     const [tradeInNotes, setTradeInNotes] = useState<string>('');
     const [recordInitialPayment, setRecordInitialPayment] = useState(true);
     const [paymentDate, setPaymentDate] = useState<string>(defaultPaymentDate);
@@ -151,6 +148,7 @@ export function SaleForm({
             setDownPayment(String(defaultDp));
         } else if (type === 'trade_in') {
             setDownPayment('');
+            setTradeInPrice('');
         }
     }
 
@@ -159,8 +157,13 @@ export function SaleForm({
     const estimatedProfit =
         numDealPrice + (Number(leasingBonus) || 0) - totalCapital;
     const numDownPayment = Number(downPayment) || 0;
+    const numTradeInPrice = Number(tradeInPrice) || 0;
     const numFinanceAmount = Math.max(0, numDealPrice - numDownPayment);
     const numRemainingTempo = Math.max(0, numDealPrice - numDownPayment);
+    const numRemainingTradeIn = Math.max(
+        0,
+        numDealPrice - numTradeInPrice - numDownPayment,
+    );
     const numLeasingBonus = Number(leasingBonus) || 0;
     const selectedFinanceCompany = financeCompanies.find(
         (fc) => String(fc.id) === financeCompanyId,
@@ -216,25 +219,11 @@ export function SaleForm({
                         <div className="space-y-6 lg:col-span-2">
                             {/* Section 1: Unit & Customer */}
                             <Card className="shadow-xs">
-                                <CardHeader>
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                            <CarProfileIcon
-                                                className="size-4"
-                                                weight="bold"
-                                            />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base">
-                                                Unit Mobil & Pembeli
-                                            </CardTitle>
-                                            <CardDescription>
-                                                Pilih unit mobil yang dijual dan
-                                                data customer pembeli.
-                                            </CardDescription>
-                                        </div>
-                                    </div>
-                                </CardHeader>
+                                <CardSectionHeader
+                                    icon={<CarProfileIcon className="size-4" weight="bold" />}
+                                    title="Unit Mobil & Pembeli"
+                                    description="Pilih unit mobil yang dijual dan data customer pembeli."
+                                />
                                 <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     {/* Select Car */}
                                     <div className="grid gap-2 sm:col-span-2">
@@ -251,6 +240,9 @@ export function SaleForm({
                                             >
                                                 <SelectTrigger
                                                     id="sale-car"
+                                                    aria-invalid={Boolean(
+                                                        errors.car_id,
+                                                    )}
                                                     className={
                                                         errors.car_id
                                                             ? validationColorClassName
@@ -290,7 +282,7 @@ export function SaleForm({
                                                                         }
                                                                     </span>
                                                                     <span className="ml-auto font-medium text-emerald-600">
-                                                                        {currencyFormatter.format(
+                                                                        {formatCurrency(
                                                                             car.selling_price,
                                                                         )}
                                                                     </span>
@@ -329,6 +321,9 @@ export function SaleForm({
                                         >
                                             <SelectTrigger
                                                 id="sale-customer"
+                                                aria-invalid={Boolean(
+                                                    errors.customer_id,
+                                                )}
                                                 className={
                                                     errors.customer_id
                                                         ? validationColorClassName
@@ -407,26 +402,17 @@ export function SaleForm({
 
                             {/* Section 2: Payment Scheme */}
                             <Card className="shadow-xs">
-                                <CardHeader>
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-500">
-                                            <CurrencyCircleDollarIcon
-                                                className="size-4"
-                                                weight="bold"
-                                            />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base">
-                                                Skema Pembayaran
-                                            </CardTitle>
-                                            <CardDescription>
-                                                Tentukan metode pembayaran:
-                                                Tunai Lunas, Tunai Tempo, atau
-                                                Kredit Leasing.
-                                            </CardDescription>
-                                        </div>
-                                    </div>
-                                </CardHeader>
+                                <CardSectionHeader
+                                    icon={
+                                        <CurrencyCircleDollarIcon
+                                            className="size-4"
+                                            weight="bold"
+                                        />
+                                    }
+                                    iconClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
+                                    title="Skema Pembayaran"
+                                    description="Tentukan metode pembayaran: Tunai Lunas, Tunai Tempo, atau Kredit Leasing."
+                                />
                                 <CardContent className="space-y-6">
                                     {/* Payment Type Selection Buttons */}
                                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -777,10 +763,43 @@ export function SaleForm({
                                                     />
                                                 </div>
 
-                                                {/* Baris 4: Tambahan Uang (DP) & Catatan Unit */}
+                                                {/* Baris 4: Harga Mobil Tukar Tambah & Tambahan Uang (DP) */}
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="trade_in_price">
+                                                        Nilai / Harga Mobil Tukar Tambah{' '}
+                                                        <span className="text-red-500">
+                                                            *
+                                                        </span>
+                                                    </Label>
+                                                    <PriceInput
+                                                        id="trade_in_price"
+                                                        name="trade_in_price"
+                                                        value={tradeInPrice}
+                                                        onValueChange={
+                                                            setTradeInPrice
+                                                        }
+                                                        placeholder="0"
+                                                        required
+                                                        aria-invalid={Boolean(
+                                                            errors.trade_in_price,
+                                                        )}
+                                                        className={
+                                                            validationColorClassName
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.trade_in_price
+                                                        }
+                                                        className={
+                                                            errorTextClassName
+                                                        }
+                                                    />
+                                                </div>
+
                                                 <div className="grid gap-2">
                                                     <Label htmlFor="down_payment">
-                                                        Tambahan Uang / DP
+                                                        Tambahan Uang / DP Kas
                                                         (Opsional)
                                                     </Label>
                                                     <PriceInput
@@ -808,7 +827,8 @@ export function SaleForm({
                                                     />
                                                 </div>
 
-                                                <div className="grid gap-2">
+                                                {/* Baris 5: Catatan Unit Tukar Tambah */}
+                                                <div className="grid gap-2 sm:col-span-2">
                                                     <Label htmlFor="trade_in_notes">
                                                         Catatan Unit Tukar
                                                         Tambah (Opsional)
@@ -820,7 +840,7 @@ export function SaleForm({
                                                         value={tradeInNotes}
                                                         onChange={(e) =>
                                                             setTradeInNotes(
-                                                                e.target.value,
+                                                                  e.target.value,
                                                             )
                                                         }
                                                         aria-invalid={Boolean(
@@ -911,7 +931,7 @@ export function SaleForm({
                                                 Sisa piutang yang harus dilunasi
                                                 customer:{' '}
                                                 <strong>
-                                                    {currencyFormatter.format(
+                                                    {formatCurrency(
                                                         numRemainingTempo,
                                                     )}
                                                 </strong>
@@ -974,6 +994,9 @@ export function SaleForm({
                                                 >
                                                     <SelectTrigger
                                                         id="finance_company_id"
+                                                        aria-invalid={Boolean(
+                                                            errors.finance_company_id,
+                                                        )}
                                                         className="bg-background"
                                                     >
                                                         <SelectValue placeholder="Pilih leasing..." />
@@ -1152,7 +1175,7 @@ export function SaleForm({
                                                         <div className="relative">
                                                             <Input
                                                                 id="finance_amount"
-                                                                value={currencyFormatter.format(
+                                                                value={formatCurrency(
                                                                     numFinanceAmount,
                                                                 )}
                                                                 readOnly
@@ -1162,13 +1185,13 @@ export function SaleForm({
                                                         <p className="pt-1 text-[11px] text-muted-foreground">
                                                             Otomatis:{' '}
                                                             <strong className="text-foreground">
-                                                                {currencyFormatter.format(
+                                                                {formatCurrency(
                                                                     numDealPrice,
                                                                 )}
                                                             </strong>{' '}
                                                             (Deal) -{' '}
                                                             <strong className="text-foreground">
-                                                                {currencyFormatter.format(
+                                                                {formatCurrency(
                                                                     numDownPayment,
                                                                 )}
                                                             </strong>{' '}
@@ -1272,7 +1295,7 @@ export function SaleForm({
                                                             (DP)
                                                         </div>
                                                         <div className="mt-0.5 font-bold text-emerald-600">
-                                                            {currencyFormatter.format(
+                                                            {formatCurrency(
                                                                 numDownPayment,
                                                             )}
                                                         </div>
@@ -1283,7 +1306,7 @@ export function SaleForm({
                                                             (Pokok)
                                                         </div>
                                                         <div className="mt-0.5 font-bold text-blue-600">
-                                                            {currencyFormatter.format(
+                                                            {formatCurrency(
                                                                 numFinanceAmount,
                                                             )}
                                                         </div>
@@ -1295,7 +1318,7 @@ export function SaleForm({
                                                         </div>
                                                         <div className="mt-0.5 font-bold text-indigo-600">
                                                             +
-                                                            {currencyFormatter.format(
+                                                            {formatCurrency(
                                                                 numLeasingBonus,
                                                             )}
                                                         </div>
@@ -1402,7 +1425,12 @@ export function SaleForm({
                                                             )
                                                         }
                                                     >
-                                                        <SelectTrigger id="payment_method">
+                                                        <SelectTrigger
+                                                            id="payment_method"
+                                                            aria-invalid={Boolean(
+                                                                errors.payment_method,
+                                                            )}
+                                                        >
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -1532,9 +1560,7 @@ export function SaleForm({
                                                 Harga kesepakatan
                                             </div>
                                             <div className="mt-2 text-lg font-bold text-emerald-600 tabular-nums dark:text-emerald-500">
-                                                {currencyFormatter.format(
-                                                    numDealPrice,
-                                                )}
+                                                {formatCurrency(numDealPrice)}
                                             </div>
                                         </div>
 
@@ -1544,9 +1570,7 @@ export function SaleForm({
                                                 Total modal
                                             </div>
                                             <div className="mt-2 text-lg font-bold tabular-nums">
-                                                {currencyFormatter.format(
-                                                    totalCapital,
-                                                )}
+                                                {formatCurrency(totalCapital)}
                                             </div>
                                         </div>
 
@@ -1562,7 +1586,7 @@ export function SaleForm({
                                                         : 'text-blue-600 dark:text-blue-500'
                                                 }`}
                                             >
-                                                {currencyFormatter.format(
+                                                {formatCurrency(
                                                     estimatedProfit,
                                                 )}
                                             </div>
@@ -1575,9 +1599,7 @@ export function SaleForm({
                                                 Bayar lunas hari ini
                                             </div>
                                             <div className="mt-1 text-xl font-bold text-emerald-600 tabular-nums dark:text-emerald-500">
-                                                {currencyFormatter.format(
-                                                    numDealPrice,
-                                                )}
+                                                {formatCurrency(numDealPrice)}
                                             </div>
                                         </div>
                                     )}
@@ -1589,7 +1611,7 @@ export function SaleForm({
                                                     Uang muka (DP)
                                                 </span>
                                                 <span className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-500">
-                                                    {currencyFormatter.format(
+                                                    {formatCurrency(
                                                         numDownPayment,
                                                     )}
                                                 </span>
@@ -1599,7 +1621,7 @@ export function SaleForm({
                                                     Sisa pelunasan tempo
                                                 </span>
                                                 <span className="font-semibold text-amber-600 tabular-nums dark:text-amber-500">
-                                                    {currencyFormatter.format(
+                                                    {formatCurrency(
                                                         numRemainingTempo,
                                                     )}
                                                 </span>
@@ -1638,18 +1660,34 @@ export function SaleForm({
                                                     </div>
                                                 )}
                                             </div>
-                                            {numDownPayment > 0 && (
-                                                <div className="flex items-center justify-between gap-4 border-t border-purple-500/20 pt-2 text-xs">
+                                            <div className="space-y-2 border-t border-purple-500/20 pt-2 text-xs">
+                                                <div className="flex items-center justify-between gap-4">
                                                     <span className="text-muted-foreground">
-                                                        Tambahan uang tunai (DP)
+                                                        Nilai mobil tukar tambah
                                                     </span>
-                                                    <span className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-500">
-                                                        {currencyFormatter.format(
-                                                            numDownPayment,
-                                                        )}
+                                                    <span className="font-semibold text-purple-600 tabular-nums dark:text-purple-400">
+                                                        - {formatCurrency(numTradeInPrice)}
                                                     </span>
                                                 </div>
-                                            )}
+                                                {numDownPayment > 0 && (
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-muted-foreground">
+                                                            Tambahan uang kas (DP)
+                                                        </span>
+                                                        <span className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-500">
+                                                            - {formatCurrency(numDownPayment)}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center justify-between gap-4 border-t border-purple-500/20 pt-2 font-medium">
+                                                    <span className="text-foreground">
+                                                        Sisa piutang showroom
+                                                    </span>
+                                                    <span className="font-bold text-amber-600 tabular-nums dark:text-amber-500">
+                                                        {formatCurrency(numRemainingTradeIn)}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
 
@@ -1660,7 +1698,7 @@ export function SaleForm({
                                                     DP dari customer
                                                 </span>
                                                 <span className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-500">
-                                                    {currencyFormatter.format(
+                                                    {formatCurrency(
                                                         numDownPayment,
                                                     )}
                                                 </span>
@@ -1670,7 +1708,7 @@ export function SaleForm({
                                                     Pokok cair leasing
                                                 </span>
                                                 <span className="font-semibold text-blue-600 tabular-nums dark:text-blue-500">
-                                                    {currencyFormatter.format(
+                                                    {formatCurrency(
                                                         numFinanceAmount,
                                                     )}
                                                 </span>
@@ -1682,7 +1720,7 @@ export function SaleForm({
                                                     </span>
                                                     <span className="font-semibold text-indigo-600 tabular-nums dark:text-indigo-400">
                                                         +
-                                                        {currencyFormatter.format(
+                                                        {formatCurrency(
                                                             numLeasingBonus,
                                                         )}
                                                     </span>

@@ -35,6 +35,7 @@ class Sale extends Model
         'finance_company_id',
         'payment_type',
         'deal_price',
+        'trade_in_price',
         'down_payment',
         'finance_amount',
         'disbursement_estimated_date',
@@ -75,6 +76,7 @@ class Sale extends Model
     {
         return [
             'deal_price' => 'integer',
+            'trade_in_price' => 'integer',
             'down_payment' => 'integer',
             'finance_amount' => 'integer',
             'leasing_bonus' => 'integer',
@@ -145,7 +147,11 @@ class Sale extends Model
     protected function remainingBill(): Attribute
     {
         return Attribute::make(
-            get: fn () => max(0, $this->deal_price - $this->total_paid)
+            get: function () {
+                $tradeInValue = $this->payment_type === 'trade_in' ? (int) $this->trade_in_price : 0;
+
+                return max(0, $this->deal_price - $tradeInValue - $this->total_paid);
+            }
         );
     }
 
@@ -289,9 +295,8 @@ class Sale extends Model
     /**
      * Check whether the vehicle unit + STNK can be handed over.
      *
-     * For credit sales, the agreed but not-yet-disbursed leasing principal is
-     * excluded so only the uncovered customer obligation is compared to the
-     * ten-million handover tolerance.
+     * Vehicle unit and STNK can be handed over freely for any active (non-cancelled) sale.
+     * BPKB handover remains strictly guarded until fully settled.
      *
      * @return Attribute<bool, never>
      */
@@ -299,7 +304,6 @@ class Sale extends Model
     {
         return Attribute::make(
             get: fn () => $this->status !== 'cancelled'
-                && $this->customer_payment_shortfall <= 10_000_000
         );
     }
 
@@ -331,7 +335,7 @@ class Sale extends Model
         if ($remaining <= 0) {
             $this->update(['status' => 'completed']);
             $this->car?->update(['status' => 'sold']);
-        } elseif ($this->total_paid > 0) {
+        } elseif ($this->total_paid > 0 || ($this->payment_type === 'trade_in' && $this->trade_in_price > 0)) {
             $this->update(['status' => 'partial']);
             $this->car?->update(['status' => 'booked']);
         } else {
@@ -388,5 +392,38 @@ class Sale extends Model
     public function handover(): HasOne
     {
         return $this->hasOne(VehicleHandover::class);
+    }
+
+    /**
+     * Scope a query to eagerly load all relations needed for vehicle handover views.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Sale>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<Sale>
+     */
+    public function scopeWithHandoverDetails(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->with([
+            'car' => fn ($carQuery) => $carQuery->with('brand:id,name'),
+            'customer',
+            'financeCompany',
+            'payments' => fn ($paymentQuery) => $paymentQuery->orderBy('payment_date'),
+            'handover.events.items',
+            'handover.events.photos',
+        ]);
+    }
+
+    /**
+     * Load all relations needed for vehicle handover views on this model instance.
+     */
+    public function loadHandoverDetails(): self
+    {
+        return $this->load([
+            'car' => fn ($carQuery) => $carQuery->with('brand:id,name'),
+            'customer',
+            'financeCompany',
+            'payments' => fn ($paymentQuery) => $paymentQuery->orderBy('payment_date'),
+            'handover.events.items',
+            'handover.events.photos',
+        ]);
     }
 }

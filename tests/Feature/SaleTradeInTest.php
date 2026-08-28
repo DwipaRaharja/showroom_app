@@ -24,7 +24,7 @@ test('sales create page provides active brands for trade-in suggestions', functi
         );
 });
 
-test('storing trade-in sale requires vehicle details', function () {
+test('storing trade-in sale requires vehicle details and trade-in price', function () {
     $user = User::factory()->create();
     $car = Car::factory()->create(['status' => 'available', 'selling_price' => 150_000_000]);
     $customer = Customer::factory()->create();
@@ -37,6 +37,7 @@ test('storing trade-in sale requires vehicle details', function () {
             'deal_price' => 150_000_000,
         ])
         ->assertSessionHasErrors([
+            'trade_in_price',
             'trade_in_license_plate',
             'trade_in_brand',
             'trade_in_car_name',
@@ -46,7 +47,7 @@ test('storing trade-in sale requires vehicle details', function () {
         ]);
 });
 
-test('storing trade-in sale persists trade-in vehicle details successfully', function () {
+test('storing trade-in sale persists trade-in vehicle details and reduces customer remaining bill', function () {
     $user = User::factory()->create();
     $car = Car::factory()->create(['status' => 'available', 'selling_price' => 200_000_000]);
     $customer = Customer::factory()->create();
@@ -57,6 +58,7 @@ test('storing trade-in sale persists trade-in vehicle details successfully', fun
             'customer_id' => $customer->id,
             'payment_type' => 'trade_in',
             'deal_price' => 200_000_000,
+            'trade_in_price' => 150_000_000,
             'down_payment' => 30_000_000,
             'trade_in_license_plate' => 'DT 1234 AB',
             'trade_in_brand' => 'Toyota',
@@ -78,7 +80,11 @@ test('storing trade-in sale persists trade-in vehicle details successfully', fun
     expect($sale)->not->toBeNull()
         ->and($sale->payment_type)->toBe('trade_in')
         ->and($sale->deal_price)->toBe(200_000_000)
+        ->and($sale->trade_in_price)->toBe(150_000_000)
         ->and($sale->down_payment)->toBe(30_000_000)
+        ->and($sale->total_paid)->toBe(30_000_000)
+        ->and($sale->remaining_bill)->toBe(20_000_000) // 200M - 150M (trade-in) - 30M (DP) = 20M
+        ->and($sale->status)->toBe('partial')
         ->and($sale->trade_in_license_plate)->toBe('DT 1234 AB')
         ->and($sale->trade_in_brand)->toBe('Toyota')
         ->and($sale->trade_in_car_name)->toBe('Avanza 1.3 G M/T')
@@ -90,10 +96,40 @@ test('storing trade-in sale persists trade-in vehicle details successfully', fun
         ->and($sale->payments->first()->amount)->toBe(30_000_000);
 });
 
-test('trade-in sale page renders trade-in card with vehicle details', function () {
+test('trade-in sale with full valuation sets status to completed and car to sold', function () {
+    $user = User::factory()->create();
+    $car = Car::factory()->create(['status' => 'available', 'selling_price' => 200_000_000]);
+    $customer = Customer::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('sales.store'), [
+            'car_id' => $car->id,
+            'customer_id' => $customer->id,
+            'payment_type' => 'trade_in',
+            'deal_price' => 200_000_000,
+            'trade_in_price' => 200_000_000,
+            'down_payment' => 0,
+            'trade_in_license_plate' => 'DT 9999 XX',
+            'trade_in_brand' => 'Honda',
+            'trade_in_car_name' => 'HR-V 1.5 SE',
+            'trade_in_year' => 2023,
+            'trade_in_color' => 'Putih',
+            'trade_in_mileage' => 15000,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $sale = Sale::query()->latest('id')->first();
+
+    expect($sale->remaining_bill)->toBe(0)
+        ->and($sale->status)->toBe('completed')
+        ->and($car->fresh()->status)->toBe('sold');
+});
+
+test('trade-in sale page renders trade-in card with vehicle details and valuation', function () {
     $user = User::factory()->create();
     $sale = Sale::factory()->tradeIn()->create([
         'deal_price' => 180_000_000,
+        'trade_in_price' => 120_000_000,
         'down_payment' => 20_000_000,
         'trade_in_license_plate' => 'DT 5678 CD',
         'trade_in_brand' => 'Honda',
@@ -110,6 +146,8 @@ test('trade-in sale page renders trade-in card with vehicle details', function (
         ->assertInertia(fn (Assert $page) => $page
             ->component('sales/show')
             ->where('sale.payment_type', 'trade_in')
+            ->where('sale.trade_in_price', 120_000_000)
+            ->where('sale.remaining_bill', 60_000_000) // 180M - 120M = 60M
             ->where('sale.trade_in_license_plate', 'DT 5678 CD')
             ->where('sale.trade_in_brand', 'Honda')
             ->where('sale.trade_in_car_name', 'Brio Satya E M/T')

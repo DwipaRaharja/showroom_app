@@ -1,4 +1,4 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import {
     ArrowLeftIcon,
     ArrowsLeftRightIcon,
@@ -14,15 +14,21 @@ import {
     ShieldCheckIcon,
     TrashIcon,
     UserIcon,
-    WarningIcon,
     WhatsappLogoIcon,
 } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import PaymentController from '@/actions/App/Http/Controllers/PaymentController';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
+import { CardSectionHeader } from '@/components/card-section-header';
+import { ConfirmDialog } from '@/components/confirm-dialog';
+import { DataRow } from '@/components/detail-item';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { StatCard } from '@/components/stat-card';
+import { StatCardGrid } from '@/components/stat-card-grid';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
+import { copyToClipboard } from '@/lib/clipboard';
 import {
     Card,
     CardContent,
@@ -30,15 +36,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -54,6 +51,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 import { PaymentDialog } from '@/pages/sales/payment-dialog';
 import { getPaymentTypeBadge } from '@/pages/sales/table-config';
 import type { Payment, Sale } from '@/pages/sales/types';
@@ -63,26 +61,11 @@ type Props = {
     sale: Sale;
 };
 
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
+const longDateOptions: Intl.DateTimeFormatOptions = {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
-});
-
-async function copyText(value: string, label: string) {
-    try {
-        await navigator.clipboard.writeText(value);
-        toast.success(`${label} berhasil disalin.`);
-    } catch {
-        toast.error(`${label} gagal disalin.`);
-    }
-}
+};
 
 function getPaymentCategoryLabel(category: string) {
     switch (category) {
@@ -118,6 +101,8 @@ export default function SalesShow({ sale }: Props) {
             new Date(left.occurred_at).getTime(),
     )[0];
 
+    const tradeInValue =
+        sale.payment_type === 'trade_in' ? (sale.trade_in_price ?? 0) : 0;
     const totalPaid =
         sale.total_paid ??
         payments
@@ -128,7 +113,8 @@ export default function SalesShow({ sale }: Props) {
             )
             .reduce((acc, p) => acc + p.amount, 0);
     const remainingBill =
-        sale.remaining_bill ?? Math.max(0, sale.deal_price - totalPaid);
+        sale.remaining_bill ??
+        Math.max(0, sale.deal_price - tradeInValue - totalPaid);
     const customerPaymentShortfall =
         sale.customer_payment_shortfall ?? remainingBill;
     const totalBonusPaid =
@@ -143,7 +129,7 @@ export default function SalesShow({ sale }: Props) {
     const bonusRemaining = Math.max(0, sale.leasing_bonus - totalBonusPaid);
     const isSettled = remainingBill <= 0;
     const canDeliverVehicle =
-        sale.can_deliver_vehicle ?? remainingBill <= 10_000_000;
+        sale.can_deliver_vehicle ?? sale.status !== 'cancelled';
     const canDeliverBpkb = sale.can_deliver_bpkb ?? remainingBill <= 0;
     const canAddTracking =
         sale.status !== 'cancelled' &&
@@ -169,167 +155,253 @@ export default function SalesShow({ sale }: Props) {
         <>
             <Head title={`Detail SPK Penjualan ${sale.invoice_number}`} />
 
-            <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                {/* Top Action Bar */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                        <Button variant="outline" size="icon" asChild>
-                            <Link
-                                href={salesIndex.url()}
-                                aria-label="Kembali ke daftar penjualan"
-                            >
-                                <ArrowLeftIcon className="size-4" />
-                            </Link>
-                        </Button>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h1 className="font-mono text-xl font-bold tracking-tight">
-                                    {sale.invoice_number}
-                                </h1>
-                                <StatusBadge status={sale.status} />
-                                {getPaymentTypeBadge(
-                                    sale.payment_type,
-                                    finance?.name,
-                                )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Dibuat pada{' '}
-                                {dateFormatter.format(
-                                    new Date(sale.created_at),
-                                )}
-                            </p>
-                        </div>
-                    </div>
+            <PageContainer>
+                <PageHeader
+                    backHref={salesIndex.url()}
+                    backLabel="Kembali ke daftar penjualan"
+                    title={sale.invoice_number}
+                    titleClassName="font-mono text-xl font-bold"
+                    titleAddon={
+                        <>
+                            <StatusBadge status={sale.status} />
+                            {getPaymentTypeBadge(
+                                sale.payment_type,
+                                finance?.name,
+                            )}
+                        </>
+                    }
+                    description={
+                        <>
+                            Dibuat pada{' '}
+                            {formatDate(sale.created_at, longDateOptions)}
+                        </>
+                    }
+                    actions={
+                        <>
+                            {canAcceptPayment && (
+                                <Button
+                                    onClick={() => setIsPaymentOpen(true)}
+                                    className="bg-emerald-600 text-white shadow-xs hover:bg-emerald-700"
+                                >
+                                    <PlusIcon className="size-4" />
+                                    Catat Pembayaran Masuk
+                                </Button>
+                            )}
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        {canAcceptPayment && (
                             <Button
-                                onClick={() => setIsPaymentOpen(true)}
-                                className="bg-emerald-600 text-white shadow-xs hover:bg-emerald-700"
+                                variant="outline"
+                                asChild
+                                className="print:hidden"
                             >
-                                <PlusIcon className="size-4" />
-                                Catat Pembayaran Masuk
+                                <Link
+                                    href={VehicleHandoverController.printBast.url(
+                                        sale.id,
+                                    )}
+                                >
+                                    <PrinterIcon className="size-4" />
+                                    Cetak BAST
+                                </Link>
                             </Button>
-                        )}
 
-                        <Button
-                            variant="outline"
-                            asChild
-                            className="print:hidden"
-                        >
-                            <Link
-                                href={VehicleHandoverController.printBast.url(
-                                    sale.id,
-                                )}
+                            <Button
+                                variant="outline"
+                                onClick={() => window.print()}
+                                className="print:hidden"
                             >
                                 <PrinterIcon className="size-4" />
-                                Cetak BAST
-                            </Link>
-                        </Button>
+                                Cetak SPK / Invoice
+                            </Button>
+                        </>
+                    }
+                />
 
-                        <Button
-                            variant="outline"
-                            onClick={() => window.print()}
-                            className="print:hidden"
-                        >
-                            <PrinterIcon className="size-4" />
-                            Cetak SPK / Invoice
-                        </Button>
-                    </div>
-                </div>
+                <StatCardGrid>
+                    <StatCard
+                        title="Harga Kesepakatan (Deal)"
+                        value={formatCurrency(sale.deal_price)}
+                        description="Harga Jual Unit"
+                        variant="default"
+                    />
 
-                {/* 4 KPI Financial Cards */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <Card className="p-4 shadow-xs">
-                        <div className="text-xs font-medium text-muted-foreground">
-                            Harga Kesepakatan (Deal)
-                        </div>
-                        <div className="mt-1 text-xl font-bold text-foreground">
-                            {currencyFormatter.format(sale.deal_price)}
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-muted-foreground">
-                            Harga Jual Unit
-                        </div>
-                    </Card>
-
-                    <Card className="p-4 shadow-xs">
-                        <div className="text-xs font-medium text-muted-foreground">
-                            Total Uang Masuk
-                        </div>
-                        <div className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-500">
-                            {currencyFormatter.format(totalPaid)}
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-emerald-600/80">
-                            {isSettled
+                    <StatCard
+                        title={
+                            sale.payment_type === 'trade_in'
+                                ? 'Total Nilai Masuk & Mobil'
+                                : 'Total Uang Masuk'
+                        }
+                        value={formatCurrency(
+                            sale.payment_type === 'trade_in'
+                                ? tradeInValue + totalPaid
+                                : totalPaid,
+                        )}
+                        description={
+                            isSettled
                                 ? '✓ Lunas 100%'
-                                : `${Math.round((totalPaid / sale.deal_price) * 100)}% dari total tagihan`}
-                        </div>
-                    </Card>
+                                : sale.payment_type === 'trade_in'
+                                  ? `Unit: ${formatCurrency(tradeInValue)} + Kas: ${formatCurrency(totalPaid)}`
+                                  : `${Math.round((totalPaid / sale.deal_price) * 100)}% dari total tagihan`
+                        }
+                        variant="success"
+                    />
 
-                    <Card className="p-4 shadow-xs">
-                        <div className="text-xs font-medium text-muted-foreground">
-                            Sisa Piutang Showroom
-                        </div>
-                        <div
-                            className={`mt-1 text-xl font-bold ${isSettled ? 'text-emerald-600 dark:text-emerald-500' : 'text-amber-600 dark:text-amber-500'}`}
-                        >
-                            {currencyFormatter.format(remainingBill)}
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-muted-foreground">
-                            {isSettled
+                    <StatCard
+                        title="Sisa Piutang Showroom"
+                        value={formatCurrency(remainingBill)}
+                        description={
+                            isSettled
                                 ? 'Tidak ada tagihan tertunda'
                                 : sale.payment_type === 'credit'
                                   ? customerPaymentShortfall > 0
                                       ? 'Menunggu pembayaran customer'
                                       : 'Menunggu penyerahan BPKB & pencairan leasing'
-                                  : 'Menunggu pelunasan tempo'}
-                        </div>
-                    </Card>
+                                  : sale.payment_type === 'trade_in'
+                                    ? 'Menunggu pelunasan sisa tukar tambah'
+                                    : 'Menunggu pelunasan tempo'
+                        }
+                        variant={isSettled ? 'success' : 'warning'}
+                    />
 
-                    <Card className="p-4 shadow-xs">
-                        <div className="text-xs font-medium text-muted-foreground">
-                            {sale.payment_type === 'credit'
+                    <StatCard
+                        title={
+                            sale.payment_type === 'credit'
                                 ? 'Bonus Leasing & Estimasi Margin'
-                                : 'Estimasi Margin Laba'}
-                        </div>
-                        <div className="mt-1 text-xl font-bold text-blue-600 dark:text-blue-500">
-                            {currencyFormatter.format(estimatedProfit)}
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-muted-foreground">
-                            {sale.leasing_bonus > 0
-                                ? `Termasuk bonus Rp ${currencyFormatter.format(sale.leasing_bonus)}`
-                                : `Modal beli: ${currencyFormatter.format(purchasePrice)}`}
-                        </div>
-                    </Card>
-                </div>
+                                : 'Estimasi Margin Laba'
+                        }
+                        value={formatCurrency(estimatedProfit)}
+                        description={
+                            sale.leasing_bonus > 0
+                                ? `Termasuk bonus Rp ${formatCurrency(sale.leasing_bonus)}`
+                                : `Modal beli: ${formatCurrency(purchasePrice)}`
+                        }
+                        variant="info"
+                    />
+                </StatCardGrid>
 
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {/* Left 2 Columns: Payment History Ledger */}
+                    {/* Left 2 Columns: Payment History Ledger & Trade-in */}
                     <div className="space-y-6 lg:col-span-2">
+                        {/* Trade-In Vehicle Card (Above Payment History) */}
+                        {sale.payment_type === 'trade_in' && (
+                            <Card className="border-purple-500/20 bg-purple-500/5 shadow-xs dark:bg-purple-500/10">
+                                <CardSectionHeader
+                                    className="pb-3"
+                                    icon={
+                                        <ArrowsLeftRightIcon
+                                            className="size-5"
+                                            weight="bold"
+                                        />
+                                    }
+                                    iconClassName="bg-purple-500/20 text-purple-600 dark:text-purple-400"
+                                    title="Unit Mobil Tukar Tambah"
+                                    description="Unit kendaraan tukar tambah yang memotong nilai sisa piutang showroom."
+                                    action={
+                                        sale.trade_in_price ? (
+                                            <div className="text-left sm:text-right">
+                                                <div className="text-[11px] font-medium text-muted-foreground">
+                                                    Nilai Tukar Tambah
+                                                </div>
+                                                <div className="font-mono text-base font-bold text-purple-600 dark:text-purple-400">
+                                                    {formatCurrency(
+                                                        sale.trade_in_price,
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : null
+                                    }
+                                />
+                                <CardContent className="space-y-4 text-xs">
+                                    <div>
+                                        <div className="text-base font-bold text-foreground">
+                                            {[
+                                                sale.trade_in_brand,
+                                                sale.trade_in_car_name,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' ') || 'Unit Tukar Tambah'}
+                                        </div>
+                                    </div>
+
+                                    {sale.trade_in_license_plate && (
+                                        <div className="flex items-center justify-between rounded-lg border bg-background/60 p-2.5 font-mono">
+                                            <span className="text-muted-foreground">
+                                                Plat Nomor:
+                                            </span>
+                                            <span className="font-mono text-sm font-bold tracking-wider text-foreground">
+                                                {sale.trade_in_license_plate}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-1 gap-3 border-t border-purple-500/20 pt-3 sm:grid-cols-3">
+                                        <div className="rounded-md border border-purple-500/10 bg-background/40 p-2.5">
+                                            <div className="text-[11px] text-muted-foreground">
+                                                Tahun Pembuatan:
+                                            </div>
+                                            <div className="mt-0.5 text-sm font-semibold text-foreground">
+                                                {sale.trade_in_year ?? '—'}
+                                            </div>
+                                        </div>
+                                        <div className="rounded-md border border-purple-500/10 bg-background/40 p-2.5">
+                                            <div className="text-[11px] text-muted-foreground">
+                                                Warna Kendaraan:
+                                            </div>
+                                            <div className="mt-0.5 text-sm font-semibold text-foreground capitalize">
+                                                {sale.trade_in_color ?? '—'}
+                                            </div>
+                                        </div>
+                                        <div className="rounded-md border border-purple-500/10 bg-background/40 p-2.5">
+                                            <div className="text-[11px] text-muted-foreground">
+                                                Jarak Tempuh:
+                                            </div>
+                                            <div className="mt-0.5 font-mono text-sm font-semibold text-foreground">
+                                                {sale.trade_in_mileage !== null &&
+                                                sale.trade_in_mileage !== undefined
+                                                    ? `${sale.trade_in_mileage.toLocaleString('id-ID')} km`
+                                                    : '—'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {sale.trade_in_notes && (
+                                        <div className="rounded-lg border border-purple-500/10 bg-background/40 p-2.5 text-muted-foreground">
+                                            <span className="font-semibold text-foreground">
+                                                Catatan Kondisi:{' '}
+                                            </span>
+                            {sale.trade_in_notes}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
                         <Card className="shadow-xs">
-                            <CardHeader className="flex flex-row items-center justify-between pb-3">
-                                <div>
-                                    <CardTitle className="flex items-center gap-2 text-base">
-                                        <HandCoinsIcon className="size-5 text-emerald-600" />
-                                        Riwayat Pembayaran & Kas Masuk
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Daftar seluruh kuitansi pelunasan, uang
-                                        muka (DP), dan pencairan leasing.
-                                    </CardDescription>
-                                </div>
-                                {canAcceptPayment && (
-                                    <Button
-                                        size="sm"
-                                        onClick={() => setIsPaymentOpen(true)}
-                                        className="bg-emerald-600 text-white hover:bg-emerald-700"
-                                    >
-                                        <PlusIcon className="size-4" />
-                                        Catat Kas Masuk
-                                    </Button>
-                                )}
-                            </CardHeader>
+                            <CardSectionHeader
+                                className="pb-3"
+                                icon={
+                                    <HandCoinsIcon
+                                        className="size-4"
+                                        weight="bold"
+                                    />
+                                }
+                                iconClassName="bg-emerald-500/10 text-emerald-600"
+                                title="Riwayat Pembayaran & Kas Masuk"
+                                description="Daftar seluruh kuitansi pelunasan, uang muka (DP), dan pencairan leasing."
+                                action={
+                                    canAcceptPayment ? (
+                                        <Button
+                                            size="sm"
+                                            onClick={() =>
+                                                setIsPaymentOpen(true)
+                                            }
+                                            className="bg-emerald-600 text-white hover:bg-emerald-700"
+                                        >
+                                            <PlusIcon className="size-4" />
+                                            Catat Kas Masuk
+                                        </Button>
+                                    ) : null
+                                }
+                            />
                             <CardContent className="p-0">
                                 <Table>
                                     <TableHeader className="bg-muted/40">
@@ -368,10 +440,12 @@ export default function SalesShow({ sale }: Props) {
                                                             }
                                                         </div>
                                                         <div className="text-xs text-muted-foreground">
-                                                            {dateFormatter.format(
-                                                                new Date(
-                                                                    payment.payment_date,
+                                                            {formatDate(
+                                                                payment.payment_date.slice(
+                                                                    0,
+                                                                    10,
                                                                 ),
+                                                                longDateOptions,
                                                             )}
                                                         </div>
                                                     </TableCell>
@@ -408,7 +482,7 @@ export default function SalesShow({ sale }: Props) {
                                                             className={`text-sm font-bold ${payment.payment_category === 'leasing_bonus' ? 'text-blue-600' : 'text-emerald-600'}`}
                                                         >
                                                             +
-                                                            {currencyFormatter.format(
+                                                            {formatCurrency(
                                                                 payment.amount,
                                                             )}
                                                         </div>
@@ -439,7 +513,7 @@ export default function SalesShow({ sale }: Props) {
                                                                 <DropdownMenuContent align="end">
                                                                     <DropdownMenuItem
                                                                         onSelect={() =>
-                                                                            void copyText(
+                                                                            void copyToClipboard(
                                                                                 payment.payment_number,
                                                                                 'Nomor kuitansi',
                                                                             )
@@ -505,19 +579,17 @@ export default function SalesShow({ sale }: Props) {
                     <div className="space-y-6">
                         {/* Car Details Card */}
                         <Card className="shadow-xs">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center gap-2">
-                                    <div className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary">
-                                        <CarProfileIcon
-                                            className="size-4"
-                                            weight="bold"
-                                        />
-                                    </div>
-                                    <CardTitle className="text-sm">
-                                        Unit Mobil Terjual
-                                    </CardTitle>
-                                </div>
-                            </CardHeader>
+                            <CardSectionHeader
+                                className="pb-3"
+                                icon={
+                                    <CarProfileIcon
+                                        className="size-4"
+                                        weight="bold"
+                                    />
+                                }
+                                title="Unit Mobil Terjual"
+                                titleClassName="text-sm font-semibold"
+                            />
                             <CardContent className="space-y-2 text-xs">
                                 <div className="text-sm font-semibold text-foreground">
                                     {car?.name}
@@ -577,19 +649,18 @@ export default function SalesShow({ sale }: Props) {
 
                         {/* Customer Buyer Card */}
                         <Card className="shadow-xs">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center gap-2">
-                                    <div className="flex size-7 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600">
-                                        <UserIcon
-                                            className="size-4"
-                                            weight="bold"
-                                        />
-                                    </div>
-                                    <CardTitle className="text-sm">
-                                        Pembeli (Customer)
-                                    </CardTitle>
-                                </div>
-                            </CardHeader>
+                            <CardSectionHeader
+                                className="pb-3"
+                                icon={
+                                    <UserIcon
+                                        className="size-4"
+                                        weight="bold"
+                                    />
+                                }
+                                iconClassName="bg-emerald-500/10 text-emerald-600"
+                                title="Pembeli (Customer)"
+                                titleClassName="text-sm font-semibold"
+                            />
                             <CardContent className="space-y-2 text-xs">
                                 <div className="text-sm font-semibold text-foreground">
                                     {customer?.name}
@@ -628,100 +699,21 @@ export default function SalesShow({ sale }: Props) {
                             </CardContent>
                         </Card>
 
-                        {/* Trade-In Details Card (if trade_in) */}
-                        {sale.payment_type === 'trade_in' && (
-                            <Card className="border-purple-500/20 bg-purple-500/5 shadow-xs dark:bg-purple-500/10">
-                                <CardHeader className="pb-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex size-7 items-center justify-center rounded-md bg-purple-500/20 text-purple-600 dark:text-purple-400">
-                                            <ArrowsLeftRightIcon
-                                                className="size-4"
-                                                weight="bold"
-                                            />
-                                        </div>
-                                        <CardTitle className="text-sm">
-                                            Unit Mobil Tukar Tambah
-                                        </CardTitle>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-2.5 text-xs">
-                                    <div className="text-sm font-semibold text-foreground">
-                                        {[
-                                            sale.trade_in_brand,
-                                            sale.trade_in_car_name,
-                                        ]
-                                            .filter(Boolean)
-                                            .join(' ') || 'Unit Tukar Tambah'}
-                                    </div>
-                                    {sale.trade_in_license_plate && (
-                                        <div className="flex items-center justify-between font-mono">
-                                            <span className="text-muted-foreground">
-                                                Plat Nomor:
-                                            </span>
-                                            <span className="font-bold text-foreground">
-                                                {sale.trade_in_license_plate}
-                                            </span>
-                                        </div>
-                                    )}
-                                    <div className="grid grid-cols-2 gap-2 border-t border-purple-500/20 pt-2">
-                                        <div>
-                                            <span className="text-muted-foreground">
-                                                Tahun:
-                                            </span>{' '}
-                                            <span className="font-medium text-foreground">
-                                                {sale.trade_in_year ?? '—'}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span className="text-muted-foreground">
-                                                Warna:
-                                            </span>{' '}
-                                            <span className="font-medium text-foreground">
-                                                {sale.trade_in_color ?? '—'}
-                                            </span>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <span className="text-muted-foreground">
-                                                Kilometer:
-                                            </span>{' '}
-                                            <span className="font-medium text-foreground">
-                                                {sale.trade_in_mileage !==
-                                                    null &&
-                                                sale.trade_in_mileage !==
-                                                    undefined
-                                                    ? `${sale.trade_in_mileage.toLocaleString('id-ID')} km`
-                                                    : '—'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    {sale.trade_in_notes && (
-                                        <div className="border-t border-purple-500/20 pt-2 text-muted-foreground">
-                                            <span className="font-medium text-foreground">
-                                                Catatan:
-                                            </span>{' '}
-                                            {sale.trade_in_notes}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        )}
-
                         {/* Leasing Details Card (if credit) */}
                         {sale.payment_type === 'credit' && (
                             <Card className="border-blue-500/20 bg-blue-500/5 shadow-xs dark:bg-blue-500/10">
-                                <CardHeader className="pb-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex size-7 items-center justify-center rounded-md bg-blue-500/20 text-blue-600">
-                                            <BankIcon
-                                                className="size-4"
-                                                weight="bold"
-                                            />
-                                        </div>
-                                        <CardTitle className="text-sm">
-                                            Data Leasing (Finance)
-                                        </CardTitle>
-                                    </div>
-                                </CardHeader>
+                                <CardSectionHeader
+                                    className="pb-3"
+                                    icon={
+                                        <BankIcon
+                                            className="size-4"
+                                            weight="bold"
+                                        />
+                                    }
+                                    iconClassName="bg-blue-500/20 text-blue-600"
+                                    title="Data Leasing (Finance)"
+                                    titleClassName="text-sm font-semibold"
+                                />
                                 <CardContent className="space-y-2 text-xs">
                                     <div className="text-sm font-semibold text-foreground">
                                         {finance?.name ?? 'Lembaga Leasing'}
@@ -735,70 +727,65 @@ export default function SalesShow({ sale }: Props) {
                                             ({finance.pic_phone ?? '—'})
                                         </div>
                                     )}
-                                    <div className="space-y-1.5 divide-y border-t border-blue-500/20 pt-2">
-                                        <div className="flex items-center justify-between pt-1 text-muted-foreground">
-                                            <span>
-                                                Pokok Leasing Disetujui:
-                                            </span>
-                                            <span className="font-bold text-foreground">
-                                                {currencyFormatter.format(
+                                    <div className="divide-y divide-blue-500/20 border-t border-blue-500/20 pt-2">
+                                        <DataRow
+                                            label="Pokok Leasing Disetujui"
+                                            value={formatCurrency(
+                                                sale.finance_amount,
+                                            )}
+                                            valueClassName="font-bold text-foreground"
+                                        />
+                                        <DataRow
+                                            label="Sudah Diterima"
+                                            value={formatCurrency(
+                                                sale.total_finance_disbursed ??
+                                                    0,
+                                            )}
+                                            valueClassName="font-semibold text-emerald-600 dark:text-emerald-400"
+                                        />
+                                        <DataRow
+                                            label="Sisa Pencairan"
+                                            value={formatCurrency(
+                                                sale.remaining_finance_disbursement ??
                                                     sale.finance_amount,
-                                                )}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between pt-1.5 text-muted-foreground">
-                                            <span>Sudah Diterima:</span>
-                                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                                {currencyFormatter.format(
-                                                    sale.total_finance_disbursed ??
-                                                        0,
-                                                )}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between pt-1.5 text-muted-foreground">
-                                            <span>Sisa Pencairan:</span>
-                                            <span className="font-semibold text-amber-600 dark:text-amber-400">
-                                                {currencyFormatter.format(
-                                                    sale.remaining_finance_disbursement ??
-                                                        sale.finance_amount,
-                                                )}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between pt-1.5 text-muted-foreground">
-                                            <span>Estimasi Tanggal Cair:</span>
-                                            <span className="font-medium text-foreground">
-                                                {sale.disbursement_estimated_date
-                                                    ? dateFormatter.format(
-                                                          new Date(
-                                                              sale.disbursement_estimated_date,
+                                            )}
+                                            valueClassName="font-semibold text-amber-600 dark:text-amber-400"
+                                        />
+                                        <DataRow
+                                            label="Estimasi Tanggal Cair"
+                                            value={
+                                                sale.disbursement_estimated_date
+                                                    ? formatDate(
+                                                          sale.disbursement_estimated_date.slice(
+                                                              0,
+                                                              10,
                                                           ),
+                                                          longDateOptions,
                                                       )
-                                                    : '—'}
-                                            </span>
-                                        </div>
+                                                    : '—'
+                                            }
+                                        />
                                         {sale.disbursement_actual_date && (
-                                            <div className="flex items-center justify-between pt-1.5 text-emerald-600">
-                                                <span>Realisasi Cair:</span>
-                                                <span className="font-semibold">
-                                                    {dateFormatter.format(
-                                                        new Date(
-                                                            sale.disbursement_actual_date,
-                                                        ),
-                                                    )}
-                                                </span>
-                                            </div>
+                                            <DataRow
+                                                label="Realisasi Cair"
+                                                value={formatDate(
+                                                    sale.disbursement_actual_date.slice(
+                                                        0,
+                                                        10,
+                                                    ),
+                                                    longDateOptions,
+                                                )}
+                                                valueClassName="font-semibold text-emerald-600 dark:text-emerald-400"
+                                            />
                                         )}
                                         {sale.leasing_bonus > 0 && (
-                                            <div className="flex items-center justify-between pt-1.5 font-semibold text-blue-600 dark:text-blue-400">
-                                                <span>
-                                                    Bonus / Komisi Leasing:
-                                                </span>
-                                                <span>
-                                                    {currencyFormatter.format(
-                                                        sale.leasing_bonus,
-                                                    )}
-                                                </span>
-                                            </div>
+                                            <DataRow
+                                                label="Bonus / Komisi Leasing"
+                                                value={formatCurrency(
+                                                    sale.leasing_bonus,
+                                                )}
+                                                valueClassName="font-semibold text-blue-600 dark:text-blue-400"
+                                            />
                                         )}
                                     </div>
                                 </CardContent>
@@ -854,11 +841,10 @@ export default function SalesShow({ sale }: Props) {
                                     {sale.handover?.vehicle_delivered_at ? (
                                         <div className="text-[11px] text-muted-foreground">
                                             Diserahkan pada{' '}
-                                            {dateFormatter.format(
-                                                new Date(
-                                                    sale.handover
-                                                        .vehicle_delivered_at,
-                                                ),
+                                            {formatDate(
+                                                sale.handover
+                                                    .vehicle_delivered_at,
+                                                longDateOptions,
                                             )}
                                         </div>
                                     ) : (
@@ -1013,7 +999,7 @@ export default function SalesShow({ sale }: Props) {
                         </Card>
                     </div>
                 </div>
-            </div>
+            </PageContainer>
 
             {/* Payment Dialog */}
             <PaymentDialog
@@ -1023,75 +1009,42 @@ export default function SalesShow({ sale }: Props) {
             />
 
             {/* Delete Payment Dialog */}
-            <Dialog
+            <ConfirmDialog
                 open={deletingPayment !== null}
                 onOpenChange={(open) => {
                     if (!open) {
                         setDeletingPayment(null);
                     }
                 }}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <div className="mb-1 flex size-10 items-center justify-center rounded-full bg-red-500/10 text-red-500">
-                            <WarningIcon className="size-5" weight="fill" />
-                        </div>
-                        <DialogTitle>Hapus Catatan Pembayaran?</DialogTitle>
-                        <DialogDescription>
-                            Apakah Anda yakin ingin menghapus kuitansi
-                            pembayaran{' '}
-                            <strong>{deletingPayment?.payment_number}</strong>{' '}
-                            sebesar{' '}
-                            <strong>
-                                {deletingPayment
-                                    ? currencyFormatter.format(
-                                          deletingPayment.amount,
-                                      )
-                                    : ''}
-                            </strong>
-                            ? Sisa piutang penjualan akan dihitung ulang secara
-                            otomatis.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {deletingPayment && (
-                        <Form
-                            action={PaymentController.destroy.url(
-                                deletingPayment.id,
-                            )}
-                            method="delete"
-                            options={{ preserveScroll: true }}
-                            onSuccess={() => setDeletingPayment(null)}
-                        >
-                            {({ processing }) => (
-                                <DialogFooter>
-                                    <DialogClose asChild>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            disabled={processing}
-                                        >
-                                            Batal
-                                        </Button>
-                                    </DialogClose>
-                                    <Button
-                                        type="submit"
-                                        variant="destructive"
-                                        disabled={processing}
-                                    >
-                                        {processing ? (
-                                            <Spinner />
-                                        ) : (
-                                            <TrashIcon />
-                                        )}
-                                        Ya, Hapus Pembayaran
-                                    </Button>
-                                </DialogFooter>
-                            )}
-                        </Form>
-                    )}
-                </DialogContent>
-            </Dialog>
+                tone="danger"
+                title="Hapus Catatan Pembayaran?"
+                description={
+                    <>
+                        Apakah Anda yakin ingin menghapus kuitansi pembayaran{' '}
+                        <strong>{deletingPayment?.payment_number}</strong> sebesar{' '}
+                        <strong>
+                            {deletingPayment
+                                ? formatCurrency(deletingPayment.amount)
+                                : ''}
+                        </strong>
+                        ? Sisa piutang penjualan akan dihitung ulang secara otomatis.
+                    </>
+                }
+                confirmText="Ya, Hapus Pembayaran"
+                confirmIcon={TrashIcon}
+                formProps={
+                    deletingPayment
+                        ? {
+                              action: PaymentController.destroy.url(
+                                  deletingPayment.id,
+                              ),
+                              method: 'delete',
+                              options: { preserveScroll: true },
+                              onSuccess: () => setDeletingPayment(null),
+                          }
+                        : undefined
+                }
+            />
         </>
     );
 }

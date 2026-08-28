@@ -156,6 +156,7 @@ export type Sale = {
     due_date: string | null;
     status: SaleStatus;
     notes: string | null;
+    trade_in_price?: number | null;
     trade_in_license_plate?: string | null;
     trade_in_brand?: string | null;
     trade_in_car_name?: string | null;

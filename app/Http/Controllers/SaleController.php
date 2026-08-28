@@ -11,6 +11,8 @@ use App\Models\Payment;
 use App\Models\Sale;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,7 +36,7 @@ class SaleController extends Controller
 
         $totalTurnover = (int) $sales->sum('deal_price');
         $totalCollected = (int) $sales->sum('total_paid');
-        $totalReceivables = max(0, $totalTurnover - $totalCollected);
+        $totalReceivables = (int) $sales->sum('remaining_bill');
         $totalBonusCollected = (int) $sales->sum('total_bonus_paid');
         $pendingDisbursementsCount = $sales->where('payment_type', 'credit')->where('status', '!=', 'completed')->count();
 
@@ -87,6 +89,17 @@ class SaleController extends Controller
         $validated = $request->validated();
 
         $sale = DB::transaction(function () use ($validated) {
+            /** @var Car $car */
+            $car = Car::query()
+                ->lockForUpdate()
+                ->findOrFail($validated['car_id']);
+
+            if ($car->sale()->exists() || ! in_array($car->status, ['available', 'maintenance'], true)) {
+                throw ValidationException::withMessages([
+                    'car_id' => 'Mobil ini sudah tidak tersedia atau telah terikat transaksi penjualan lain.',
+                ]);
+            }
+
             $paymentType = $validated['payment_type'];
             $dealPrice = (int) $validated['deal_price'];
             $downPayment = (int) ($validated['down_payment'] ?? 0);
@@ -103,11 +116,12 @@ class SaleController extends Controller
 
             /** @var Sale $sale */
             $sale = Sale::query()->create([
-                'car_id' => $validated['car_id'],
+                'car_id' => $car->id,
                 'customer_id' => $validated['customer_id'],
                 'finance_company_id' => $paymentType === 'credit' ? ($validated['finance_company_id'] ?? null) : null,
                 'payment_type' => $paymentType,
                 'deal_price' => $dealPrice,
+                'trade_in_price' => $isTradeIn ? (int) ($validated['trade_in_price'] ?? 0) : 0,
                 'down_payment' => $downPayment,
                 'finance_amount' => $financeAmount,
                 'disbursement_estimated_date' => $paymentType === 'credit' ? ($validated['disbursement_estimated_date'] ?? null) : null,
@@ -185,7 +199,13 @@ class SaleController extends Controller
     {
         DB::transaction(function () use ($sale) {
             $car = $sale->car;
-            $sale->handover?->delete();
+            $handover = $sale->handover;
+
+            if ($handover) {
+                Storage::disk('local')->deleteDirectory("vehicle-handovers/{$handover->id}");
+                $handover->delete();
+            }
+
             $sale->delete();
 
             if ($car && ! $car->trashed()) {

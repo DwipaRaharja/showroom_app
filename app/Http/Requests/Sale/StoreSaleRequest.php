@@ -87,6 +87,13 @@ class StoreSaleRequest extends FormRequest
                 'nullable',
                 'date',
             ],
+            'trade_in_price' => [
+                'nullable',
+                Rule::requiredIf($this->input('payment_type') === 'trade_in'),
+                'numeric',
+                'min:0',
+                'lte:deal_price',
+            ],
             'trade_in_license_plate' => [
                 'nullable',
                 Rule::requiredIf($this->input('payment_type') === 'trade_in'),
@@ -175,6 +182,7 @@ class StoreSaleRequest extends FormRequest
             'disbursement_estimated_date' => 'estimasi tanggal cair leasing',
             'leasing_bonus' => 'bonus / komisi leasing',
             'due_date' => 'tanggal jatuh tempo pelunasan',
+            'trade_in_price' => 'nilai taksiran mobil tukar tambah',
             'trade_in_license_plate' => 'plat nomor mobil tukar tambah',
             'trade_in_brand' => 'merek mobil tukar tambah',
             'trade_in_car_name' => 'nama mobil tukar tambah',
@@ -186,6 +194,18 @@ class StoreSaleRequest extends FormRequest
             'payment_method' => 'metode pembayaran',
             'destination_account' => 'rekening tujuan penerima',
             'reference_number' => 'nomor referensi transfer',
+        ];
+    }
+
+    /**
+     * Get custom validation messages.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'car_id.unique' => 'Mobil ini sudah memiliki transaksi penjualan aktif.',
         ];
     }
 }

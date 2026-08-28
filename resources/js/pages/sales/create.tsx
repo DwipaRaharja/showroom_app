@@ -1,4 +1,6 @@
 import { Head } from '@inertiajs/react';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import type { Brand } from '@/pages/brands/types';
 import type { Car } from '@/pages/cars/types';
 import type { Customer } from '@/pages/customers/types';
@@ -23,16 +25,11 @@ export default function SalesCreate({
         <>
             <Head title="Buat Penjualan Baru" />
 
-            <div className="flex h-full min-w-0 flex-1 flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Buat Penjualan Baru (SPK)
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Pilih unit mobil, customer, dan skema pembayaran (Tunai
-                        Lunas, Tunai Tempo, Kredit Leasing, atau Tukar Tambah).
-                    </p>
-                </div>
+            <PageContainer>
+                <PageHeader
+                    title="Buat Penjualan Baru (SPK)"
+                    description="Pilih unit mobil, customer, dan skema pembayaran (Tunai Lunas, Tunai Tempo, Kredit Leasing, atau Tukar Tambah)."
+                />
 
                 <SaleForm
                     availableCars={available_cars}
@@ -40,7 +37,7 @@ export default function SalesCreate({
                     financeCompanies={finance_companies}
                     brands={brands}
                 />
-            </div>
+            </PageContainer>
         </>
     );
 }

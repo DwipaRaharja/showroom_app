@@ -24,6 +24,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { formatCurrency } from '@/lib/formatters';
 import type {
     PayerType,
     PaymentCategory,
@@ -37,12 +38,6 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     defaultCategory?: PaymentCategory;
 };
-
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-});
 
 const validationColorClassName =
     'aria-invalid:border-red-500 aria-invalid:ring-red-500/20 dark:aria-invalid:ring-red-500/40';
@@ -201,15 +196,13 @@ function PaymentDialogContent({
                             <div className="flex items-center justify-between text-muted-foreground">
                                 <span>Harga Deal:</span>
                                 <span className="font-medium text-foreground">
-                                    {currencyFormatter.format(sale.deal_price)}
+                                    {formatCurrency(sale.deal_price)}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between text-muted-foreground">
                                 <span>Sudah Masuk:</span>
                                 <span className="font-medium text-emerald-600">
-                                    {currencyFormatter.format(
-                                        sale.total_paid ?? 0,
-                                    )}
+                                    {formatCurrency(sale.total_paid ?? 0)}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between border-t pt-1 font-semibold">
@@ -221,7 +214,7 @@ function PaymentDialogContent({
                                             : 'text-emerald-600'
                                     }
                                 >
-                                    {currencyFormatter.format(remainingBill)}
+                                    {formatCurrency(remainingBill)}
                                 </span>
                             </div>
                             {isCredit && (
@@ -229,7 +222,7 @@ function PaymentDialogContent({
                                     <div className="flex items-center justify-between text-muted-foreground">
                                         <span>Sisa Pokok Leasing:</span>
                                         <span className="font-medium text-foreground">
-                                            {currencyFormatter.format(
+                                            {formatCurrency(
                                                 sale.remaining_finance_disbursement ??
                                                     0,
                                             )}
@@ -244,7 +237,7 @@ function PaymentDialogContent({
                                                     : 'text-emerald-600'
                                             }
                                         >
-                                            {currencyFormatter.format(
+                                            {formatCurrency(
                                                 customerPaymentShortfall,
                                             )}
                                         </span>
@@ -255,11 +248,9 @@ function PaymentDialogContent({
                                 <div className="flex items-center justify-between pt-0.5 text-xs text-muted-foreground">
                                     <span>Bonus Leasing:</span>
                                     <span>
-                                        {currencyFormatter.format(
-                                            sale.leasing_bonus,
-                                        )}{' '}
+                                        {formatCurrency(sale.leasing_bonus)}{' '}
                                         (Cair:{' '}
-                                        {currencyFormatter.format(
+                                        {formatCurrency(
                                             sale.total_bonus_paid ?? 0,
                                         )}
                                         )
@@ -286,6 +277,9 @@ function PaymentDialogContent({
                                 >
                                     <SelectTrigger
                                         id="payment_category"
+                                        aria-invalid={Boolean(
+                                            errors.payment_category,
+                                        )}
                                         className={
                                             errors.payment_category
                                                 ? validationColorClassName
@@ -358,10 +352,7 @@ function PaymentDialogContent({
                                                 className="text-xs font-medium text-primary hover:underline"
                                             >
                                                 Bayar Lunas Sisa (
-                                                {currencyFormatter.format(
-                                                    payableAmount,
-                                                )}
-                                                )
+                                                {formatCurrency(payableAmount)})
                                             </button>
                                         )}
                                 </div>
@@ -432,7 +423,12 @@ function PaymentDialogContent({
                                         setPaymentMethod(val as PaymentMethod)
                                     }
                                 >
-                                    <SelectTrigger id="payment_method">
+                                    <SelectTrigger
+                                        id="payment_method"
+                                        aria-invalid={Boolean(
+                                            errors.payment_method,
+                                        )}
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
