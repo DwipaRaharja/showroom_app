@@ -1,10 +1,7 @@
 import type { ComponentProps } from 'react';
 import { Input } from '@/components/ui/input';
+import { formatNumber } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-
-const priceFormatter = new Intl.NumberFormat('id-ID', {
-    maximumFractionDigits: 0,
-});
 
 type PriceInputProps = Omit<
     ComponentProps<typeof Input>,
@@ -20,7 +17,7 @@ function normalizePrice(value: string): string {
 }
 
 function formatPrice(value: string): string {
-    return value === '' ? '' : priceFormatter.format(BigInt(value));
+    return value === '' ? '' : formatNumber(value);
 }
 
 export function PriceInput({

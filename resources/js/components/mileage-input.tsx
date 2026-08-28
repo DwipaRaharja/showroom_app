@@ -1,10 +1,7 @@
 import type { ComponentProps } from 'react';
 import { Input } from '@/components/ui/input';
+import { formatNumber } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-
-const mileageFormatter = new Intl.NumberFormat('id-ID', {
-    maximumFractionDigits: 0,
-});
 
 type MileageInputProps = Omit<
     ComponentProps<typeof Input>,
@@ -21,7 +18,7 @@ function normalizeMileage(value: string): string {
 }
 
 function formatMileage(value: string): string {
-    return value === '' ? '' : mileageFormatter.format(BigInt(value));
+    return value === '' ? '' : formatNumber(value);
 }
 
 export function MileageInput({

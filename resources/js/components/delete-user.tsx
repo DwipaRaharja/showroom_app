@@ -79,6 +79,9 @@ export default function DeleteUser() {
                                             ref={passwordInput}
                                             placeholder="Password"
                                             autoComplete="current-password"
+                                            aria-invalid={Boolean(
+                                                errors.password,
+                                            )}
                                         />
 
                                         <InputError message={errors.password} />
