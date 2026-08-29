@@ -1,4 +1,4 @@
-import { CarProfileIcon } from '@/components/app-logo-icon';
+import { CarProfileIcon } from '@phosphor-icons/react';
 import { FormGroup, inputValidationClass } from '@/components/form-group';
 import InputError from '@/components/input-error';
 import { LicensePlateInput } from '@/components/license-plate-input';

@@ -13,10 +13,7 @@ import {
 import { useState } from 'react';
 import SaleController from '@/actions/App/Http/Controllers/SaleController';
 import { CardSectionHeader } from '@/components/card-section-header';
-import { FormGroup, inputValidationClass } from '@/components/form-group';
 import InputError from '@/components/input-error';
-import { LicensePlateInput } from '@/components/license-plate-input';
-import { MileageInput } from '@/components/mileage-input';
 import { PriceInput } from '@/components/price-input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
