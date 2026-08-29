@@ -211,27 +211,6 @@ export function SaleDataTable({ data, summary }: Props) {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <DateRangeFilter
-                    datePreset={datePreset}
-                    onDatePresetChange={(val) => {
-                        setDatePreset(val);
-                        table.setPageIndex(0);
-                    }}
-                    customStartDate={customStartDate}
-                    onCustomStartDateChange={(val) => {
-                        setCustomStartDate(val);
-                        table.setPageIndex(0);
-                    }}
-                    customEndDate={customEndDate}
-                    onCustomEndDateChange={(val) => {
-                        setCustomEndDate(val);
-                        table.setPageIndex(0);
-                    }}
-                    onReset={isDateFiltered ? resetFilters : undefined}
-                />
-            </div>
-
             <StatCardGrid>
                 <StatCard
                     title="Total Omzet Penjualan"
@@ -258,6 +237,25 @@ export function SaleDataTable({ data, summary }: Props) {
                     variant="info"
                 />
             </StatCardGrid>
+
+            <DateRangeFilter
+                datePreset={datePreset}
+                onDatePresetChange={(val) => {
+                    setDatePreset(val);
+                    table.setPageIndex(0);
+                }}
+                customStartDate={customStartDate}
+                onCustomStartDateChange={(val) => {
+                    setCustomStartDate(val);
+                    table.setPageIndex(0);
+                }}
+                customEndDate={customEndDate}
+                onCustomEndDateChange={(val) => {
+                    setCustomEndDate(val);
+                    table.setPageIndex(0);
+                }}
+                onReset={isDateFiltered ? resetFilters : undefined}
+            />
 
             <DataTableShell
                 title="Data Transaksi Penjualan"
