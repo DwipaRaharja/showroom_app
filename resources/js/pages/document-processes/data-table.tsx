@@ -15,6 +15,7 @@ import { DataTablePagination } from '@/components/data-table/data-table-paginati
 import { DataTableSearch } from '@/components/data-table/data-table-search';
 import { DataTableShell } from '@/components/data-table/data-table-shell';
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
+import { DateRangeFilter } from '@/components/date-range-filter';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -31,6 +32,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import type { DatePreset } from '@/lib/formatters';
+import { getPresetDateRange, isDateInRange } from '@/lib/formatters';
 import { ProcessLifecycleDialog } from '@/pages/document-processes/process-lifecycle-dialog';
 import type { ProcessLifecycleAction } from '@/pages/document-processes/process-lifecycle-dialog';
 import {
@@ -69,6 +72,10 @@ export function ProcessDataTable({
         useState<DocumentProcess | null>(null);
     const [lifecycleAction, setLifecycleAction] =
         useState<ProcessLifecycleAction>('cancel');
+    const [datePreset, setDatePreset] = useState<DatePreset>('all');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
+
     const columns = useMemo(
         () =>
             createProcessColumns(typeOptions, statusOptions, {
@@ -84,9 +91,29 @@ export function ProcessDataTable({
         [statusOptions, typeOptions],
     );
 
+    const filteredProcesses = useMemo(() => {
+        if (datePreset === 'all') {
+            return processes;
+        }
+
+        const { start, end } = getPresetDateRange(
+            datePreset,
+            customStartDate,
+            customEndDate,
+        );
+
+        if (!start && !end) {
+            return processes;
+        }
+
+        return processes.filter((process) =>
+            isDateInRange(process.started_at || process.created_at, start, end),
+        );
+    }, [processes, datePreset, customStartDate, customEndDate]);
+
     const table = useTable({
         features: processTableFeatures,
-        data: processes,
+        data: filteredProcesses,
         columns,
         getRowId: (row) => String(row.id),
         getColumnCanGlobalFilter: (column) =>
@@ -117,10 +144,16 @@ export function ProcessDataTable({
     const statusFilter = table.getColumn('status')?.getFilterValue() as
         string | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
+    const isDateFiltered =
+        datePreset !== 'all' &&
+        (datePreset !== 'custom' ||
+            customStartDate !== '' ||
+            customEndDate !== '');
     const hasFilters =
         globalFilter.length > 0 ||
         typeFilter !== undefined ||
-        statusFilter !== undefined;
+        statusFilter !== undefined ||
+        isDateFiltered;
 
     function setColumnFilter(columnId: string, value: string) {
         table
@@ -132,11 +165,33 @@ export function ProcessDataTable({
     function resetFilters() {
         setGlobalFilter('');
         setColumnFilters([]);
+        setDatePreset('all');
+        setCustomStartDate('');
+        setCustomEndDate('');
         setPagination((current) => ({ ...current, pageIndex: 0 }));
     }
 
     return (
-        <>
+        <div className="space-y-6">
+            <DateRangeFilter
+                datePreset={datePreset}
+                onDatePresetChange={(val) => {
+                    setDatePreset(val);
+                    table.setPageIndex(0);
+                }}
+                customStartDate={customStartDate}
+                onCustomStartDateChange={(val) => {
+                    setCustomStartDate(val);
+                    table.setPageIndex(0);
+                }}
+                customEndDate={customEndDate}
+                onCustomEndDateChange={(val) => {
+                    setCustomEndDate(val);
+                    table.setPageIndex(0);
+                }}
+                onReset={isDateFiltered ? resetFilters : undefined}
+            />
+
             <DataTableShell
                 title="Data Proses Berkas"
                 description={`${filteredCount} dari ${processes.length} proses ditampilkan`}
@@ -271,6 +326,6 @@ export function ProcessDataTable({
                     }
                 }}
             />
-        </>
+        </div>
     );
 }
