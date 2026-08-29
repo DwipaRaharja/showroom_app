@@ -23,7 +23,7 @@ export default function AuthSimpleLayout({
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm">
                             <AppLogoIcon className="size-6 fill-current text-white" />
                         </div>
-                        <span>Showroom Manajemen</span>
+                        <span>Showroom Management App</span>
                     </Link>
 
                     {/* Content Tengah: Showroom Management + Subtext */}
@@ -32,7 +32,7 @@ export default function AuthSimpleLayout({
                             Aplikasi Manajemen
                         </div>
                         <h2 className="text-3xl font-bold tracking-tight text-white xl:text-4xl">
-                            Showroom Management
+                            Showroom Management App
                         </h2>
                         <p className="text-sm leading-relaxed text-neutral-300/90 xl:text-base">
                             Aplikasi yang berfungsi mengatur proses internal
@@ -60,7 +60,7 @@ export default function AuthSimpleLayout({
                                     <AppLogoIcon className="size-6 fill-current" />
                                 </div>
                                 <span className="text-lg">
-                                    Showroom Management
+                                    Showroom Management App
                                 </span>
                             </Link>
                         </div>

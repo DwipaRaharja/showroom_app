@@ -7,7 +7,7 @@ import AuthLayout from '@/layouts/auth-layout';
 import PrintLayout from '@/layouts/print-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'Showroom Management App';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
