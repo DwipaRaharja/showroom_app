@@ -57,7 +57,7 @@ class BackupController extends Controller
                 $_SERVER['WINDIR'] = $systemRoot;
             }
 
-            $exitCode = Artisan::call('backup:run', ['--only-db' => true]);
+            $exitCode = Artisan::call('backup:run');
 
             if ($exitCode !== 0) {
                 $output = Artisan::output();

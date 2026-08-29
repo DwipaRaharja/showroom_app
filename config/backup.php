@@ -26,6 +26,8 @@ return [
                  * The list of directories and files that will be included in the backup.
                  */
                 'include' => [
+                    storage_path('app/private'),
+                    storage_path('app/public'),
                 ],
 
                 /*
@@ -37,6 +39,8 @@ return [
                     base_path('vendor'),
                     base_path('node_modules'),
                     storage_path('framework'),
+                    storage_path('app/private/Laravel'),
+                    storage_path('app/private/laravel-backup'),
                 ],
 
                 /*
@@ -54,7 +58,7 @@ return [
                  * Set to `null` to include complete absolute path
                  * Example: base_path()
                  */
-                'relative_path' => null,
+                'relative_path' => base_path(),
             ],
 
             /*
