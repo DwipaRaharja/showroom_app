@@ -1,4 +1,5 @@
 import { CheckCircleIcon, PowerIcon } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
 import BrandController from '@/actions/App/Http/Controllers/BrandController';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { Brand } from '@/pages/brands/types';
@@ -9,7 +10,16 @@ type Props = {
 };
 
 export function BrandStatusDialog({ brand, onOpenChange }: Props) {
-    const willActivate = brand?.is_active === false;
+    const [cachedBrand, setCachedBrand] = useState<Brand | null>(brand);
+
+    useEffect(() => {
+        if (brand !== null) {
+            setCachedBrand(brand);
+        }
+    }, [brand]);
+
+    const activeBrand = brand ?? cachedBrand;
+    const willActivate = activeBrand?.is_active === false;
 
     return (
         <ConfirmDialog
@@ -22,21 +32,23 @@ export function BrandStatusDialog({ brand, onOpenChange }: Props) {
             description={
                 willActivate ? (
                     <>
-                        Merek <strong>{brand?.name}</strong> akan dapat
+                        Merek <strong>{activeBrand?.name}</strong> akan dapat
                         digunakan kembali pada data kendaraan baru.
                     </>
                 ) : (
                     <>
-                        Merek <strong>{brand?.name}</strong> tidak akan dapat
-                        digunakan pada data kendaraan baru, tetapi datanya tetap
-                        tersimpan.
+                        Merek <strong>{activeBrand?.name}</strong> tidak akan
+                        dapat digunakan pada data kendaraan baru, tetapi datanya
+                        tetap tersimpan.
                     </>
                 )
             }
             confirmText={willActivate ? 'Aktifkan' : 'Nonaktifkan'}
             confirmIcon={willActivate ? CheckCircleIcon : PowerIcon}
             formProps={
-                brand ? BrandController.updateStatus.form(brand.id) : undefined
+                activeBrand
+                    ? BrandController.updateStatus.form(activeBrand.id)
+                    : undefined
             }
         />
     );

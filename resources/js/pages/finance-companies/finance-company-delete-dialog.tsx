@@ -1,4 +1,5 @@
 import { TrashIcon } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
 import FinanceCompanyController from '@/actions/App/Http/Controllers/FinanceCompanyController';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { FinanceCompany } from '@/pages/finance-companies/types';
@@ -9,7 +10,18 @@ type Props = {
 };
 
 export function FinanceCompanyDeleteDialog({ company, onOpenChange }: Props) {
-    const hasSales = (company?.sales_count ?? 0) > 0;
+    const [cachedCompany, setCachedCompany] = useState<FinanceCompany | null>(
+        company,
+    );
+
+    useEffect(() => {
+        if (company !== null) {
+            setCachedCompany(company);
+        }
+    }, [company]);
+
+    const activeCompany = company ?? cachedCompany;
+    const hasSales = (activeCompany?.sales_count ?? 0) > 0;
 
     return (
         <ConfirmDialog
@@ -20,28 +32,31 @@ export function FinanceCompanyDeleteDialog({ company, onOpenChange }: Props) {
             description={
                 hasSales ? (
                     <>
-                        Rekanan <strong>{company?.name}</strong> telah memiliki{' '}
+                        Rekanan <strong>{activeCompany?.name}</strong> telah
+                        memiliki{' '}
                         <strong>
-                            {company?.sales_count} riwayat transaksi penjualan
+                            {activeCompany?.sales_count} riwayat transaksi
+                            penjualan
                         </strong>
-                        . Data yang sudah memiliki relasi riwayat tidak dapat dihapus permanen. Silakan gunakan opsi
-                        <strong> Nonaktifkan</strong> jika rekanan ini sudah tidak
-                        bekerja sama.
+                        . Data yang sudah memiliki relasi riwayat tidak dapat
+                        dihapus permanen. Silakan gunakan opsi
+                        <strong> Nonaktifkan</strong> jika rekanan ini sudah
+                        tidak bekerja sama.
                     </>
                 ) : (
                     <>
                         Apakah Anda yakin ingin menghapus data rekanan leasing{' '}
-                        <strong>{company?.name}</strong>? Tindakan ini tidak
-                        dapat dibatalkan.
+                        <strong>{activeCompany?.name}</strong>? Tindakan ini
+                        tidak dapat dibatalkan.
                     </>
                 )
             }
-            confirmText={hasSales ? undefined : 'Hapus Permanen'}
+            confirmText={hasSales ? null : 'Hapus Permanen'}
             confirmIcon={hasSales ? undefined : TrashIcon}
             cancelText={hasSales ? 'Mengerti' : 'Batal'}
             formProps={
-                company && !hasSales
-                    ? FinanceCompanyController.destroy.form(company.id)
+                activeCompany && !hasSales
+                    ? FinanceCompanyController.destroy.form(activeCompany.id)
                     : undefined
             }
         />

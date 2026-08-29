@@ -2,6 +2,7 @@ import {
     ArchiveBoxIcon,
     ArrowCounterClockwiseIcon,
 } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
 import CustomerController from '@/actions/App/Http/Controllers/CustomerController';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { Customer } from '@/pages/customers/types';
@@ -12,11 +13,22 @@ type Props = {
 };
 
 export function CustomerStatusDialog({ customer, onOpenChange }: Props) {
-    const willRestore = customer?.deleted_at !== null;
-    const formDefinition = customer
+    const [cachedCustomer, setCachedCustomer] = useState<Customer | null>(
+        customer,
+    );
+
+    useEffect(() => {
+        if (customer !== null) {
+            setCachedCustomer(customer);
+        }
+    }, [customer]);
+
+    const activeCustomer = customer ?? cachedCustomer;
+    const willRestore = activeCustomer?.deleted_at !== null;
+    const formDefinition = activeCustomer
         ? willRestore
-            ? CustomerController.restore.form(customer.id)
-            : CustomerController.destroy.form(customer.id)
+            ? CustomerController.restore.form(activeCustomer.id)
+            : CustomerController.destroy.form(activeCustomer.id)
         : undefined;
 
     return (
@@ -33,14 +45,14 @@ export function CustomerStatusDialog({ customer, onOpenChange }: Props) {
             description={
                 willRestore ? (
                     <>
-                        Data <strong>{customer?.name}</strong> akan dikembalikan
-                        ke daftar customer aktif.
+                        Data <strong>{activeCustomer?.name}</strong> akan
+                        dikembalikan ke daftar customer aktif.
                     </>
                 ) : (
                     <>
-                        Data <strong>{customer?.name}</strong> akan dipindahkan
-                        ke arsip dan tidak muncul pada daftar customer aktif.
-                        Data tidak dihapus permanen.
+                        Data <strong>{activeCustomer?.name}</strong> akan
+                        dipindahkan ke arsip dan tidak muncul pada daftar
+                        customer aktif. Data tidak dihapus permanen.
                     </>
                 )
             }

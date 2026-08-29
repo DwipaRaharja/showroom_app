@@ -63,7 +63,7 @@ export type ConfirmDialogProps = {
     description: ReactNode;
     tone?: ConfirmDialogTone;
     icon?: Icon | ComponentType<any>;
-    confirmText?: string;
+    confirmText?: string | null;
     cancelText?: string;
     confirmIcon?: Icon | ComponentType<any>;
     formProps?: Omit<ComponentProps<typeof Form>, 'children'>;
