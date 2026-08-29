@@ -148,37 +148,36 @@ export default function Dashboard({
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <Button asChild variant="outline">
-                                <Link href={CarController.create.url()}>
-                                    <CarProfileIcon />
-                                    Tambah Mobil
-                                </Link>
-                            </Button>
-                            <Button asChild variant="outline">
-                                <Link href={SaleController.create.url()}>
-                                    <PlusIcon />
-                                    Buat Penjualan
-                                </Link>
-                            </Button>
-                            <Button asChild variant="outline">
-                                <Link
-                                    href={DocumentProcessController.create.url()}
-                                >
-                                    <FileTextIcon />
-                                    Proses Berkas
-                                </Link>
-                            </Button>
-                            <Button asChild variant="outline">
-                                <Link
-                                    href={VehicleHandoverController.index.url()}
-                                >
-                                    <KeyIcon />
-                                    Penyerahan Unit
-                                </Link>
-                            </Button>
                         </>
                     }
                 />
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button asChild variant="outline">
+                        <Link href={CarController.create.url()}>
+                            <CarProfileIcon />
+                            Tambah Mobil
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                        <Link href={SaleController.create.url()}>
+                            <PlusIcon />
+                            Buat Penjualan
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                        <Link href={DocumentProcessController.create.url()}>
+                            <FileTextIcon />
+                            Proses Berkas
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                        <Link href={VehicleHandoverController.index.url()}>
+                            <KeyIcon />
+                            Penyerahan Unit
+                        </Link>
+                    </Button>
+                </div>
 
                 <StatCardGrid className="lg:grid-cols-2 xl:grid-cols-4">
                     <StatCard
