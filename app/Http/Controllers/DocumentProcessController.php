@@ -263,116 +263,13 @@ class DocumentProcessController extends Controller
     public function storeEvent(
         StoreDocumentProcessEventRequest $request,
         DocumentProcess $documentProcess,
+        \App\Actions\RecordDocumentProcessEvent $action,
     ): RedirectResponse {
         $validated = $request->validated();
         /** @var array<int, UploadedFile> $files */
         $files = $request->file('files', []);
-        $storedPaths = [];
 
-        try {
-            DB::transaction(function () use (
-                $request,
-                $documentProcess,
-                $validated,
-                $files,
-                &$storedPaths,
-            ): void {
-                Car::query()->lockForUpdate()->findOrFail($documentProcess->car_id);
-
-                /** @var DocumentProcess $process */
-                $process = DocumentProcess::query()
-                    ->with(['car.documents', 'items'])
-                    ->lockForUpdate()
-                    ->findOrFail($documentProcess->id);
-
-                if (in_array($process->status, ['completed', 'cancelled'], true)) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Proses yang sudah selesai atau dibatalkan tidak dapat diperbarui.',
-                    ]);
-                }
-
-                /** @var DocumentProcessEvent $event */
-                $event = $process->events()->create([
-                    'status' => $validated['status'],
-                    'occurred_at' => $validated['occurred_at'],
-                    'description' => $validated['description'],
-                    'location' => $validated['location'] ?? null,
-                    'recipient_name' => $validated['recipient_name'] ?? null,
-                    'recipient_phone' => $validated['recipient_phone'] ?? null,
-                    'recipient_relation' => $validated['recipient_relation'] ?? null,
-                    'notes' => $validated['notes'] ?? null,
-                    'result_data' => $validated['result'] ?? null,
-                    'created_by' => $request->user()?->id,
-                ]);
-
-                $receivedItems = $validated['received_items'] ?? [];
-                $receivedItemIds = is_array($receivedItems)
-                    ? array_values(array_map(
-                        static fn (mixed $id): int => (int) $id,
-                        $receivedItems,
-                    ))
-                    : [];
-
-                $process->items()
-                    ->whereKey($receivedItemIds)
-                    ->update([
-                        'custody_status' => 'received',
-                        'received_at' => $validated['occurred_at'],
-                    ]);
-
-                if ($validated['status'] === 'completed') {
-                    $process->items()
-                        ->whereIn('custody_status', ['waiting', 'missing'])
-                        ->update([
-                            'custody_status' => 'received',
-                            'received_at' => $validated['occurred_at'],
-                        ]);
-
-                    $this->applyProcessResult(
-                        $process,
-                        $validated['result'] ?? [],
-                    );
-                }
-
-                $process->update([
-                    'status' => $validated['status'],
-                    'completed_at' => $validated['status'] === 'completed'
-                        ? $validated['occurred_at']
-                        : $process->completed_at,
-                    'cancelled_at' => $validated['status'] === 'cancelled'
-                        ? $validated['occurred_at']
-                        : null,
-                ]);
-
-                $fileIndex = 1;
-                $timestamp = time();
-                foreach ($files as $file) {
-                    $customName = "proses-berkas-{$process->process_number}-{$event->status}-{$fileIndex}-{$timestamp}";
-
-                    $attributes = $this->storeAndExtractFileAttributes(
-                        $file,
-                        "document-processes/{$process->id}/events/{$event->id}",
-                        $customName,
-                        errorKey: 'files',
-                        errorMessage: 'Berkas gagal disimpan. Silakan coba lagi.',
-                    );
-                    $storedPaths[] = $attributes['file_path'];
-                    $process->files()->create([
-                        'document_process_event_id' => $event->id,
-                        'uploaded_by' => $request->user()?->id,
-                        'file_category' => 'event_evidence',
-                        ...$attributes,
-                    ]);
-                    $fileIndex++;
-                }
-
-                $process->syncCarCapital();
-            });
-        } catch (Throwable $exception) {
-            $this->deleteStoredFiles($storedPaths);
-
-            throw $exception;
-        }
+        $action->execute($documentProcess, $validated, $files, $request->user()?->id);
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -612,50 +509,5 @@ class DocumentProcessController extends Controller
         }
 
         return $car->sale;
-    }
-
-    /** @param array<string, mixed> $result */
-    private function applyProcessResult(DocumentProcess $process, array $result): void
-    {
-        if (isset($result['annual_tax_due_at']) || isset($result['stnk_expires_at'])) {
-            $stnk = $process->car->documents()->firstOrCreate(
-                ['document_type' => 'stnk'],
-                ['status' => 'incomplete', 'original_received' => false],
-            );
-        }
-
-        if (isset($stnk, $result['annual_tax_due_at'])) {
-            $stnk->update([
-                'annual_tax_due_at' => $result['annual_tax_due_at'],
-                'status' => 'complete',
-                'original_received' => true,
-            ]);
-        }
-
-        if (isset($stnk, $result['stnk_expires_at'])) {
-            $stnk->update([
-                'expires_at' => $result['stnk_expires_at'],
-                'status' => 'complete',
-                'original_received' => true,
-            ]);
-        }
-
-        $ownerName = $result['owner_name']
-            ?? ($process->process_type === 'name_transfer'
-                ? $process->target_owner_name
-                : null);
-
-        if (is_string($ownerName) && filled($ownerName)) {
-            foreach (['stnk', 'bpkb'] as $documentType) {
-                $process->car->documents()->firstOrCreate(
-                    ['document_type' => $documentType],
-                    ['status' => 'incomplete', 'original_received' => false],
-                )->update(['owner_name' => $ownerName]);
-            }
-        }
-
-        if (isset($result['license_plate'])) {
-            $process->car->update(['license_plate' => $result['license_plate']]);
-        }
     }
 }
