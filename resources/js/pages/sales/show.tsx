@@ -405,7 +405,7 @@ export default function SalesShow({ sale }: Props) {
                                     <TableHeader className="bg-muted/40">
                                         <TableRow>
                                             <TableHead className="w-12">
-                                                #
+                                                No.
                                             </TableHead>
                                             <TableHead>
                                                 No. Kuitansi & Tgl
@@ -428,7 +428,7 @@ export default function SalesShow({ sale }: Props) {
                                         {payments.length > 0 ? (
                                             payments.map((payment, idx) => (
                                                 <TableRow key={payment.id}>
-                                                    <TableCell className="font-mono text-xs text-muted-foreground">
+                                                    <TableCell>
                                                         {idx + 1}
                                                     </TableCell>
                                                     <TableCell>

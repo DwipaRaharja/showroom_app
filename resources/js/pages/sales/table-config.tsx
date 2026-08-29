@@ -118,11 +118,7 @@ export function createSaleColumns({
             cell: ({ row }) => {
                 const index = row.getDisplayIndex();
 
-                return (
-                    <span className="font-mono text-xs text-muted-foreground">
-                        {index === -1 ? '—' : index + 1}
-                    </span>
-                );
+                return index === -1 ? '—' : index + 1;
             },
             sortFn: (rowA, rowB) => {
                 const timeA = new Date(rowA.original.created_at).getTime();
