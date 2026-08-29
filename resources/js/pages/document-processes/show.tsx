@@ -1,6 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import {
-    ArrowLeftIcon,
     CalendarDotsIcon,
     CheckCircleIcon,
     ClockCounterClockwiseIcon,
@@ -71,7 +70,7 @@ export default function DocumentProcessShow({
 }: Props) {
     const [isEventOpen, setIsEventOpen] = useState(false);
     const [isCostOpen, setIsCostOpen] = useState(false);
-    const isTerminal = ['returned', 'cancelled'].includes(process.status);
+    const isTerminal = ['completed', 'cancelled'].includes(process.status);
     const carName = [process.car.brand?.name, process.car.name]
         .filter(Boolean)
         .join(' ');

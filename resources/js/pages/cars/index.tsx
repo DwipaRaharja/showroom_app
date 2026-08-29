@@ -34,14 +34,12 @@ export default function CarsIndex({ cars, summary }: Props) {
                     <StatCard
                         title="Unit Tersedia (Ready)"
                         value={`${summary.available} Unit`}
-                        description="Siap ditawarkan & dipajang"
                         icon={CheckCircleIcon}
                         variant="success"
                     />
                     <StatCard
                         title="Total Modal Stok Aktif"
                         value={formatCurrency(summary.total_active_capital)}
-                        description="Modal tertahan di unit belum terjual"
                         icon={CoinsIcon}
                         variant="warning"
                         valueClassName="text-base"
@@ -51,7 +49,6 @@ export default function CarsIndex({ cars, summary }: Props) {
                         value={formatCurrency(
                             summary.potential_selling_turnover,
                         )}
-                        description="Estimasi omzet unit ready"
                         icon={TagIcon}
                         variant="info"
                         valueClassName="text-base"
@@ -59,7 +56,6 @@ export default function CarsIndex({ cars, summary }: Props) {
                     <StatCard
                         title="Unit Dalam Perbaikan / Salon"
                         value={`${summary.maintenance} Unit`}
-                        description="Tahap servis / salon fisik"
                         icon={WrenchIcon}
                         variant="danger"
                     />

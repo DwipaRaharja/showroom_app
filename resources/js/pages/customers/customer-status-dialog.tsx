@@ -33,14 +33,14 @@ export function CustomerStatusDialog({ customer, onOpenChange }: Props) {
             description={
                 willRestore ? (
                     <>
-                        Data <strong>{customer?.name}</strong> akan
-                        dikembalikan ke daftar customer aktif.
+                        Data <strong>{customer?.name}</strong> akan dikembalikan
+                        ke daftar customer aktif.
                     </>
                 ) : (
                     <>
-                        Data <strong>{customer?.name}</strong> akan
-                        dipindahkan ke arsip dan tidak muncul pada
-                        daftar customer aktif. Data tidak dihapus permanen.
+                        Data <strong>{customer?.name}</strong> akan dipindahkan
+                        ke arsip dan tidak muncul pada daftar customer aktif.
+                        Data tidak dihapus permanen.
                     </>
                 )
             }

@@ -13,6 +13,7 @@ use App\Models\VehicleDocument;
 use App\Models\VehicleHandover;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -39,11 +40,36 @@ class DashboardController extends Controller
         12 => 'Des',
     ];
 
-    public function __invoke(): Response
+    public function __invoke(Request $request): Response
     {
         $now = Carbon::now('Asia/Makassar');
         $today = $now->copy()->startOfDay();
-        $monthStart = $today->copy()->startOfMonth();
+
+        $period = (string) $request->input('period', 'this_month');
+        if (! in_array($period, ['this_month', 'last_month', 'this_year'], true)) {
+            $period = 'this_month';
+        }
+
+        $prevMonth = $today->copy()->subMonthNoOverflow();
+        $prevMonthLabel = self::MONTH_LABELS[$prevMonth->month] ?? (string) $prevMonth->month;
+
+        [$periodStart, $periodEnd, $periodLabel] = match ($period) {
+            'last_month' => [
+                $prevMonth->copy()->startOfMonth(),
+                $prevMonth->copy()->endOfMonth(),
+                "Bulan Lalu ({$prevMonthLabel} {$prevMonth->year})",
+            ],
+            'this_year' => [
+                $today->copy()->startOfYear(),
+                $today->copy()->endOfDay(),
+                "Tahun Ini ({$now->year})",
+            ],
+            default => [
+                $today->copy()->startOfMonth(),
+                $today->copy()->endOfDay(),
+                'Bulan Ini',
+            ],
+        };
 
         /** @var EloquentCollection<int, Car> $stockCars */
         $stockCars = Car::query()
@@ -90,31 +116,30 @@ class DashboardController extends Controller
             ])
             ->get();
 
-        $salesThisMonth = $activeSales->filter(
+        $salesInPeriod = $activeSales->filter(
             fn (Sale $sale): bool => $sale->created_at !== null
-                && $sale->created_at->timezone('Asia/Makassar')->greaterThanOrEqualTo($monthStart),
+                && $sale->created_at->timezone('Asia/Makassar')->between($periodStart, $periodEnd),
         );
 
-        $paymentsThisMonth = $this->confirmedDealPayments($activeSales)
-            ->filter(function (Payment $payment) use ($monthStart, $today): bool {
+        $paymentsInPeriod = $this->confirmedDealPayments($activeSales)
+            ->filter(function (Payment $payment) use ($periodStart, $periodEnd): bool {
                 $date = $this->dateAttribute($payment, 'payment_date');
 
                 return $date !== null
-                    && $date->greaterThanOrEqualTo($monthStart)
-                    && $date->lessThanOrEqualTo($today);
+                    && $date->between($periodStart, $periodEnd);
             });
 
-        $tradeInSalesThisMonth = $salesThisMonth->where('payment_type', 'trade_in');
+        $tradeInSalesInPeriod = $salesInPeriod->where('payment_type', 'trade_in');
 
         $summary = [
             'available' => $stockCars->where('status', 'available')->count(),
             'booked' => $stockCars->where('status', 'booked')->count(),
             'maintenance' => $stockCars->where('status', 'maintenance')->count(),
-            'sales_this_month' => $salesThisMonth->count(),
-            'turnover_this_month' => (int) $salesThisMonth->sum('deal_price'),
-            'payments_this_month' => (int) $paymentsThisMonth->sum('amount'),
-            'trade_in_this_month_count' => $tradeInSalesThisMonth->count(),
-            'trade_in_this_month_value' => (int) $tradeInSalesThisMonth->sum('trade_in_price'),
+            'sales_this_month' => $salesInPeriod->count(),
+            'turnover_this_month' => (int) $salesInPeriod->sum('deal_price'),
+            'payments_this_month' => (int) $paymentsInPeriod->sum('amount'),
+            'trade_in_this_month_count' => $tradeInSalesInPeriod->count(),
+            'trade_in_this_month_value' => (int) $tradeInSalesInPeriod->sum('trade_in_price'),
             'active_capital' => (int) $stockCars->sum(function (Car $car): int {
                 $capital = $car->getRelation('capital');
 
@@ -131,21 +156,21 @@ class DashboardController extends Controller
             'finance_receivables' => (int) $activeSales->sum('remaining_finance_disbursement'),
             'payment_breakdown' => [
                 'cash_full' => [
-                    'count' => $salesThisMonth->where('payment_type', 'cash_full')->count(),
-                    'turnover' => (int) $salesThisMonth->where('payment_type', 'cash_full')->sum('deal_price'),
+                    'count' => $salesInPeriod->where('payment_type', 'cash_full')->count(),
+                    'turnover' => (int) $salesInPeriod->where('payment_type', 'cash_full')->sum('deal_price'),
                 ],
                 'cash_tempo' => [
-                    'count' => $salesThisMonth->where('payment_type', 'cash_tempo')->count(),
-                    'turnover' => (int) $salesThisMonth->where('payment_type', 'cash_tempo')->sum('deal_price'),
+                    'count' => $salesInPeriod->where('payment_type', 'cash_tempo')->count(),
+                    'turnover' => (int) $salesInPeriod->where('payment_type', 'cash_tempo')->sum('deal_price'),
                 ],
                 'credit' => [
-                    'count' => $salesThisMonth->where('payment_type', 'credit')->count(),
-                    'turnover' => (int) $salesThisMonth->where('payment_type', 'credit')->sum('deal_price'),
+                    'count' => $salesInPeriod->where('payment_type', 'credit')->count(),
+                    'turnover' => (int) $salesInPeriod->where('payment_type', 'credit')->sum('deal_price'),
                 ],
                 'trade_in' => [
-                    'count' => $tradeInSalesThisMonth->count(),
-                    'turnover' => (int) $tradeInSalesThisMonth->sum('deal_price'),
-                    'trade_in_value' => (int) $tradeInSalesThisMonth->sum('trade_in_price'),
+                    'count' => $tradeInSalesInPeriod->count(),
+                    'turnover' => (int) $tradeInSalesInPeriod->sum('deal_price'),
+                    'trade_in_value' => (int) $tradeInSalesInPeriod->sum('trade_in_price'),
                 ],
             ],
         ];
@@ -159,19 +184,26 @@ class DashboardController extends Controller
 
         return Inertia::render('dashboard', [
             'generated_at' => $now->toIso8601String(),
+            'period' => $period,
+            'period_label' => $periodLabel,
+            'period_options' => [
+                ['value' => 'this_month', 'label' => 'Bulan Ini'],
+                ['value' => 'last_month', 'label' => 'Bulan Lalu'],
+                ['value' => 'this_year', 'label' => 'Tahun Ini'],
+            ],
             'summary' => $summary,
             'attention' => [
                 'total' => $financialAttention->count()
                     + $operationalAttention->count(),
-                'financial' => $financialAttention->take(6)->values(),
-                'operational' => $operationalAttention->take(6)->values(),
+                'financial' => $financialAttention->take(20)->values(),
+                'operational' => $operationalAttention->take(20)->values(),
             ],
             'document_reminders' => $this->documentReminders($stockCars, $today)
-                ->take(8)
+                ->take(20)
                 ->values(),
             'performance' => $this->performanceSeries($activeSales, $today),
-            'stock_aging' => $this->stockAging($stockCars, $today),
-            'recent_sales' => $this->recentSales($activeSales),
+            'stock_aging' => $this->stockAging($stockCars, $today, 15),
+            'recent_sales' => $this->recentSales($activeSales, 15),
         ]);
     }
 
@@ -512,7 +544,7 @@ class DashboardController extends Controller
      * @param  EloquentCollection<int, Car>  $stockCars
      * @return array<int, array<string, mixed>>
      */
-    private function stockAging(EloquentCollection $stockCars, Carbon $today): array
+    private function stockAging(EloquentCollection $stockCars, Carbon $today, int $limit = 15): array
     {
         return $stockCars
             ->where('status', 'available')
@@ -545,7 +577,7 @@ class DashboardController extends Controller
                 ];
             })
             ->sortByDesc('days_in_stock')
-            ->take(5)
+            ->take($limit)
             ->values()
             ->all();
     }
@@ -554,11 +586,11 @@ class DashboardController extends Controller
      * @param  EloquentCollection<int, Sale>  $sales
      * @return array<int, array<string, mixed>>
      */
-    private function recentSales(EloquentCollection $sales): array
+    private function recentSales(EloquentCollection $sales, int $limit = 15): array
     {
         return $sales
             ->sortByDesc('created_at')
-            ->take(5)
+            ->take($limit)
             ->map(fn (Sale $sale): array => [
                 'id' => $sale->id,
                 'invoice_number' => $sale->invoice_number,

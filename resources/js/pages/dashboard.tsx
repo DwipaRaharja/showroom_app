@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowRightIcon,
     ArrowsLeftRightIcon,
@@ -15,24 +15,26 @@ import {
     WarningCircleIcon,
     WrenchIcon,
 } from '@phosphor-icons/react';
-import type { ReactNode } from 'react';
 import CarController from '@/actions/App/Http/Controllers/CarController';
+import DashboardController from '@/actions/App/Http/Controllers/DashboardController';
 import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
 import SaleController from '@/actions/App/Http/Controllers/SaleController';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
+import { CardSectionHeader } from '@/components/card-section-header';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
 import { StatCardGrid } from '@/components/stat-card-grid';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { AttentionCard } from '@/pages/dashboard/attention-card';
@@ -69,28 +71,15 @@ const paymentTypeLabels: Record<RecentSale['payment_type'], string> = {
     trade_in: 'Tukar tambah',
 };
 
-function SectionHeader({
-    title,
-    description,
-    action,
-}: {
-    title: string;
-    description: string;
-    action?: ReactNode;
-}) {
-    return (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1">
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
-            </div>
-            {action}
-        </div>
-    );
-}
-
 export default function Dashboard({
     generated_at: generatedAt,
+    period = 'this_month',
+    period_label: periodLabel = 'Bulan Ini',
+    period_options: periodOptions = [
+        { value: 'this_month', label: 'Bulan Ini' },
+        { value: 'last_month', label: 'Bulan Lalu' },
+        { value: 'this_year', label: 'Tahun Ini' },
+    ],
     summary,
     attention,
     document_reminders: documentReminders,
@@ -129,6 +118,36 @@ export default function Dashboard({
                     }
                     actions={
                         <>
+                            <Select
+                                value={period}
+                                onValueChange={(val) => {
+                                    router.get(
+                                        DashboardController.url({
+                                            query: { period: val },
+                                        }),
+                                        {},
+                                        {
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                        },
+                                    );
+                                }}
+                            >
+                                <SelectTrigger className="h-9 w-[150px] bg-background">
+                                    <CalendarDotsIcon className="mr-1.5 size-4 text-muted-foreground" />
+                                    <SelectValue placeholder="Pilih Periode" />
+                                </SelectTrigger>
+                                <SelectContent align="end">
+                                    {periodOptions.map((opt) => (
+                                        <SelectItem
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                             <Button asChild variant="outline">
                                 <Link href={CarController.create.url()}>
                                     <CarProfileIcon />
@@ -177,7 +196,7 @@ export default function Dashboard({
                         variant="warning"
                     />
                     <StatCard
-                        title="Penjualan Bulan Ini"
+                        title={`Penjualan ${periodLabel}`}
                         value={`${summary.sales_this_month} Transaksi`}
                         description={formatCurrency(
                             summary.turnover_this_month,
@@ -187,7 +206,7 @@ export default function Dashboard({
                         variant="info"
                     />
                     <StatCard
-                        title="Pembayaran Masuk Bulan Ini"
+                        title={`Pembayaran Masuk ${periodLabel}`}
                         value={formatCurrency(
                             summary.payments_this_month,
                             compactCurrencyOptions,
@@ -199,22 +218,21 @@ export default function Dashboard({
                     />
                 </StatCardGrid>
 
-                <Card className="gap-0 overflow-hidden py-0">
-                    <CardHeader className="border-b px-5 py-5">
-                        <SectionHeader
-                            title="Posisi Finansial Operasional"
-                            description="Modal yang tertahan dan penerimaan yang masih harus diselesaikan."
-                            action={
-                                summary.incomplete_capital > 0 ? (
-                                    <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                                        <WarningCircleIcon />
-                                        {summary.incomplete_capital} modal belum
-                                        lengkap
-                                    </Badge>
-                                ) : undefined
-                            }
-                        />
-                    </CardHeader>
+                <Card className="min-w-0 gap-0 overflow-hidden py-0">
+                    <CardSectionHeader
+                        className="border-b px-5 py-5"
+                        title="Posisi Finansial Operasional"
+                        description="Modal yang tertahan dan penerimaan yang masih harus diselesaikan."
+                        badge={
+                            summary.incomplete_capital > 0 ? (
+                                <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                                    <WarningCircleIcon />
+                                    {summary.incomplete_capital} modal belum
+                                    lengkap
+                                </Badge>
+                            ) : undefined
+                        }
+                    />
                     <CardContent className="grid gap-3 bg-muted/15 p-4 sm:grid-cols-2 xl:grid-cols-4">
                         <StatCard
                             title="Total modal stok aktif"
@@ -239,7 +257,7 @@ export default function Dashboard({
                             variant="info"
                         />
                         <StatCard
-                            title="Nilai transaksi bulan ini"
+                            title={`Nilai transaksi ${periodLabel.toLowerCase()}`}
                             value={formatCurrency(summary.turnover_this_month)}
                             description={`${summary.sales_this_month} transaksi tidak dibatalkan`}
                             variant="default"
@@ -247,27 +265,31 @@ export default function Dashboard({
                     </CardContent>
                 </Card>
 
-                <Card className="gap-0 overflow-hidden py-0">
-                    <CardHeader className="border-b px-5 py-5">
-                        <SectionHeader
-                            title="Distribusi Skema Penjualan Bulan Ini"
-                            description="Rincian transaksi berdasarkan metode pembayaran dan nilai unit tukar tambah."
-                            action={
-                                summary.trade_in_this_month_count > 0 ? (
-                                    <Badge className="border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300">
-                                        <ArrowsLeftRightIcon className="mr-1 size-3.5" weight="bold" />
-                                        {summary.trade_in_this_month_count} Tukar Tambah
-                                    </Badge>
-                                ) : undefined
-                            }
-                        />
-                    </CardHeader>
+                <Card className="min-w-0 gap-0 overflow-hidden py-0">
+                    <CardSectionHeader
+                        className="border-b px-5 py-5"
+                        title={`Distribusi Skema Penjualan (${periodLabel})`}
+                        description="Rincian transaksi berdasarkan metode pembayaran dan nilai unit tukar tambah."
+                        badge={
+                            summary.trade_in_this_month_count > 0 ? (
+                                <Badge className="border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300">
+                                    <ArrowsLeftRightIcon
+                                        className="mr-1 size-3.5"
+                                        weight="bold"
+                                    />
+                                    {summary.trade_in_this_month_count} Tukar
+                                    Tambah
+                                </Badge>
+                            ) : undefined
+                        }
+                    />
                     <CardContent className="grid gap-3 bg-muted/15 p-4 sm:grid-cols-2 xl:grid-cols-4">
                         <StatCard
                             title="Tunai Lunas"
                             value={`${summary.payment_breakdown?.cash_full?.count ?? 0} SPK`}
                             description={`Omzet: ${formatCurrency(
-                                summary.payment_breakdown?.cash_full?.turnover ?? 0,
+                                summary.payment_breakdown?.cash_full
+                                    ?.turnover ?? 0,
                                 compactCurrencyOptions,
                             )}`}
                             icon={CurrencyCircleDollarIcon}
@@ -277,7 +299,8 @@ export default function Dashboard({
                             title="Tunai Tempo"
                             value={`${summary.payment_breakdown?.cash_tempo?.count ?? 0} SPK`}
                             description={`Omzet: ${formatCurrency(
-                                summary.payment_breakdown?.cash_tempo?.turnover ?? 0,
+                                summary.payment_breakdown?.cash_tempo
+                                    ?.turnover ?? 0,
                                 compactCurrencyOptions,
                             )}`}
                             icon={ClockCountdownIcon}
@@ -287,7 +310,8 @@ export default function Dashboard({
                             title="Kredit Leasing"
                             value={`${summary.payment_breakdown?.credit?.count ?? 0} SPK`}
                             description={`Omzet: ${formatCurrency(
-                                summary.payment_breakdown?.credit?.turnover ?? 0,
+                                summary.payment_breakdown?.credit?.turnover ??
+                                    0,
                                 compactCurrencyOptions,
                             )}`}
                             icon={BankIcon}
@@ -324,18 +348,17 @@ export default function Dashboard({
 
                 <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(22rem,0.85fr)_minmax(0,1.4fr)]">
                     <Card className="min-w-0 gap-0 overflow-hidden py-0">
-                        <CardHeader className="border-b px-5 py-5">
-                            <SectionHeader
-                                title="Pengingat Pajak & Dokumen"
-                                description="Khusus kendaraan ready yang perlu segera diperiksa."
-                                action={
-                                    <Badge variant="secondary">
-                                        {documentReminders.length}
-                                    </Badge>
-                                }
-                            />
-                        </CardHeader>
-                        <CardContent className="p-0">
+                        <CardSectionHeader
+                            className="border-b px-5 py-5"
+                            title="Pengingat Pajak & Dokumen"
+                            description="Khusus kendaraan ready yang perlu segera diperiksa."
+                            badge={
+                                <Badge variant="secondary">
+                                    {documentReminders.length}
+                                </Badge>
+                            }
+                        />
+                        <CardContent className="max-h-[380px] overflow-y-auto p-0">
                             {documentReminders.length === 0 ? (
                                 <div className="flex min-h-64 flex-col items-center justify-center gap-2 px-6 text-center">
                                     <div className="flex size-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
@@ -441,21 +464,20 @@ export default function Dashboard({
 
                 <div className="grid min-w-0 gap-6 xl:grid-cols-2">
                     <Card className="min-w-0 gap-0 overflow-hidden py-0">
-                        <CardHeader className="border-b px-5 py-5">
-                            <SectionHeader
-                                title="Stok Ready Terlama"
-                                description="Prioritas unit berdasarkan lama berada di stok."
-                                action={
-                                    <Button asChild variant="ghost" size="sm">
-                                        <Link href={CarController.index.url()}>
-                                            Lihat semua
-                                            <ArrowRightIcon />
-                                        </Link>
-                                    </Button>
-                                }
-                            />
-                        </CardHeader>
-                        <CardContent className="p-0">
+                        <CardSectionHeader
+                            className="border-b px-5 py-5"
+                            title="Stok Ready Terlama"
+                            description="Prioritas unit berdasarkan lama berada di stok."
+                            action={
+                                <Button asChild variant="ghost" size="sm">
+                                    <Link href={CarController.index.url()}>
+                                        Lihat semua
+                                        <ArrowRightIcon />
+                                    </Link>
+                                </Button>
+                            }
+                        />
+                        <CardContent className="max-h-[380px] overflow-y-auto p-0">
                             {stockAging.length === 0 ? (
                                 <div className="flex min-h-48 items-center justify-center px-6 text-sm text-muted-foreground">
                                     Belum ada unit ready.
@@ -517,21 +539,20 @@ export default function Dashboard({
                     </Card>
 
                     <Card className="min-w-0 gap-0 overflow-hidden py-0">
-                        <CardHeader className="border-b px-5 py-5">
-                            <SectionHeader
-                                title="Penjualan Terbaru"
-                                description="Lima transaksi terakhir yang tidak dibatalkan."
-                                action={
-                                    <Button asChild variant="ghost" size="sm">
-                                        <Link href={SaleController.index.url()}>
-                                            Lihat semua
-                                            <ArrowRightIcon />
-                                        </Link>
-                                    </Button>
-                                }
-                            />
-                        </CardHeader>
-                        <CardContent className="p-0">
+                        <CardSectionHeader
+                            className="border-b px-5 py-5"
+                            title="Penjualan Terbaru"
+                            description="Lima transaksi terakhir yang tidak dibatalkan."
+                            action={
+                                <Button asChild variant="ghost" size="sm">
+                                    <Link href={SaleController.index.url()}>
+                                        Lihat semua
+                                        <ArrowRightIcon />
+                                    </Link>
+                                </Button>
+                            }
+                        />
+                        <CardContent className="max-h-[380px] overflow-y-auto p-0">
                             {recentSales.length === 0 ? (
                                 <div className="flex min-h-48 items-center justify-center px-6 text-sm text-muted-foreground">
                                     Belum ada transaksi penjualan.
@@ -626,7 +647,7 @@ Dashboard.layout = {
     breadcrumbs: [
         {
             title: 'Dashboard',
-            href: dashboard(),
+            href: dashboard.url(),
         },
     ],
 };

@@ -18,7 +18,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
-import type { Car, CarStatus } from '@/pages/cars/types';
+import type { Car } from '@/pages/cars/types';
 
 type Props = {
     car: Car | null;
@@ -75,7 +75,10 @@ function CarStatusContent({
             {isSaleManaged ? (
                 <div className="space-y-4">
                     <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
-                        <InfoIcon className="mt-0.5 size-5 shrink-0" weight="fill" />
+                        <InfoIcon
+                            className="mt-0.5 size-5 shrink-0"
+                            weight="fill"
+                        />
                         <div className="text-sm">
                             <p className="font-semibold">
                                 Status Dikelola Transaksi Penjualan

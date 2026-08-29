@@ -14,16 +14,12 @@ class DocumentProcess extends Model
 {
     public const CLOSED_STATUSES = [
         'completed',
-        'returned',
         'cancelled',
     ];
 
     public const CANCELLABLE_STATUSES = [
         'waiting_documents',
-        'documents_ready',
-        'submitted',
         'processing',
-        'ready_for_pickup',
         'issue',
     ];
 
@@ -38,12 +34,8 @@ class DocumentProcess extends Model
 
     public const STATUS_LABELS = [
         'waiting_documents' => 'Menunggu dokumen',
-        'documents_ready' => 'Dokumen lengkap',
-        'submitted' => 'Sudah diajukan',
         'processing' => 'Sedang diproses',
-        'ready_for_pickup' => 'Siap diambil',
         'completed' => 'Proses selesai',
-        'returned' => 'Dikembalikan ke pemilik',
         'issue' => 'Bermasalah',
         'cancelled' => 'Dibatalkan',
     ];

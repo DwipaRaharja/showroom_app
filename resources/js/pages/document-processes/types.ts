@@ -10,15 +10,7 @@ export type DocumentProcessType =
     | 'other';
 
 export type DocumentProcessStatus =
-    | 'waiting_documents'
-    | 'documents_ready'
-    | 'submitted'
-    | 'processing'
-    | 'ready_for_pickup'
-    | 'completed'
-    | 'returned'
-    | 'issue'
-    | 'cancelled';
+    'waiting_documents' | 'processing' | 'completed' | 'issue' | 'cancelled';
 
 export type DocumentProcessItem = {
     id: number;

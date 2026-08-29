@@ -20,8 +20,7 @@ export function FinanceCompanyDeleteDialog({ company, onOpenChange }: Props) {
             description={
                 hasSales ? (
                     <>
-                        Rekanan <strong>{company?.name}</strong> telah
-                        memiliki{' '}
+                        Rekanan <strong>{company?.name}</strong> telah memiliki{' '}
                         <strong>
                             {company?.sales_count} transaksi penjualan
                         </strong>{' '}

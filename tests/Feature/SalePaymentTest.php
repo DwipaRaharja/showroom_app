@@ -214,5 +214,3 @@ test('cannot create a sale for a car that is already sold or booked', function (
         ])
         ->assertSessionHasErrors(['car_id']);
 });
-
-

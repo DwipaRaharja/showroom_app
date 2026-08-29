@@ -40,6 +40,23 @@ class StoreDocumentProcessEventRequest extends FormRequest
                 // Let the normal date validator report malformed input.
             }
         }
+
+        $result = (array) $this->input('result', []);
+        if (
+            isset($result['plate_prefix']) || isset($result['plate_number']) || isset($result['plate_suffix'])
+        ) {
+            $prefix = strtoupper(trim((string) ($result['plate_prefix'] ?? '')));
+            $number = trim((string) ($result['plate_number'] ?? ''));
+            $suffix = strtoupper(trim((string) ($result['plate_suffix'] ?? '')));
+
+            $combined = trim("{$prefix} {$number}".($suffix !== '' ? " {$suffix}" : ''));
+            $result['license_plate'] = $combined !== '' ? $combined : null;
+            $this->merge(['result' => $result]);
+        } elseif (isset($result['license_plate']) && is_string($result['license_plate'])) {
+            $normalized = preg_replace('/\s+/', ' ', strtoupper(trim($result['license_plate'])));
+            $result['license_plate'] = $normalized !== '' ? $normalized : null;
+            $this->merge(['result' => $result]);
+        }
     }
 
     /** @return array<string, array<mixed>> */
@@ -53,12 +70,7 @@ class StoreDocumentProcessEventRequest extends FormRequest
             'occurred_at' => ['required', 'date', 'before_or_equal:now'],
             'description' => ['required', 'string', 'max:255'],
             'location' => ['nullable', 'string', 'max:150'],
-            'recipient_name' => [
-                Rule::requiredIf($this->input('status') === 'returned'),
-                'nullable',
-                'string',
-                'max:150',
-            ],
+            'recipient_name' => ['nullable', 'string', 'max:150'],
             'recipient_phone' => ['nullable', 'string', 'max:30'],
             'recipient_relation' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -68,7 +80,12 @@ class StoreDocumentProcessEventRequest extends FormRequest
             'result.annual_tax_due_at' => ['nullable', 'date'],
             'result.stnk_expires_at' => ['nullable', 'date'],
             'result.owner_name' => ['nullable', 'string', 'max:150'],
-            'result.license_plate' => ['nullable', 'string', 'max:20'],
+            'result.license_plate' => [
+                'nullable',
+                'string',
+                'max:20',
+                'regex:/^[A-Z]{1,2}\s\d{1,4}(\s[A-Z]{1,3})?$/',
+            ],
             'files' => ['nullable', 'array', 'max:5'],
             'files.*' => [
                 'file',
@@ -92,10 +109,10 @@ class StoreDocumentProcessEventRequest extends FormRequest
                 return;
             }
 
-            if (in_array($process->status, ['returned', 'cancelled'], true)) {
+            if (in_array($process->status, ['completed', 'cancelled'], true)) {
                 $validator->errors()->add(
                     'status',
-                    'Proses yang sudah dikembalikan atau dibatalkan tidak dapat diperbarui.',
+                    'Proses yang sudah selesai atau dibatalkan tidak dapat diperbarui.',
                 );
             }
 
@@ -151,5 +168,35 @@ class StoreDocumentProcessEventRequest extends FormRequest
                 );
             }
         });
+    }
+
+    /** @return array<string, string> */
+    public function attributes(): array
+    {
+        return [
+            'status' => 'tahap proses baru',
+            'occurred_at' => 'waktu pelaksanaan',
+            'description' => 'keterangan aktivitas',
+            'location' => 'lokasi pelaksanaan',
+            'recipient_name' => 'nama penerima berkas',
+            'recipient_phone' => 'no. telepon penerima',
+            'recipient_relation' => 'hubungan penerima',
+            'notes' => 'catatan aktivitas',
+            'received_items' => 'dokumen yang diterima',
+            'files' => 'foto / dokumen pendukung',
+            'result.license_plate' => 'plat nomor baru',
+            'result.owner_name' => 'nama pemilik baru',
+            'result.annual_tax_due_at' => 'jatuh tempo pajak tahunan baru',
+            'result.stnk_expires_at' => 'masa berlaku STNK baru',
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'occurred_at.before_or_equal' => 'Waktu pelaksanaan tidak boleh melebihi waktu saat ini.',
+            'result.license_plate.regex' => 'Format plat nomor tidak valid (contoh: KT 1234 TB atau B 1234 ABC).',
+        ];
     }
 }

@@ -36,7 +36,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { copyToClipboard } from '@/lib/clipboard';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatWhatsAppUrl } from '@/lib/formatters';
 import type { FinanceCompany } from '@/pages/finance-companies/types';
 
 export const financeCompanyTableFeatures = tableFeatures({
@@ -61,22 +61,6 @@ const columnHelper = createColumnHelper<
     typeof financeCompanyTableFeatures,
     FinanceCompany
 >();
-
-function whatsappUrl(phone: string | null): string | null {
-    const normalized = phone?.replace(/\D/g, '') ?? '';
-
-    if (!normalized) {
-        return null;
-    }
-
-    const internationalNumber = normalized.startsWith('0')
-        ? `62${normalized.slice(1)}`
-        : normalized.startsWith('8')
-          ? `62${normalized}`
-          : normalized;
-
-    return `https://wa.me/${internationalNumber}`;
-}
 
 type FinanceCompanyColumnActions = {
     onEdit: (company: FinanceCompany) => void;
@@ -180,7 +164,7 @@ export function createFinanceCompanyColumns({
                 ),
                 cell: ({ row }) => {
                     const company = row.original;
-                    const waUrl = whatsappUrl(company.pic_phone);
+                    const waUrl = formatWhatsAppUrl(company.pic_phone);
 
                     if (!company.pic_name && !company.pic_phone) {
                         return (

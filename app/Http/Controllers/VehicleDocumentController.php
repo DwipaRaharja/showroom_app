@@ -26,9 +26,14 @@ class VehicleDocumentController extends Controller
         $newFileAttributes = [];
 
         if ($uploadedFile instanceof UploadedFile) {
+            $car->loadMissing('brand');
+            $brandName = $car->brand->name;
+            $customName = "dokumen-kendaraan-{$car->id}-{$car->license_plate}-{$brandName}-{$car->name}-".time();
+
             $newFileAttributes = $this->storeAndExtractFileAttributes(
                 $uploadedFile,
                 "vehicle-documents/{$car->id}/shared",
+                $customName,
                 errorKey: 'file',
                 errorMessage: 'Lampiran dokumen gagal disimpan. Silakan coba lagi.',
             );
@@ -142,9 +147,15 @@ class VehicleDocumentController extends Controller
             404,
         );
 
+        $car->loadMissing('brand');
+        $brandName = $car->brand->name;
+        $extension = pathinfo($attachment->file_path, PATHINFO_EXTENSION) ?: 'pdf';
+        $downloadName = $attachment->file_name
+            ?: $this->sanitizeFileName("dokumen-kendaraan-{$car->id}-{$car->license_plate}-{$brandName}-{$car->name}", $extension);
+
         return Storage::disk('local')->download(
             $attachment->file_path,
-            $attachment->file_name ?? basename($attachment->file_path),
+            $downloadName,
         );
     }
 }

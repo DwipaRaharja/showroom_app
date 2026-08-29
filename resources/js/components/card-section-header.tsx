@@ -2,8 +2,10 @@ import type { ComponentProps, ReactNode } from 'react';
 import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-export interface CardSectionHeaderProps
-    extends Omit<ComponentProps<typeof CardHeader>, 'title'> {
+export interface CardSectionHeaderProps extends Omit<
+    ComponentProps<typeof CardHeader>,
+    'title'
+> {
     title: ReactNode;
     titleClassName?: string;
     description?: ReactNode;

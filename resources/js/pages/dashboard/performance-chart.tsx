@@ -1,10 +1,5 @@
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { CardSectionHeader } from '@/components/card-section-header';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Tooltip,
     TooltipContent,
@@ -30,16 +25,12 @@ export function PerformanceChart({ data }: Props) {
     );
 
     return (
-        <Card className="min-w-0">
-            <CardHeader className="gap-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="space-y-1">
-                        <CardTitle>Performa Enam Bulan</CardTitle>
-                        <CardDescription>
-                            Nilai transaksi dibandingkan dengan pembayaran yang
-                            benar-benar diterima.
-                        </CardDescription>
-                    </div>
+        <Card className="min-w-0 gap-0 overflow-hidden py-0">
+            <CardSectionHeader
+                className="border-b px-5 py-5"
+                title="Performa Enam Bulan"
+                description="Nilai transaksi dibandingkan dengan pembayaran yang benar-benar diterima."
+                action={
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5">
                             <span className="size-2.5 rounded-sm bg-blue-500" />
@@ -50,9 +41,9 @@ export function PerformanceChart({ data }: Props) {
                             Pembayaran masuk
                         </span>
                     </div>
-                </div>
-            </CardHeader>
-            <CardContent>
+                }
+            />
+            <CardContent className="p-5">
                 <TooltipProvider delayDuration={50}>
                     <div className="grid h-60 grid-cols-6 items-end gap-2 border-b sm:gap-4">
                         {data.map((point) => {
@@ -106,8 +97,8 @@ export function PerformanceChart({ data }: Props) {
                                                     </div>
                                                     {Boolean(
                                                         point.trade_in_count &&
-                                                            point.trade_in_count >
-                                                                0,
+                                                        point.trade_in_count >
+                                                            0,
                                                     ) && (
                                                         <div className="text-[10px] font-medium text-purple-600 dark:text-purple-400">
                                                             {

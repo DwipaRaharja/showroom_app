@@ -231,9 +231,7 @@ export function createProcessColumns(
                 const value = getValue();
                 const isOverdue =
                     value !== null &&
-                    !['completed', 'returned', 'cancelled'].includes(
-                        row.original.status,
-                    ) &&
+                    !['completed', 'cancelled'].includes(row.original.status) &&
                     value.slice(0, 10) < localDateKey();
 
                 return (

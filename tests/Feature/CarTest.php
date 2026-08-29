@@ -2,6 +2,8 @@
 
 use App\Models\Brand;
 use App\Models\Car;
+use App\Models\Customer;
+use App\Models\Sale;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -395,8 +397,8 @@ test('authenticated user cannot manually update car status to booked or sold', f
 test('authenticated user cannot manually update status of a car linked to a sale', function () {
     $user = User::factory()->create();
     $car = Car::factory()->create(['status' => 'booked']);
-    $customer = \App\Models\Customer::factory()->create();
-    $sale = \App\Models\Sale::factory()->create([
+    $customer = Customer::factory()->create();
+    $sale = Sale::factory()->create([
         'car_id' => $car->id,
         'customer_id' => $customer->id,
         'deal_price' => 200000000,

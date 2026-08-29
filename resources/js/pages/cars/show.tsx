@@ -1,6 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
 import {
-    ArrowLeftIcon,
     CalendarBlankIcon,
     CarProfileIcon,
     ClipboardTextIcon,
@@ -9,7 +8,6 @@ import {
     FileTextIcon,
     GasPumpIcon,
     GaugeIcon,
-    MoneyIcon,
     PencilSimpleIcon,
     TagIcon,
 } from '@phosphor-icons/react';
@@ -22,6 +20,7 @@ import { DetailItem } from '@/components/detail-item';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { TaxCountdownBadge } from '@/components/tax-countdown-badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -137,7 +136,27 @@ export default function CarsShow({ car }: Props) {
                     backHref={carsIndex.url()}
                     backLabel="Kembali ke mobil"
                     title={car.name}
-                    titleAddon={<StatusBadge status={car.status} />}
+                    titleAddon={
+                        <div className="flex flex-wrap items-center gap-2">
+                            <StatusBadge status={car.status} />
+                            {car.status !== 'sold' && (
+                                <>
+                                    {stnk?.annual_tax_due_at && (
+                                        <TaxCountdownBadge
+                                            date={stnk.annual_tax_due_at}
+                                            prefixLabel="Pajak 1 Thn"
+                                        />
+                                    )}
+                                    {stnk?.expires_at && (
+                                        <TaxCountdownBadge
+                                            date={stnk.expires_at}
+                                            prefixLabel="Plat 5 Thn"
+                                        />
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    }
                     description={
                         <>
                             {car.brand?.name ?? 'Merek belum tersedia'} · Tahun{' '}
@@ -199,39 +218,39 @@ export default function CarsShow({ car }: Props) {
                             )}
                             <div className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6">
                                 <div className="flex items-center gap-4">
-                                    <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-                                        <CarProfileIcon
-                                            className="size-7"
-                                            weight="fill"
-                                        />
+                                    <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                                        <CarProfileIcon className="size-7" />
                                     </div>
-                                    <div>
-                                        <div className="text-sm font-medium text-muted-foreground">
-                                            Unit inventaris #{car.id}
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h2 className="text-xl font-bold tracking-tight">
+                                                {car.name}
+                                            </h2>
+                                            <StatusBadge status={car.status} />
                                         </div>
-                                        <div className="mt-1 text-xl font-bold">
-                                            {car.brand?.name} {car.name}
-                                        </div>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            {car.brand?.name ??
+                                                'Merek belum tersedia'}{' '}
+                                            · {car.year} ·{' '}
+                                            {car.license_plate ?? 'Tanpa plat'}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
-
-                            <CardContent className="grid gap-4 p-6 sm:grid-cols-3">
-                                <div className="rounded-xl border bg-card p-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                                        <MoneyIcon className="size-4 text-emerald-600" />
+                            <CardContent className="grid gap-4 bg-muted/15 p-6 sm:grid-cols-3">
+                                <div>
+                                    <div className="text-xs text-muted-foreground">
                                         Harga jual
                                     </div>
-                                    <div className="mt-2 text-lg font-bold text-emerald-600 dark:text-emerald-500">
+                                    <div className="mt-1 text-lg font-bold text-emerald-600 dark:text-emerald-500">
                                         {formatCurrency(car.selling_price)}
                                     </div>
                                 </div>
-                                <div className="rounded-xl border bg-card p-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                                        <CoinsIcon className="size-4" />
+                                <div>
+                                    <div className="text-xs text-muted-foreground">
                                         Total modal
                                     </div>
-                                    <div className="mt-2 text-lg font-bold">
+                                    <div className="mt-1 text-lg font-semibold">
                                         {car.capital
                                             ? formatCurrency(
                                                   car.capital.total_capital,
@@ -239,15 +258,15 @@ export default function CarsShow({ car }: Props) {
                                             : '—'}
                                     </div>
                                 </div>
-                                <div className="rounded-xl border bg-card p-4">
-                                    <div className="text-xs font-medium text-muted-foreground">
+                                <div>
+                                    <div className="text-xs text-muted-foreground">
                                         Estimasi margin
                                     </div>
                                     <div
-                                        className={`mt-2 text-lg font-bold ${
+                                        className={`mt-1 text-lg font-semibold ${
                                             estimatedMargin !== null &&
                                             estimatedMargin < 0
-                                                ? 'text-rose-600'
+                                                ? 'text-red-600 dark:text-red-500'
                                                 : 'text-blue-600 dark:text-blue-500'
                                         }`}
                                     >
@@ -315,18 +334,14 @@ export default function CarsShow({ car }: Props) {
                         <Card>
                             <CardSectionHeader
                                 title="Dokumen kendaraan"
-                                badge={
-                                    <StatusBadge status={documentState} />
-                                }
+                                badge={<StatusBadge status={documentState} />}
                                 description={`${completeDocuments}/${requiredDocumentTypes.length} dokumen inti siap digunakan.`}
                                 action={
                                     <Button
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        onClick={() =>
-                                            setIsDocumentsOpen(true)
-                                        }
+                                        onClick={() => setIsDocumentsOpen(true)}
                                     >
                                         Kelola
                                     </Button>
@@ -344,12 +359,37 @@ export default function CarsShow({ car }: Props) {
                                             stnk?.issued_at ?? null,
                                         )}
                                     />
-                                    <DetailItem
-                                        label="Berlaku sampai"
-                                        value={formatCalendarDate(
-                                            stnk?.expires_at ?? null,
-                                        )}
-                                    />
+                                    <div className="space-y-1">
+                                        <div className="text-xs text-muted-foreground">
+                                            Pajak 1 Tahunan
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="text-sm font-semibold">
+                                                {formatCalendarDate(
+                                                    stnk?.annual_tax_due_at ??
+                                                        null,
+                                                )}
+                                            </span>
+                                            <TaxCountdownBadge
+                                                date={stnk?.annual_tax_due_at}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="text-xs text-muted-foreground">
+                                            Pajak 5 Tahunan / Plat
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="text-sm font-semibold">
+                                                {formatCalendarDate(
+                                                    stnk?.expires_at ?? null,
+                                                )}
+                                            </span>
+                                            <TaxCountdownBadge
+                                                date={stnk?.expires_at}
+                                            />
+                                        </div>
+                                    </div>
                                 </DocumentCard>
                                 <DocumentCard title="BPKB" document={bpkb}>
                                     <DetailItem

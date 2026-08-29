@@ -110,7 +110,8 @@ test('authenticated user stores stnk bpkb invoice and one shared private file', 
 
     $attachment = $car->documentAttachment()->sole();
 
-    expect($attachment->file_name)->toBe('dokumen-mobil.pdf')
+    expect($attachment->file_name)->toStartWith('dokumen-kendaraan-')
+        ->and($attachment->file_name)->toEndWith('.pdf')
         ->and($attachment->file_path)->not->toBeNull();
     Storage::disk('local')->assertExists($attachment->file_path);
 });
@@ -171,7 +172,8 @@ test('saving the form again updates metadata and replaces the one shared file', 
     expect($car->documents()->count())->toBe(3)
         ->and($car->documents()->where('document_type', 'stnk')->sole()->status)
         ->toBe('printing')
-        ->and($attachment->file_name)->toBe('baru.jpg')
+        ->and($attachment->file_name)->toStartWith('dokumen-kendaraan-')
+        ->and($attachment->file_name)->toEndWith('.jpg')
         ->and($attachment->file_path)->not->toBe($oldPath);
     Storage::disk('local')->assertMissing($oldPath);
     Storage::disk('local')->assertExists($attachment->file_path);

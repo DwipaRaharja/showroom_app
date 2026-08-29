@@ -256,7 +256,7 @@ test('received documents must belong to the selected document process', function
 
     $this->actingAs($user)
         ->post(route('document-processes.events.store', $firstProcess), [
-            'status' => 'documents_ready',
+            'status' => 'processing',
             'occurred_at' => now()->subHour()->format('Y-m-d\TH:i'),
             'description' => 'Dokumen sudah diterima.',
             'received_items' => [$foreignItem?->id],
@@ -309,7 +309,7 @@ test('cancelling returns documents currently held without deleting history', fun
 
     $this->actingAs($user)
         ->post(route('document-processes.events.store', $process), [
-            'status' => 'documents_ready',
+            'status' => 'processing',
             'occurred_at' => now()->subMinute()->format('Y-m-d\TH:i'),
             'description' => 'STNK sudah diterima showroom.',
             'received_items' => [$stnkItem?->id],
@@ -413,9 +413,9 @@ test('process with tracking progress cannot be deleted permanently', function ()
 
     $this->actingAs($user)
         ->post(route('document-processes.events.store', $process), [
-            'status' => 'documents_ready',
+            'status' => 'processing',
             'occurred_at' => now()->subMinute()->format('Y-m-d\TH:i'),
-            'description' => 'Dokumen sudah lengkap.',
+            'description' => 'Dokumen sedang diproses.',
         ])
         ->assertSessionHasNoErrors();
 
@@ -482,5 +482,146 @@ test('receipt is stored privately and can be downloaded by an authenticated user
     $this->actingAs($user)
         ->get(route('document-process-files.download', $file))
         ->assertOk()
-        ->assertDownload('bukti-pajak.pdf');
+        ->assertDownload($file->file_name);
+});
+
+test('store process validation rejects future started_at with friendly indonesian message', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+    $payload = [
+        ...validDocumentProcessPayload($car),
+        'started_at' => now()->addDays(3)->toDateString(),
+    ];
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), $payload)
+        ->assertSessionHasErrors([
+            'started_at' => 'Tanggal mulai tidak boleh melebihi tanggal hari ini.',
+        ]);
+});
+
+test('name transfer document process creates checklist with license plate and without receipt requirement', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+    $payload = [
+        ...validDocumentProcessPayload($car),
+        'process_type' => 'name_transfer',
+        'target_owner_name' => 'Ahmad Dahlan',
+    ];
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), $payload)
+        ->assertRedirect();
+
+    $process = DocumentProcess::query()->where('process_type', 'name_transfer')->firstOrFail();
+    $itemKeys = $process->items()->pluck('item_key')->all();
+
+    expect($itemKeys)
+        ->toContain('stnk', 'bpkb', 'invoice', 'license_plate', 'new_owner_id')
+        ->not->toContain('receipt');
+});
+
+test('five year tax process creates checklist with license plate requirement', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+    $payload = [
+        ...validDocumentProcessPayload($car),
+        'process_type' => 'five_year_tax',
+    ];
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), $payload)
+        ->assertRedirect();
+
+    $process = DocumentProcess::query()->where('process_type', 'five_year_tax')->firstOrFail();
+    $itemKeys = $process->items()->pluck('item_key')->all();
+
+    expect($itemKeys)
+        ->toContain('stnk', 'bpkb', 'license_plate', 'owner_id', 'physical_check');
+});
+
+test('completing a process event automatically marks all unreceived items as received', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), [
+            ...validDocumentProcessPayload($car),
+            'process_type' => 'five_year_tax',
+        ]);
+
+    $process = DocumentProcess::query()->where('process_type', 'five_year_tax')->firstOrFail();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.events.store', $process), [
+            'status' => 'completed',
+            'occurred_at' => now()->toDateTimeString(),
+            'description' => 'Semua dokumen dan plat nomor baru telah selesai dan diterima.',
+            'result' => [
+                'stnk_expires_at' => now()->addYears(5)->toDateString(),
+            ],
+        ])
+        ->assertRedirect();
+
+    $process->refresh();
+    expect($process->status)->toBe('completed')
+        ->and($process->items()->where('custody_status', 'received')->count())->toBe(5);
+});
+
+test('event result rejects invalid license plate format', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), [
+            ...validDocumentProcessPayload($car),
+            'process_type' => 'name_transfer',
+            'target_owner_name' => 'Ahmad Dahlan',
+        ]);
+
+    $process = DocumentProcess::query()->where('process_type', 'name_transfer')->firstOrFail();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.events.store', $process), [
+            'status' => 'completed',
+            'occurred_at' => now()->toDateTimeString(),
+            'description' => 'Selesai balik nama.',
+            'result' => [
+                'license_plate' => 'dd',
+            ],
+        ])
+        ->assertSessionHasErrors([
+            'result.license_plate' => 'Format plat nomor tidak valid (contoh: KT 1234 TB atau B 1234 ABC).',
+        ]);
+});
+
+test('event result accepts 3 part license plate inputs and updates car plate', function () {
+    $user = User::factory()->create();
+    $car = createCarWithCapital();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.store'), [
+            ...validDocumentProcessPayload($car),
+            'process_type' => 'name_transfer',
+            'target_owner_name' => 'Ahmad Dahlan',
+        ]);
+
+    $process = DocumentProcess::query()->where('process_type', 'name_transfer')->firstOrFail();
+
+    $this->actingAs($user)
+        ->post(route('document-processes.events.store', $process), [
+            'status' => 'completed',
+            'occurred_at' => now()->toDateTimeString(),
+            'description' => 'Selesai balik nama dan plat baru jadi.',
+            'result' => [
+                'plate_prefix' => 'kt',
+                'plate_number' => '5678',
+                'plate_suffix' => 'tb',
+                'owner_name' => 'Ahmad Dahlan',
+            ],
+        ])
+        ->assertRedirect();
+
+    $car->refresh();
+    expect($car->license_plate)->toBe('KT 5678 TB');
 });

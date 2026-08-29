@@ -30,4 +30,24 @@ class StoreDocumentProcessCostRequest extends FormRequest
             ],
         ];
     }
+
+    /** @return array<string, string> */
+    public function attributes(): array
+    {
+        return [
+            'description' => 'keterangan biaya',
+            'amount' => 'nominal biaya',
+            'paid_by' => 'penanggung biaya',
+            'paid_at' => 'tanggal pembayaran',
+            'receipt' => 'bukti kuitansi',
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'paid_at.before_or_equal' => 'Tanggal pembayaran tidak boleh melebihi tanggal hari ini.',
+        ];
+    }
 }

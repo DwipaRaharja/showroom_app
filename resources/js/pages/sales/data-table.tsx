@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import {
+    CalendarBlankIcon,
     CoinsIcon,
     CreditCardIcon,
     HandCoinsIcon,
@@ -27,6 +28,7 @@ import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
 import { StatCard } from '@/components/stat-card';
 import { StatCardGrid } from '@/components/stat-card-grid';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -34,7 +36,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -43,7 +44,12 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { formatCurrency } from '@/lib/formatters';
+import type { DatePreset } from '@/lib/formatters';
+import {
+    formatCurrency,
+    getPresetDateRange,
+    isDateInRange,
+} from '@/lib/formatters';
 import { PaymentDialog } from '@/pages/sales/payment-dialog';
 import {
     createSaleColumns,
@@ -83,6 +89,9 @@ export function SaleDataTable({ data, summary }: Props) {
         useState<PaginationState>(initialPagination);
     const [columnVisibility, setColumnVisibility] =
         useState<ColumnVisibilityState>(initialColumnVisibility);
+    const [datePreset, setDatePreset] = useState<DatePreset>('all');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
 
     const columns = useMemo(
         () =>
@@ -95,9 +104,29 @@ export function SaleDataTable({ data, summary }: Props) {
         [],
     );
 
+    const filteredByDateData = useMemo(() => {
+        if (datePreset === 'all') {
+            return data;
+        }
+
+        const { start, end } = getPresetDateRange(
+            datePreset,
+            customStartDate,
+            customEndDate,
+        );
+
+        if (!start && !end) {
+            return data;
+        }
+
+        return data.filter((sale) =>
+            isDateInRange(sale.created_at, start, end),
+        );
+    }, [data, datePreset, customStartDate, customEndDate]);
+
     const table = useTable({
         features: saleTableFeatures,
-        data,
+        data: filteredByDateData,
         columns,
         getRowId: (row) => String(row.id),
         getColumnCanGlobalFilter: (column) =>
@@ -130,14 +159,54 @@ export function SaleDataTable({ data, summary }: Props) {
         .getColumn('payment_type')
         ?.getFilterValue() as PaymentType | undefined;
     const filteredCount = table.getFilteredRowModel().rows.length;
+    const isDateFiltered =
+        datePreset !== 'all' &&
+        (datePreset !== 'custom' ||
+            customStartDate !== '' ||
+            customEndDate !== '');
     const hasFilters =
         search.length > 0 ||
         statusFilter !== undefined ||
-        paymentTypeFilter !== undefined;
+        paymentTypeFilter !== undefined ||
+        isDateFiltered;
+
+    const filteredRows = table.getFilteredRowModel().rows;
+    const activeSummary = useMemo(() => {
+        if (!hasFilters) {
+            return summary;
+        }
+
+        const items = filteredRows.map((r) => r.original);
+
+        return {
+            total_turnover: items.reduce(
+                (acc, s) => acc + (s.deal_price ?? 0),
+                0,
+            ),
+            total_collected: items.reduce(
+                (acc, s) => acc + (s.total_paid ?? 0),
+                0,
+            ),
+            total_receivables: items.reduce(
+                (acc, s) => acc + (s.remaining_bill ?? 0),
+                0,
+            ),
+            total_bonus_collected: items.reduce(
+                (acc, s) => acc + (s.total_bonus_paid ?? 0),
+                0,
+            ),
+            pending_disbursements_count: items.filter(
+                (s) => s.payment_type === 'credit' && s.status !== 'completed',
+            ).length,
+        };
+    }, [filteredRows, hasFilters, summary]);
 
     function resetFilters() {
         setGlobalFilter('');
         setColumnFilters([]);
+        setDatePreset('all');
+        setCustomStartDate('');
+        setCustomEndDate('');
         setPagination((current) => ({ ...current, pageIndex: 0 }));
     }
 
@@ -146,25 +215,25 @@ export function SaleDataTable({ data, summary }: Props) {
             <StatCardGrid>
                 <StatCard
                     title="Total Omzet Penjualan"
-                    value={formatCurrency(summary.total_turnover)}
+                    value={formatCurrency(activeSummary.total_turnover)}
                     icon={CoinsIcon}
                     variant="default"
                 />
                 <StatCard
                     title="Total Kas Diterima"
-                    value={formatCurrency(summary.total_collected)}
+                    value={formatCurrency(activeSummary.total_collected)}
                     icon={HandCoinsIcon}
                     variant="success"
                 />
                 <StatCard
                     title="Sisa Piutang / Belum Cair"
-                    value={formatCurrency(summary.total_receivables)}
+                    value={formatCurrency(activeSummary.total_receivables)}
                     icon={HourglassMediumIcon}
                     variant="warning"
                 />
                 <StatCard
                     title="Bonus Leasing Diterima"
-                    value={formatCurrency(summary.total_bonus_collected)}
+                    value={formatCurrency(activeSummary.total_bonus_collected)}
                     icon={CreditCardIcon}
                     variant="info"
                 />
@@ -195,6 +264,70 @@ export function SaleDataTable({ data, summary }: Props) {
                             />
                         }
                     >
+                        {/* Filter Periode / Tanggal */}
+                        <Select
+                            value={datePreset}
+                            onValueChange={(value) => {
+                                setDatePreset(value as DatePreset);
+                                table.setPageIndex(0);
+                            }}
+                        >
+                            <SelectTrigger className="w-40">
+                                <CalendarBlankIcon className="mr-1.5 size-4 text-muted-foreground" />
+                                <SelectValue placeholder="Semua tanggal" />
+                            </SelectTrigger>
+                            <SelectContent align="end">
+                                <SelectItem value="all">
+                                    Semua tanggal
+                                </SelectItem>
+                                <SelectItem value="today">Hari Ini</SelectItem>
+                                <SelectItem value="this_week">
+                                    Minggu Ini
+                                </SelectItem>
+                                <SelectItem value="this_month">
+                                    Bulan Ini
+                                </SelectItem>
+                                <SelectItem value="last_month">
+                                    Bulan Lalu
+                                </SelectItem>
+                                <SelectItem value="this_year">
+                                    Tahun Ini
+                                </SelectItem>
+                                <SelectItem value="custom">
+                                    Rentang Kustom...
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* Input Rentang Tanggal Kustom */}
+                        {datePreset === 'custom' && (
+                            <div className="flex items-center gap-1.5 rounded-lg border bg-background/80 px-2 py-1 text-xs shadow-xs">
+                                <Input
+                                    type="date"
+                                    value={customStartDate}
+                                    onChange={(e) => {
+                                        setCustomStartDate(e.target.value);
+                                        table.setPageIndex(0);
+                                    }}
+                                    className="h-7 w-32 border-0 bg-transparent px-1 py-0 text-xs shadow-none focus-visible:ring-0"
+                                    aria-label="Tanggal awal"
+                                />
+                                <span className="text-muted-foreground">
+                                    s/d
+                                </span>
+                                <Input
+                                    type="date"
+                                    value={customEndDate}
+                                    onChange={(e) => {
+                                        setCustomEndDate(e.target.value);
+                                        table.setPageIndex(0);
+                                    }}
+                                    className="h-7 w-32 border-0 bg-transparent px-1 py-0 text-xs shadow-none focus-visible:ring-0"
+                                    aria-label="Tanggal akhir"
+                                />
+                            </div>
+                        )}
+
                         {/* Filter Status */}
                         <Select
                             value={statusFilter ?? 'all'}

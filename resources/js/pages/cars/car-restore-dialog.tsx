@@ -25,9 +25,7 @@ export function CarRestoreDialog({ car, onOpenChange }: Props) {
             }
             confirmText="Pulihkan Unit"
             confirmIcon={ArrowCounterClockwiseIcon}
-            formProps={
-                car ? CarController.restore.form(car.id) : undefined
-            }
+            formProps={car ? CarController.restore.form(car.id) : undefined}
         />
     );
 }

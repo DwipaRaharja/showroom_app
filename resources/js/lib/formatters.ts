@@ -195,3 +195,200 @@ export function formatDateTime(
         timeZone: dateTimeOptions.timeZone ?? applicationTimeZone,
     }).format(date);
 }
+
+/**
+ * Menghasilkan tautan langsung ke WhatsApp (wa.me) dengan format nomor telepon internasional (+62).
+ *
+ * @param phone Nomor telepon (misal: "0812-3456-7890", "+62 812 3456", "08123456789")
+ * @param message Pesan teks default opsional yang akan terisi otomatis saat membuka chat
+ * @returns URL WhatsApp string atau null jika nomor telepon tidak valid
+ */
+export function formatWhatsAppUrl(
+    phone: string | null | undefined,
+    message?: string,
+): string | null {
+    if (!phone || typeof phone !== 'string') {
+        return null;
+    }
+
+    const digits = phone.replace(/\D/g, '');
+
+    if (!digits) {
+        return null;
+    }
+
+    let internationalPhone = digits;
+
+    if (digits.startsWith('0')) {
+        internationalPhone = `62${digits.slice(1)}`;
+    } else if (digits.startsWith('62')) {
+        internationalPhone = digits;
+    } else if (digits.startsWith('8')) {
+        internationalPhone = `62${digits}`;
+    }
+
+    if (internationalPhone.length < 9) {
+        return null;
+    }
+
+    const base = `https://wa.me/${internationalPhone}`;
+
+    if (message && message.trim() !== '') {
+        return `${base}?text=${encodeURIComponent(message.trim())}`;
+    }
+
+    return base;
+}
+
+export type DatePreset =
+    | 'all'
+    | 'today'
+    | 'this_week'
+    | 'this_month'
+    | 'last_month'
+    | 'this_year'
+    | 'custom';
+
+export function isDateInRange(
+    dateValue: DateValue,
+    start: Date | null,
+    end: Date | null,
+): boolean {
+    if (!dateValue) {
+        return false;
+    }
+
+    const d = dateValue instanceof Date ? dateValue : new Date(dateValue);
+
+    if (Number.isNaN(d.getTime())) {
+        return false;
+    }
+
+    if (start && d.getTime() < start.getTime()) {
+        return false;
+    }
+
+    if (end && d.getTime() > end.getTime()) {
+        return false;
+    }
+
+    return true;
+}
+
+export function getPresetDateRange(
+    preset: DatePreset,
+    customStart?: string,
+    customEnd?: string,
+): { start: Date | null; end: Date | null } {
+    const now = new Date();
+
+    if (preset === 'today') {
+        const start = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            0,
+            0,
+            0,
+            0,
+        );
+        const end = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            23,
+            59,
+            59,
+            999,
+        );
+
+        return { start, end };
+    }
+
+    if (preset === 'this_week') {
+        const day = now.getDay();
+        const diffToMonday = (day === 0 ? -6 : 1) - day;
+        const start = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() + diffToMonday,
+            0,
+            0,
+            0,
+            0,
+        );
+        const end = new Date(
+            start.getFullYear(),
+            start.getMonth(),
+            start.getDate() + 6,
+            23,
+            59,
+            59,
+            999,
+        );
+
+        return { start, end };
+    }
+
+    if (preset === 'this_month') {
+        const start = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            1,
+            0,
+            0,
+            0,
+            0,
+        );
+        const end = new Date(
+            now.getFullYear(),
+            now.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
+            999,
+        );
+
+        return { start, end };
+    }
+
+    if (preset === 'last_month') {
+        const start = new Date(
+            now.getFullYear(),
+            now.getMonth() - 1,
+            1,
+            0,
+            0,
+            0,
+            0,
+        );
+        const end = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            0,
+            23,
+            59,
+            59,
+            999,
+        );
+
+        return { start, end };
+    }
+
+    if (preset === 'this_year') {
+        const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+
+        return { start, end };
+    }
+
+    if (preset === 'custom') {
+        const start = customStart ? new Date(`${customStart}T00:00:00`) : null;
+        const end = customEnd ? new Date(`${customEnd}T23:59:59.999`) : null;
+
+        return { start, end };
+    }
+
+    return { start: null, end: null };
+}

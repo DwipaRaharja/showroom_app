@@ -128,9 +128,14 @@ class CarController extends Controller
                 $car = Car::query()->create($validated);
 
                 if ($image instanceof UploadedFile) {
+                    $car->loadMissing('brand');
+                    $brandName = $car->brand->name;
+                    $customName = "mobil-{$car->id}-{$brandName}-{$car->name}-{$car->license_plate}-".time();
+
                     $storedImagePath = $this->storeUploadedFile(
                         $image,
                         "cars/{$car->id}/images",
+                        $customName,
                         errorKey: 'image',
                         errorMessage: 'Gambar kendaraan gagal disimpan. Silakan coba lagi.',
                     );
@@ -241,9 +246,17 @@ class CarController extends Controller
 
         try {
             if ($image instanceof UploadedFile) {
+                $brandId = $validated['brand_id'] ?? $car->brand_id;
+                $brand = is_numeric($brandId) ? Brand::query()->whereKey((int) $brandId)->first() : null;
+                $brandName = $brand instanceof Brand ? $brand->name : $car->brand->name;
+                $carName = $validated['name'] ?? $car->name;
+                $licensePlate = $validated['license_plate'] ?? $car->license_plate;
+                $customName = "mobil-{$car->id}-{$brandName}-{$carName}-{$licensePlate}-".time();
+
                 $storedImagePath = $this->storeUploadedFile(
                     $image,
                     "cars/{$car->id}/images",
+                    $customName,
                     errorKey: 'image',
                     errorMessage: 'Gambar kendaraan gagal disimpan. Silakan coba lagi.',
                 );
@@ -287,10 +300,14 @@ class CarController extends Controller
         );
 
         $mimeType = Storage::disk('local')->mimeType($car->image);
+        $car->loadMissing('brand');
+        $brandName = $car->brand->name;
+        $extension = pathinfo($car->image, PATHINFO_EXTENSION) ?: 'jpg';
+        $downloadName = $this->sanitizeFileName("mobil-{$car->id}-{$brandName}-{$car->name}-{$car->license_plate}", $extension);
 
         return Storage::disk('local')->response(
             $car->image,
-            basename($car->image),
+            $downloadName,
             [
                 'Content-Type' => is_string($mimeType)
                     ? $mimeType

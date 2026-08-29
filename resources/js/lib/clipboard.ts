@@ -12,15 +12,18 @@ export async function copyToClipboard(
 ): Promise<boolean> {
     if (!value) {
         toast.error(`Tidak ada ${label.toLowerCase()} untuk disalin.`);
+
         return false;
     }
 
     try {
         await navigator.clipboard.writeText(value);
         toast.success(`${label} berhasil disalin.`);
+
         return true;
     } catch {
         toast.error(`${label} gagal disalin.`);
+
         return false;
     }
 }

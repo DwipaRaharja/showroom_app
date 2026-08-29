@@ -17,9 +17,7 @@ export function BrandStatusDialog({ brand, onOpenChange }: Props) {
             onOpenChange={onOpenChange}
             tone={willActivate ? 'success' : 'danger'}
             title={
-                willActivate
-                    ? 'Aktifkan kembali merek?'
-                    : 'Nonaktifkan merek?'
+                willActivate ? 'Aktifkan kembali merek?' : 'Nonaktifkan merek?'
             }
             description={
                 willActivate ? (
@@ -29,9 +27,9 @@ export function BrandStatusDialog({ brand, onOpenChange }: Props) {
                     </>
                 ) : (
                     <>
-                        Merek <strong>{brand?.name}</strong> tidak akan
-                        dapat digunakan pada data kendaraan baru, tetapi
-                        datanya tetap tersimpan.
+                        Merek <strong>{brand?.name}</strong> tidak akan dapat
+                        digunakan pada data kendaraan baru, tetapi datanya tetap
+                        tersimpan.
                     </>
                 )
             }

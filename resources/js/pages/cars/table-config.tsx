@@ -29,6 +29,7 @@ import {
 import CarController from '@/actions/App/Http/Controllers/CarController';
 import { SortableTableHeader } from '@/components/data-table/sortable-table-header';
 import { StatusBadge } from '@/components/status-badge';
+import { TaxCountdownBadge } from '@/components/tax-countdown-badge';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -49,6 +50,7 @@ import type {
 import {
     countCompleteRequiredDocuments,
     getCarDocumentState,
+    getCarUrgentTaxInfo,
     requiredDocumentTypes,
 } from '@/pages/cars/vehicle-document-utils';
 
@@ -289,22 +291,38 @@ export function createCarColumns({
                 id: 'documents',
                 header: ({ column }) => (
                     <SortableTableHeader
-                        label="Dokumen"
+                        label="Dokumen & Pajak"
                         isSorted={column.getIsSorted()}
                         onToggle={column.getToggleSortingHandler()}
                     />
                 ),
-                cell: ({ row, getValue }) => (
-                    <div className="min-w-28 space-y-1">
-                        <StatusBadge status={getValue()} />
-                        <div className="text-xs text-muted-foreground">
-                            {countCompleteRequiredDocuments(
-                                row.original.documents ?? [],
-                            )}
-                            /{requiredDocumentTypes.length} dokumen inti
+                cell: ({ row, getValue }) => {
+                    const urgentTax = getCarUrgentTaxInfo(
+                        row.original.documents ?? [],
+                    );
+                    const stnkDoc = urgentTax.stnkDocument;
+
+                    return (
+                        <div className="min-w-36 space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <StatusBadge status={getValue()} />
+                                {stnkDoc?.annual_tax_due_at && (
+                                    <TaxCountdownBadge
+                                        date={stnkDoc.annual_tax_due_at}
+                                        prefixLabel="Pajak"
+                                        compact
+                                    />
+                                )}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                                {countCompleteRequiredDocuments(
+                                    row.original.documents ?? [],
+                                )}
+                                /{requiredDocumentTypes.length} dokumen inti
+                            </div>
                         </div>
-                    </div>
-                ),
+                    );
+                },
                 filterFn: 'equals',
                 sortFn: 'text',
             },

@@ -98,6 +98,7 @@ export function DataTablePagination(props: Props) {
         onNextPage = props.onNextPage;
         onLastPage = props.onLastPage;
     }
+
     const firstVisibleRow = filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
     const lastVisibleRow = Math.min((pageIndex + 1) * pageSize, filteredCount);
 

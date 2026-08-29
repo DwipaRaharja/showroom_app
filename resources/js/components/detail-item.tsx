@@ -1,4 +1,5 @@
-import { CopyIcon, type Icon } from '@phosphor-icons/react';
+import { CopyIcon } from '@phosphor-icons/react';
+import type { Icon } from '@phosphor-icons/react';
 import type { ComponentType, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { copyToClipboard } from '@/lib/clipboard';
@@ -95,7 +96,7 @@ export function DetailItem({
                         </div>
                     </div>
                     {(Boolean(copyable) || action) && (
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex shrink-0 items-center gap-1.5">
                             {action}
                             {Boolean(copyable) && copyTarget && (
                                 <Button
@@ -206,4 +207,3 @@ export function DetailItem({
 export function DataRow(props: Omit<DetailItemProps, 'variant'>) {
     return <DetailItem variant="horizontal" {...props} />;
 }
-

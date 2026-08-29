@@ -1,6 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
 import {
-    ArrowLeftIcon,
     CalendarBlankIcon,
     CarProfileIcon,
     CheckCircleIcon,
@@ -21,13 +20,7 @@ import { StatCardGrid } from '@/components/stat-card-grid';
 import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/formatters';
 import { TimelineEvent } from '@/pages/handovers/timeline-event';
 import type { Sale } from '@/pages/sales/types';
@@ -185,7 +178,7 @@ export default function HandoverShow({ sale }: Props) {
                                     <CarProfileIcon className="size-3.5" />
                                     Data Kendaraan
                                 </h4>
-                                <div className="divide-y divide-border/40 text-sm">
+                                <div className="space-y-0.5 text-sm">
                                     <DataRow
                                         label="Unit"
                                         value={`${sale.car?.brand?.name ?? ''} ${sale.car?.name ?? ''}`}
@@ -218,7 +211,7 @@ export default function HandoverShow({ sale }: Props) {
                                     <UserIcon className="size-3.5" />
                                     Data Pembeli & Keuangan
                                 </h4>
-                                <div className="divide-y divide-border/40 text-sm">
+                                <div className="space-y-0.5 text-sm">
                                     <DataRow
                                         label="Pembeli"
                                         value={sale.customer?.name ?? '—'}
@@ -253,7 +246,9 @@ export default function HandoverShow({ sale }: Props) {
                                     <DataRow
                                         label="Status"
                                         value=""
-                                        badge={<StatusBadge status={sale.status} />}
+                                        badge={
+                                            <StatusBadge status={sale.status} />
+                                        }
                                     />
                                 </div>
                             </div>

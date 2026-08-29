@@ -18,13 +18,7 @@ import { MileageInput } from '@/components/mileage-input';
 import { PriceInput } from '@/components/price-input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -220,7 +214,12 @@ export function SaleForm({
                             {/* Section 1: Unit & Customer */}
                             <Card className="shadow-xs">
                                 <CardSectionHeader
-                                    icon={<CarProfileIcon className="size-4" weight="bold" />}
+                                    icon={
+                                        <CarProfileIcon
+                                            className="size-4"
+                                            weight="bold"
+                                        />
+                                    }
                                     title="Unit Mobil & Pembeli"
                                     description="Pilih unit mobil yang dijual dan data customer pembeli."
                                 />
@@ -766,7 +765,8 @@ export function SaleForm({
                                                 {/* Baris 4: Harga Mobil Tukar Tambah & Tambahan Uang (DP) */}
                                                 <div className="grid gap-2">
                                                     <Label htmlFor="trade_in_price">
-                                                        Nilai / Harga Mobil Tukar Tambah{' '}
+                                                        Nilai / Harga Mobil
+                                                        Tukar Tambah{' '}
                                                         <span className="text-red-500">
                                                             *
                                                         </span>
@@ -840,7 +840,7 @@ export function SaleForm({
                                                         value={tradeInNotes}
                                                         onChange={(e) =>
                                                             setTradeInNotes(
-                                                                  e.target.value,
+                                                                e.target.value,
                                                             )
                                                         }
                                                         aria-invalid={Boolean(
@@ -1666,16 +1666,23 @@ export function SaleForm({
                                                         Nilai mobil tukar tambah
                                                     </span>
                                                     <span className="font-semibold text-purple-600 tabular-nums dark:text-purple-400">
-                                                        - {formatCurrency(numTradeInPrice)}
+                                                        -{' '}
+                                                        {formatCurrency(
+                                                            numTradeInPrice,
+                                                        )}
                                                     </span>
                                                 </div>
                                                 {numDownPayment > 0 && (
                                                     <div className="flex items-center justify-between gap-4">
                                                         <span className="text-muted-foreground">
-                                                            Tambahan uang kas (DP)
+                                                            Tambahan uang kas
+                                                            (DP)
                                                         </span>
                                                         <span className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-500">
-                                                            - {formatCurrency(numDownPayment)}
+                                                            -{' '}
+                                                            {formatCurrency(
+                                                                numDownPayment,
+                                                            )}
                                                         </span>
                                                     </div>
                                                 )}
@@ -1684,7 +1691,9 @@ export function SaleForm({
                                                         Sisa piutang showroom
                                                     </span>
                                                     <span className="font-bold text-amber-600 tabular-nums dark:text-amber-500">
-                                                        {formatCurrency(numRemainingTradeIn)}
+                                                        {formatCurrency(
+                                                            numRemainingTradeIn,
+                                                        )}
                                                     </span>
                                                 </div>
                                             </div>

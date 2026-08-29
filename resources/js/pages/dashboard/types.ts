@@ -86,8 +86,18 @@ export type RecentSale = {
     href: string;
 };
 
+export type DashboardPeriod = 'this_month' | 'last_month' | 'this_year';
+
+export type DashboardPeriodOption = {
+    value: DashboardPeriod;
+    label: string;
+};
+
 export type DashboardProps = {
     generated_at: string;
+    period: DashboardPeriod;
+    period_label: string;
+    period_options: DashboardPeriodOption[];
     summary: DashboardSummary;
     attention: {
         total: number;

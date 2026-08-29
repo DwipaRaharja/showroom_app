@@ -377,7 +377,7 @@ export function createSaleColumns({
                                 <DropdownMenuSeparator />
                                 {canAcceptPayment && (
                                     <DropdownMenuItem
-                                        className="text-emerald-600 focus:text-emerald-600 dark:text-emerald-500 dark:focus:text-emerald-500 font-medium"
+                                        className="font-medium text-emerald-600 focus:text-emerald-600 dark:text-emerald-500 dark:focus:text-emerald-500"
                                         onSelect={() =>
                                             onRecordPayment(row.original)
                                         }

@@ -26,9 +26,7 @@ export function CarDeleteDialog({ car, onOpenChange }: Props) {
             }
             confirmText="Arsipkan"
             confirmIcon={ArchiveBoxIcon}
-            formProps={
-                car ? CarController.destroy.form(car.id) : undefined
-            }
+            formProps={car ? CarController.destroy.form(car.id) : undefined}
         />
     );
 }

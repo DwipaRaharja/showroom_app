@@ -121,6 +121,9 @@ test('dashboard summarizes current business data and prioritizes actionable item
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboard')
+            ->where('period', 'this_month')
+            ->where('period_label', 'Bulan Ini')
+            ->has('period_options', 3)
             ->where('summary.available', 1)
             ->where('summary.booked', 2)
             ->where('summary.maintenance', 0)
@@ -150,6 +153,17 @@ test('dashboard summarizes current business data and prioritizes actionable item
             ->where('performance.5.trade_in_value', 80_000_000)
             ->where('stock_aging.0.id', $readyCar->id)
             ->where('recent_sales.0.id', $tradeInSale->id));
+
+    $this->actingAs($user)
+        ->get(route('dashboard', ['period' => 'last_month']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('dashboard')
+            ->where('period', 'last_month')
+            ->where('period_label', 'Bulan Lalu (Jul 2026)')
+            ->where('summary.sales_this_month', 0)
+            ->where('summary.turnover_this_month', 0)
+            ->where('summary.payments_this_month', 0));
 
     Carbon::setTestNow();
 });

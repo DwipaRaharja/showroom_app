@@ -123,4 +123,35 @@ class StoreDocumentProcessRequest extends FormRequest
             }
         });
     }
+
+    /** @return array<string, string> */
+    public function attributes(): array
+    {
+        return [
+            'car_id' => 'mobil',
+            'sale_id' => 'transaksi penjualan',
+            'customer_id' => 'pelanggan',
+            'assigned_to' => 'penanggung jawab',
+            'process_type' => 'jenis proses berkas',
+            'started_at' => 'tanggal mulai',
+            'estimated_completion_date' => 'estimasi tanggal selesai',
+            'processor_name' => 'nama biro jasa / pelaksana',
+            'processor_phone' => 'no. telepon pelaksana',
+            'origin_region' => 'daerah asal',
+            'destination_region' => 'daerah tujuan',
+            'target_owner_name' => 'nama pemilik baru',
+            'notes' => 'catatan proses',
+            'initial_cost' => 'estimasi biaya awal',
+            'initial_cost_paid_by' => 'penanggung biaya awal',
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'started_at.before_or_equal' => 'Tanggal mulai tidak boleh melebihi tanggal hari ini.',
+            'estimated_completion_date.after_or_equal' => 'Estimasi tanggal selesai harus sama dengan atau setelah tanggal mulai.',
+        ];
+    }
 }

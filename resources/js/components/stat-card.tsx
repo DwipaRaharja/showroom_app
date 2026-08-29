@@ -4,12 +4,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 export type StatCardVariant =
-    | 'default'
-    | 'success'
-    | 'warning'
-    | 'info'
-    | 'danger'
-    | 'purple';
+    'default' | 'success' | 'warning' | 'info' | 'danger' | 'purple';
 
 export type StatCardProps = {
     title: string;

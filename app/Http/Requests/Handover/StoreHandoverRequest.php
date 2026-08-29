@@ -252,4 +252,12 @@ class StoreHandoverRequest extends FormRequest
             'photos.*' => 'foto bukti',
         ];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'occurred_at.before_or_equal' => 'Waktu penyerahan tidak boleh melebihi waktu saat ini.',
+        ];
+    }
 }

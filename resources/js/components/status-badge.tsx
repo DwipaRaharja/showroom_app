@@ -120,7 +120,7 @@ const statusMap: Record<string, StatusConfig> = {
             'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
     },
     processing: {
-        label: 'Diproses',
+        label: 'Sedang diproses',
         className: 'bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-700',
     },
     missing: {
@@ -142,7 +142,8 @@ const statusMap: Record<string, StatusConfig> = {
     },
     ready: {
         label: 'Siap',
-        className: 'bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-700',
+        className:
+            'bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-700',
     },
     uncollected: {
         label: 'Belum diambil',
@@ -166,26 +167,9 @@ const statusMap: Record<string, StatusConfig> = {
 
     // Document process lifecycle statuses
     waiting_documents: {
-        label: 'Menunggu kelengkapan',
+        label: 'Menunggu dokumen',
         className:
             'bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-600',
-    },
-    documents_ready: {
-        label: 'Dokumen lengkap',
-        className: 'bg-sky-600 text-white hover:bg-sky-600 dark:bg-sky-700',
-    },
-    submitted: {
-        label: 'Diajukan',
-        className: 'bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-700',
-    },
-    ready_for_pickup: {
-        label: 'Siap diambil',
-        className: 'bg-cyan-600 text-white hover:bg-cyan-600 dark:bg-cyan-700',
-    },
-    returned: {
-        label: 'Diserahkan',
-        className:
-            'bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-700',
     },
 
     // Custody physical item statuses

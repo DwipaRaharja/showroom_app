@@ -9,15 +9,10 @@ import {
     WarningCircleIcon,
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
+import { CardSectionHeader } from '@/components/card-section-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { AttentionItem, DashboardSeverity } from '@/pages/dashboard/types';
@@ -59,16 +54,13 @@ type Props = {
 export function AttentionCard({ title, description, items, emptyText }: Props) {
     return (
         <Card className="min-w-0 gap-0 overflow-hidden py-0">
-            <CardHeader className="border-b px-5 py-5">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                        <CardTitle>{title}</CardTitle>
-                        <CardDescription>{description}</CardDescription>
-                    </div>
-                    <Badge variant="secondary">{items.length}</Badge>
-                </div>
-            </CardHeader>
-            <CardContent className="p-0">
+            <CardSectionHeader
+                className="border-b px-5 py-5"
+                title={title}
+                description={description}
+                badge={<Badge variant="secondary">{items.length}</Badge>}
+            />
+            <CardContent className="max-h-[380px] overflow-y-auto p-0">
                 {items.length === 0 ? (
                     <div className="flex min-h-44 flex-col items-center justify-center gap-2 px-6 text-center">
                         <div className="flex size-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">

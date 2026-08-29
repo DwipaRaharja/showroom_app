@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\SaleFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -397,10 +398,10 @@ class Sale extends Model
     /**
      * Scope a query to eagerly load all relations needed for vehicle handover views.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<Sale>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<Sale>
+     * @param  Builder<Sale>  $query
+     * @return Builder<Sale>
      */
-    public function scopeWithHandoverDetails(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    public function scopeWithHandoverDetails(Builder $query): Builder
     {
         return $query->with([
             'car' => fn ($carQuery) => $carQuery->with('brand:id,name'),

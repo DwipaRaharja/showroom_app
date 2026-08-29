@@ -21,7 +21,7 @@ class PurchaseSeeder extends Seeder
 
         // Ambil mobil yang belum memiliki data modal
         $cars = Car::query()
-            ->whereDoesntHave('purchase')
+            ->whereDoesntHave('capital')
             ->get();
 
         $realisticNotes = [

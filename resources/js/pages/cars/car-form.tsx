@@ -945,13 +945,18 @@ export function CarForm({ car, brands }: Props) {
                                     Status unit{' '}
                                     <span className="text-red-500">*</span>
                                 </Label>
-                                {car?.status === 'booked' || car?.status === 'sold' ? (
+                                {car?.status === 'booked' ||
+                                car?.status === 'sold' ? (
                                     <div className="rounded-lg border bg-muted/40 p-3 sm:max-w-md">
                                         <div className="text-sm font-semibold text-foreground">
-                                            {car.status === 'booked' ? 'Dibooking' : 'Terjual'}
+                                            {car.status === 'booked'
+                                                ? 'Dibooking'
+                                                : 'Terjual'}
                                         </div>
                                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                                            Status unit ini dikelola secara otomatis melalui modul transaksi penjualan.
+                                            Status unit ini dikelola secara
+                                            otomatis melalui modul transaksi
+                                            penjualan.
                                         </p>
                                     </div>
                                 ) : (
@@ -964,7 +969,9 @@ export function CarForm({ car, brands }: Props) {
                                         <SelectTrigger
                                             id="car-status"
                                             className="sm:max-w-sm"
-                                            aria-invalid={Boolean(errors.status)}
+                                            aria-invalid={Boolean(
+                                                errors.status,
+                                            )}
                                         >
                                             <SelectValue />
                                         </SelectTrigger>

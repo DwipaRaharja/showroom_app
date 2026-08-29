@@ -44,6 +44,7 @@ class DocumentProcessController extends Controller
         'five_year_tax' => [
             'stnk' => 'STNK asli',
             'bpkb' => 'BPKB asli',
+            'license_plate' => 'Plat nomor asli',
             'owner_id' => 'KTP pemilik',
             'physical_check' => 'Hasil cek fisik kendaraan',
         ],
@@ -51,7 +52,7 @@ class DocumentProcessController extends Controller
             'stnk' => 'STNK asli',
             'bpkb' => 'BPKB asli',
             'invoice' => 'Faktur kendaraan',
-            'receipt' => 'Kuitansi pembelian bermeterai',
+            'license_plate' => 'Plat nomor asli',
             'new_owner_id' => 'KTP pemilik baru',
         ],
         'mutation' => [
@@ -88,10 +89,7 @@ class DocumentProcessController extends Controller
 
         $activeStatuses = [
             'waiting_documents',
-            'documents_ready',
-            'submitted',
             'processing',
-            'ready_for_pickup',
             'issue',
         ];
 
@@ -109,7 +107,7 @@ class DocumentProcessController extends Controller
                         return is_string($targetDate)
                             && $targetDate < today()->toDateString();
                     })->count(),
-                'completed' => $processes->whereIn('status', ['completed', 'returned'])->count(),
+                'completed' => $processes->where('status', 'completed')->count(),
                 'capitalized_cost' => (int) $processes
                     ->where('status', '!=', 'cancelled')
                     ->sum('capitalized_cost'),
@@ -285,9 +283,9 @@ class DocumentProcessController extends Controller
                     ->lockForUpdate()
                     ->findOrFail($documentProcess->id);
 
-                if (in_array($process->status, ['returned', 'cancelled'], true)) {
+                if (in_array($process->status, ['completed', 'cancelled'], true)) {
                     throw ValidationException::withMessages([
-                        'status' => 'Proses yang sudah dikembalikan atau dibatalkan tidak dapat diperbarui.',
+                        'status' => 'Proses yang sudah selesai atau dibatalkan tidak dapat diperbarui.',
                     ]);
                 }
 
@@ -320,22 +318,14 @@ class DocumentProcessController extends Controller
                         'received_at' => $validated['occurred_at'],
                     ]);
 
-                if ($validated['status'] === 'submitted') {
-                    $process->items()
-                        ->where('custody_status', 'received')
-                        ->update(['custody_status' => 'submitted']);
-                }
-
-                if ($validated['status'] === 'returned') {
-                    $process->items()
-                        ->whereIn('custody_status', ['received', 'submitted'])
-                        ->update([
-                            'custody_status' => 'returned',
-                            'returned_at' => $validated['occurred_at'],
-                        ]);
-                }
-
                 if ($validated['status'] === 'completed') {
+                    $process->items()
+                        ->whereIn('custody_status', ['waiting', 'missing'])
+                        ->update([
+                            'custody_status' => 'received',
+                            'received_at' => $validated['occurred_at'],
+                        ]);
+
                     $this->applyProcessResult(
                         $process,
                         $validated['result'] ?? [],
@@ -347,18 +337,20 @@ class DocumentProcessController extends Controller
                     'completed_at' => $validated['status'] === 'completed'
                         ? $validated['occurred_at']
                         : $process->completed_at,
-                    'returned_at' => $validated['status'] === 'returned'
-                        ? $validated['occurred_at']
-                        : $process->returned_at,
                     'cancelled_at' => $validated['status'] === 'cancelled'
                         ? $validated['occurred_at']
                         : null,
                 ]);
 
+                $fileIndex = 1;
+                $timestamp = time();
                 foreach ($files as $file) {
+                    $customName = "proses-berkas-{$process->process_number}-{$event->status}-{$fileIndex}-{$timestamp}";
+
                     $attributes = $this->storeAndExtractFileAttributes(
                         $file,
                         "document-processes/{$process->id}/events/{$event->id}",
+                        $customName,
                         errorKey: 'files',
                         errorMessage: 'Berkas gagal disimpan. Silakan coba lagi.',
                     );
@@ -369,6 +361,7 @@ class DocumentProcessController extends Controller
                         'file_category' => 'event_evidence',
                         ...$attributes,
                     ]);
+                    $fileIndex++;
                 }
 
                 $process->syncCarCapital();
@@ -425,9 +418,13 @@ class DocumentProcessController extends Controller
                 ]);
 
                 if ($receipt instanceof UploadedFile) {
+                    $timestamp = time();
+                    $customName = "kuitansi-biaya-{$process->process_number}-cost-{$cost->id}-{$timestamp}";
+
                     $attributes = $this->storeAndExtractFileAttributes(
                         $receipt,
                         "document-processes/{$process->id}/costs/{$cost->id}",
+                        $customName,
                         errorKey: 'receipt',
                         errorMessage: 'Berkas kuitansi gagal disimpan. Silakan coba lagi.',
                     );

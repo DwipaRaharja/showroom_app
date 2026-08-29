@@ -1,6 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
 import {
-    ArrowLeftIcon,
     ArrowsLeftRightIcon,
     BankIcon,
     CarProfileIcon,
@@ -28,21 +27,13 @@ import { StatCard } from '@/components/stat-card';
 import { StatCardGrid } from '@/components/stat-card-grid';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import { copyToClipboard } from '@/lib/clipboard';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -51,7 +42,12 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { formatCurrency, formatDate } from '@/lib/formatters';
+import { copyToClipboard } from '@/lib/clipboard';
+import {
+    formatCurrency,
+    formatDate,
+    formatWhatsAppUrl,
+} from '@/lib/formatters';
 import { PaymentDialog } from '@/pages/sales/payment-dialog';
 import { getPaymentTypeBadge } from '@/pages/sales/table-config';
 import type { Payment, Sale } from '@/pages/sales/types';
@@ -145,11 +141,10 @@ export default function SalesShow({ sale }: Props) {
     const estimatedProfit =
         sale.deal_price + sale.leasing_bonus - purchasePrice;
 
-    const whatsappLink = customer?.phone
-        ? `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
-              `Halo Bpk/Ibu ${customer.name}, perihal transaksi SPK ${sale.invoice_number} unit ${car?.name ?? 'mobil'}.`,
-          )}`
-        : null;
+    const whatsappLink = formatWhatsAppUrl(
+        customer?.phone,
+        `Halo Bpk/Ibu ${customer?.name ?? 'Pelanggan'}, perihal transaksi SPK ${sale.invoice_number} unit ${car?.brand?.name ?? ''} ${car?.name ?? 'mobil'}.`,
+    );
 
     return (
         <>
@@ -318,7 +313,8 @@ export default function SalesShow({ sale }: Props) {
                                                 sale.trade_in_car_name,
                                             ]
                                                 .filter(Boolean)
-                                                .join(' ') || 'Unit Tukar Tambah'}
+                                                .join(' ') ||
+                                                'Unit Tukar Tambah'}
                                         </div>
                                     </div>
 
@@ -355,8 +351,10 @@ export default function SalesShow({ sale }: Props) {
                                                 Jarak Tempuh:
                                             </div>
                                             <div className="mt-0.5 font-mono text-sm font-semibold text-foreground">
-                                                {sale.trade_in_mileage !== null &&
-                                                sale.trade_in_mileage !== undefined
+                                                {sale.trade_in_mileage !==
+                                                    null &&
+                                                sale.trade_in_mileage !==
+                                                    undefined
                                                     ? `${sale.trade_in_mileage.toLocaleString('id-ID')} km`
                                                     : '—'}
                                             </div>
@@ -368,7 +366,7 @@ export default function SalesShow({ sale }: Props) {
                                             <span className="font-semibold text-foreground">
                                                 Catatan Kondisi:{' '}
                                             </span>
-                            {sale.trade_in_notes}
+                                            {sale.trade_in_notes}
                                         </div>
                                     )}
                                 </CardContent>
@@ -727,7 +725,7 @@ export default function SalesShow({ sale }: Props) {
                                             ({finance.pic_phone ?? '—'})
                                         </div>
                                     )}
-                                    <div className="divide-y divide-blue-500/20 border-t border-blue-500/20 pt-2">
+                                    <div className="space-y-0.5 pt-1">
                                         <DataRow
                                             label="Pokok Leasing Disetujui"
                                             value={formatCurrency(
@@ -1021,13 +1019,15 @@ export default function SalesShow({ sale }: Props) {
                 description={
                     <>
                         Apakah Anda yakin ingin menghapus kuitansi pembayaran{' '}
-                        <strong>{deletingPayment?.payment_number}</strong> sebesar{' '}
+                        <strong>{deletingPayment?.payment_number}</strong>{' '}
+                        sebesar{' '}
                         <strong>
                             {deletingPayment
                                 ? formatCurrency(deletingPayment.amount)
                                 : ''}
                         </strong>
-                        ? Sisa piutang penjualan akan dihitung ulang secara otomatis.
+                        ? Sisa piutang penjualan akan dihitung ulang secara
+                        otomatis.
                     </>
                 }
                 confirmText="Ya, Hapus Pembayaran"

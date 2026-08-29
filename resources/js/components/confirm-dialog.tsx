@@ -1,9 +1,6 @@
 import { Form } from '@inertiajs/react';
-import {
-    CheckCircleIcon,
-    type Icon,
-    WarningIcon,
-} from '@phosphor-icons/react';
+import { CheckCircleIcon, WarningIcon } from '@phosphor-icons/react';
+import type { Icon } from '@phosphor-icons/react';
 import type { ComponentProps, ComponentType, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -96,11 +93,7 @@ export function ConfirmDialog({
     const renderFooter = (isProcessing: boolean) => (
         <DialogFooter className="gap-2 sm:gap-2">
             <DialogClose asChild>
-                <Button
-                    type="button"
-                    variant="outline"
-                    disabled={isProcessing}
-                >
+                <Button type="button" variant="outline" disabled={isProcessing}>
                     {cancelText}
                 </Button>
             </DialogClose>

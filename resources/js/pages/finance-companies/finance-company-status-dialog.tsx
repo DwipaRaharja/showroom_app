@@ -35,7 +35,9 @@ export function FinanceCompanyStatusDialog({ company, onOpenChange }: Props) {
                     </>
                 )
             }
-            confirmText={willActivate ? 'Aktifkan Rekanan' : 'Nonaktifkan Rekanan'}
+            confirmText={
+                willActivate ? 'Aktifkan Rekanan' : 'Nonaktifkan Rekanan'
+            }
             confirmIcon={willActivate ? CheckCircleIcon : PowerIcon}
             formProps={
                 company

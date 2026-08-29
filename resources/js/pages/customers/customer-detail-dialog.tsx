@@ -1,6 +1,5 @@
 import {
     CalendarBlankIcon,
-    CopyIcon,
     IdentificationCardIcon,
     MapPinIcon,
     PencilSimpleIcon,
@@ -19,8 +18,7 @@ import {
     DialogFooter,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { copyToClipboard } from '@/lib/clipboard';
-import { formatDateTime } from '@/lib/formatters';
+import { formatDateTime, formatWhatsAppUrl } from '@/lib/formatters';
 import type { Customer } from '@/pages/customers/types';
 
 type Props = {
@@ -41,10 +39,7 @@ export function CustomerDetailDialog({
     }
 
     const isArchived = customer.deleted_at !== null;
-    const cleanPhone = customer.phone?.replace(/[^0-9]/g, '') ?? '';
-    const whatsappUrl = cleanPhone
-        ? `https://wa.me/${cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone}`
-        : null;
+    const whatsappUrl = formatWhatsAppUrl(customer.phone);
 
     // Get initials for avatar
     const initials = customer.name

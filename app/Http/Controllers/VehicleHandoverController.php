@@ -153,10 +153,15 @@ class VehicleHandoverController extends Controller
                     $validated,
                 );
 
+                $photoIndex = 1;
+                $timestamp = time();
                 foreach ($photos as $photo) {
+                    $customName = "bast-foto-spk-{$sale->id}-{$event->event_type}-{$photoIndex}-{$timestamp}";
+
                     $attributes = $this->storeAndExtractFileAttributes(
                         $photo,
                         "vehicle-handovers/{$handover->id}/events/{$event->id}",
+                        $customName,
                         errorKey: 'photos',
                         errorMessage: 'Salah satu foto bukti gagal disimpan. Silakan coba lagi.',
                     );
@@ -167,6 +172,7 @@ class VehicleHandoverController extends Controller
                         'uploaded_by' => $request->user()?->id,
                         ...$attributes,
                     ]);
+                    $photoIndex++;
                 }
 
                 $handover->unsetRelation('events');
