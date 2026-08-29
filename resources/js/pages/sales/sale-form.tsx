@@ -13,7 +13,9 @@ import {
 import { useState } from 'react';
 import SaleController from '@/actions/App/Http/Controllers/SaleController';
 import { CardSectionHeader } from '@/components/card-section-header';
+import { FormGroup, inputValidationClass } from '@/components/form-group';
 import InputError from '@/components/input-error';
+import { LicensePlateInput } from '@/components/license-plate-input';
 import { MileageInput } from '@/components/mileage-input';
 import { PriceInput } from '@/components/price-input';
 import { Badge } from '@/components/ui/badge';
@@ -617,40 +619,32 @@ export function SaleForm({
                                                 </div>
 
                                                 {/* Baris 2: Plat Nomor & Tahun Pembuatan */}
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="trade_in_license_plate">
-                                                        Plat Nomor Kendaraan{' '}
-                                                        <span className="text-red-500">
-                                                            *
-                                                        </span>
-                                                    </Label>
-                                                    <Input
-                                                        id="trade_in_license_plate"
+                                                <FormGroup
+                                                    label="Plat Nomor Kendaraan"
+                                                    required
+                                                    error={
+                                                        errors.trade_in_license_plate
+                                                    }
+                                                >
+                                                    <LicensePlateInput
                                                         name="trade_in_license_plate"
-                                                        placeholder="DT 1234 AB"
                                                         value={
                                                             tradeInLicensePlate
                                                         }
-                                                        onChange={(e) =>
-                                                            setTradeInLicensePlate(
-                                                                e.target.value.toUpperCase(),
-                                                            )
+                                                        onChange={
+                                                            setTradeInLicensePlate
                                                         }
                                                         required
                                                         aria-invalid={Boolean(
                                                             errors.trade_in_license_plate,
                                                         )}
-                                                        className={`font-mono uppercase ${validationColorClassName}`}
-                                                    />
-                                                    <InputError
-                                                        message={
-                                                            errors.trade_in_license_plate
-                                                        }
                                                         className={
-                                                            errorTextClassName
+                                                            errors.trade_in_license_plate
+                                                                ? inputValidationClass
+                                                                : ''
                                                         }
                                                     />
-                                                </div>
+                                                </FormGroup>
 
                                                 <div className="grid gap-2">
                                                     <Label htmlFor="trade_in_year">

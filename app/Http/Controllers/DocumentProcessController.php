@@ -277,6 +277,8 @@ class DocumentProcessController extends Controller
                 $files,
                 &$storedPaths,
             ): void {
+                Car::query()->lockForUpdate()->findOrFail($documentProcess->car_id);
+
                 /** @var DocumentProcess $process */
                 $process = DocumentProcess::query()
                     ->with(['car.documents', 'items'])
@@ -396,6 +398,8 @@ class DocumentProcessController extends Controller
                 $receipt,
                 &$storedPath,
             ): void {
+                Car::query()->lockForUpdate()->findOrFail($documentProcess->car_id);
+
                 /** @var DocumentProcess $process */
                 $process = DocumentProcess::query()
                     ->lockForUpdate()
@@ -436,6 +440,8 @@ class DocumentProcessController extends Controller
                         ...$attributes,
                     ]);
                 }
+
+                $process->syncCarCapital();
             });
         } catch (Throwable $exception) {
             $this->deleteStoredFiles($storedPath);
@@ -458,6 +464,8 @@ class DocumentProcessController extends Controller
         $validated = $request->validated();
 
         DB::transaction(function () use ($request, $documentProcess, $validated): void {
+            Car::query()->lockForUpdate()->findOrFail($documentProcess->car_id);
+
             /** @var DocumentProcess $process */
             $process = DocumentProcess::query()
                 ->lockForUpdate()
@@ -514,6 +522,8 @@ class DocumentProcessController extends Controller
             $documentProcess,
             $validated,
         ): array {
+            Car::query()->lockForUpdate()->findOrFail($documentProcess->car_id);
+
             /** @var DocumentProcess $process */
             $process = DocumentProcess::query()
                 ->lockForUpdate()

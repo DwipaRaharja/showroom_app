@@ -9,7 +9,9 @@ import {
 } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState } from 'react';
 import CarController from '@/actions/App/Http/Controllers/CarController';
+import { FormGroup, inputValidationClass } from '@/components/form-group';
 import InputError from '@/components/input-error';
+import { LicensePlateInput } from '@/components/license-plate-input';
 import { MileageInput } from '@/components/mileage-input';
 import { PriceInput } from '@/components/price-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -78,10 +80,7 @@ export function CarForm({ car, brands }: Props) {
               : '',
     );
     const [name, setName] = useState(car?.name ?? '');
-    const initialPlateParts = (car?.license_plate ?? '').trim().split(/\s+/);
-    const [platePrefix, setPlatePrefix] = useState(initialPlateParts[0] ?? '');
-    const [plateNumber, setPlateNumber] = useState(initialPlateParts[1] ?? '');
-    const [plateSuffix, setPlateSuffix] = useState(initialPlateParts[2] ?? '');
+    const [licensePlate, setLicensePlate] = useState(car?.license_plate ?? '');
     const [chassisNumber, setChassisNumber] = useState(
         car?.chassis_number ?? '',
     );
@@ -288,94 +287,23 @@ export function CarForm({ car, brands }: Props) {
                                 />
                             </div>
 
-                            <div className="grid gap-2 sm:col-span-2">
-                                <Label>Plat nomor kendaraan</Label>
-                                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                                    <div className="space-y-1">
-                                        <Input
-                                            id="car-plate-prefix"
-                                            name="plate_prefix"
-                                            value={platePrefix}
-                                            onChange={(event) =>
-                                                setPlatePrefix(
-                                                    event.target.value
-                                                        .replace(
-                                                            /[^a-zA-Z]/g,
-                                                            '',
-                                                        )
-                                                        .toUpperCase(),
-                                                )
-                                            }
-                                            placeholder="B / DK"
-                                            maxLength={2}
-                                            className={`text-center font-mono font-bold tracking-wider ${validationColorClassName}`}
-                                            aria-invalid={Boolean(
-                                                errors.license_plate,
-                                            )}
-                                        />
-                                        <span className="block text-center text-[11px] text-muted-foreground">
-                                            Wilayah (B)
-                                        </span>
-                                    </div>
-
-                                    <div className="space-y-1 sm:col-span-2">
-                                        <Input
-                                            id="car-plate-number"
-                                            name="plate_number"
-                                            value={plateNumber}
-                                            onChange={(event) =>
-                                                setPlateNumber(
-                                                    event.target.value.replace(
-                                                        /[^0-9]/g,
-                                                        '',
-                                                    ),
-                                                )
-                                            }
-                                            placeholder="1234"
-                                            maxLength={4}
-                                            inputMode="numeric"
-                                            className={`text-center font-mono font-bold tracking-wider ${validationColorClassName}`}
-                                            aria-invalid={Boolean(
-                                                errors.license_plate,
-                                            )}
-                                        />
-                                        <span className="block text-center text-[11px] text-muted-foreground">
-                                            Nomor Polisi (Angka)
-                                        </span>
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <Input
-                                            id="car-plate-suffix"
-                                            name="plate_suffix"
-                                            value={plateSuffix}
-                                            onChange={(event) =>
-                                                setPlateSuffix(
-                                                    event.target.value
-                                                        .replace(
-                                                            /[^a-zA-Z]/g,
-                                                            '',
-                                                        )
-                                                        .toUpperCase(),
-                                                )
-                                            }
-                                            placeholder="ABC"
-                                            maxLength={3}
-                                            className={`text-center font-mono font-bold tracking-wider ${validationColorClassName}`}
-                                            aria-invalid={Boolean(
-                                                errors.license_plate,
-                                            )}
-                                        />
-                                        <span className="block text-center text-[11px] text-muted-foreground">
-                                            Seri (ABC)
-                                        </span>
-                                    </div>
-                                </div>
-                                <InputError
-                                    message={errors.license_plate}
-                                    className={errorTextClassName}
+                            <FormGroup
+                                label="Plat nomor kendaraan"
+                                error={errors.license_plate}
+                                className="sm:col-span-2"
+                            >
+                                <LicensePlateInput
+                                    name="license_plate"
+                                    value={licensePlate}
+                                    onChange={setLicensePlate}
+                                    aria-invalid={Boolean(errors.license_plate)}
+                                    className={
+                                        errors.license_plate
+                                            ? inputValidationClass
+                                            : ''
+                                    }
                                 />
-                            </div>
+                            </FormGroup>
 
                             <div className="grid gap-2">
                                 <Label htmlFor="car-chassis">

@@ -2,7 +2,9 @@ import { Form } from '@inertiajs/react';
 import { FloppyDiskIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
+import { FormGroup, inputValidationClass } from '@/components/form-group';
 import InputError from '@/components/input-error';
+import { LicensePlateInput } from '@/components/license-plate-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -76,12 +78,9 @@ function ProcessEventForm({
 }) {
     const [status, setStatus] = useState<DocumentProcessStatus>(process.status);
     const [receivedItems, setReceivedItems] = useState<number[]>([]);
-    const initialPlateParts = (process.car.license_plate ?? '')
-        .trim()
-        .split(/\s+/);
-    const [platePrefix, setPlatePrefix] = useState(initialPlateParts[0] ?? '');
-    const [plateNumber, setPlateNumber] = useState(initialPlateParts[1] ?? '');
-    const [plateSuffix, setPlateSuffix] = useState(initialPlateParts[2] ?? '');
+    const [licensePlate, setLicensePlate] = useState(
+        process.car.license_plate ?? '',
+    );
 
     const availableItems = process.items.filter((item) =>
         ['waiting', 'missing'].includes(item.custody_status),
@@ -356,102 +355,25 @@ function ProcessEventForm({
                                         />
                                     </div>
 
-                                    <div className="grid gap-1.5 sm:col-span-2">
-                                        <Label>Nomor polisi / plat baru</Label>
-                                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                                            <div className="space-y-1">
-                                                <Input
-                                                    id="result-plate-prefix"
-                                                    name="result[plate_prefix]"
-                                                    value={platePrefix}
-                                                    onChange={(event) =>
-                                                        setPlatePrefix(
-                                                            event.target.value
-                                                                .replace(
-                                                                    /[^a-zA-Z]/g,
-                                                                    '',
-                                                                )
-                                                                .toUpperCase(),
-                                                        )
-                                                    }
-                                                    placeholder="B / KT"
-                                                    maxLength={2}
-                                                    className={`text-center font-mono font-bold tracking-wider ${validationColorClassName}`}
-                                                    aria-invalid={Boolean(
-                                                        errors[
-                                                            'result.license_plate'
-                                                        ],
-                                                    )}
-                                                />
-                                                <span className="block text-center text-[11px] text-muted-foreground">
-                                                    Wilayah (KT)
-                                                </span>
-                                            </div>
-
-                                            <div className="space-y-1 sm:col-span-2">
-                                                <Input
-                                                    id="result-plate-number"
-                                                    name="result[plate_number]"
-                                                    value={plateNumber}
-                                                    onChange={(event) =>
-                                                        setPlateNumber(
-                                                            event.target.value.replace(
-                                                                /[^0-9]/g,
-                                                                '',
-                                                            ),
-                                                        )
-                                                    }
-                                                    placeholder="1234"
-                                                    maxLength={4}
-                                                    inputMode="numeric"
-                                                    className={`text-center font-mono font-bold tracking-wider ${validationColorClassName}`}
-                                                    aria-invalid={Boolean(
-                                                        errors[
-                                                            'result.license_plate'
-                                                        ],
-                                                    )}
-                                                />
-                                                <span className="block text-center text-[11px] text-muted-foreground">
-                                                    Nomor Polisi (Angka)
-                                                </span>
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <Input
-                                                    id="result-plate-suffix"
-                                                    name="result[plate_suffix]"
-                                                    value={plateSuffix}
-                                                    onChange={(event) =>
-                                                        setPlateSuffix(
-                                                            event.target.value
-                                                                .replace(
-                                                                    /[^a-zA-Z]/g,
-                                                                    '',
-                                                                )
-                                                                .toUpperCase(),
-                                                        )
-                                                    }
-                                                    placeholder="ABC"
-                                                    maxLength={3}
-                                                    className={`text-center font-mono font-bold tracking-wider ${validationColorClassName}`}
-                                                    aria-invalid={Boolean(
-                                                        errors[
-                                                            'result.license_plate'
-                                                        ],
-                                                    )}
-                                                />
-                                                <span className="block text-center text-[11px] text-muted-foreground">
-                                                    Seri (ABC)
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <InputError
-                                            message={
+                                    <FormGroup
+                                        label="Nomor polisi / plat baru"
+                                        error={errors['result.license_plate']}
+                                        className="sm:col-span-2"
+                                    >
+                                        <LicensePlateInput
+                                            name="result[license_plate]"
+                                            value={licensePlate}
+                                            onChange={setLicensePlate}
+                                            aria-invalid={Boolean(
+                                                errors['result.license_plate'],
+                                            )}
+                                            className={
                                                 errors['result.license_plate']
+                                                    ? inputValidationClass
+                                                    : ''
                                             }
-                                            className={errorTextClassName}
                                         />
-                                    </div>
+                                    </FormGroup>
                                 </>
                             )}
                         </div>
