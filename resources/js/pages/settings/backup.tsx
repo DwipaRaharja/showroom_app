@@ -1,7 +1,8 @@
 import { Head, router } from '@inertiajs/react';
-import { Download, Trash2, DatabaseBackup } from 'lucide-react';
+import { DatabaseBackup, Download, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { index as backupIndex, store, destroy } from '@/routes/backup';
+import { destroy, index as backupIndex, store } from '@/routes/backup';
 
 interface BackupFile {
     name: string;
@@ -22,20 +23,35 @@ interface BackupFile {
 
 export default function Backup({ backups }: { backups: BackupFile[] }) {
     const [isProcessing, setIsProcessing] = useState(false);
+    const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+    const [prevFile, setPrevFile] = useState<string | null>(fileToDelete);
+    const [cachedFile, setCachedFile] = useState<string | null>(fileToDelete);
+
+    if (fileToDelete !== prevFile) {
+        setPrevFile(fileToDelete);
+
+        if (fileToDelete !== null) {
+            setCachedFile(fileToDelete);
+        }
+    }
+
+    const activeFile = fileToDelete ?? cachedFile;
 
     const handleBackup = () => {
         setIsProcessing(true);
         router.post(
-            store(),
+            store.url(),
             {},
             {
                 preserveScroll: true,
                 onSuccess: () => {
-                    toast.success('Backup berhasil dibuat.');
+                    toast.success('Backup database berhasil dibuat.');
                     setIsProcessing(false);
                 },
-                onError: (errors: any) => {
-                    toast.error(errors.backup || 'Gagal membuat backup.');
+                onError: (errors: Record<string, string>) => {
+                    toast.error(
+                        errors.backup || 'Gagal membuat backup database.',
+                    );
                     setIsProcessing(false);
                 },
                 onFinish: () => setIsProcessing(false),
@@ -43,22 +59,22 @@ export default function Backup({ backups }: { backups: BackupFile[] }) {
         );
     };
 
-    const handleDownload = (name: string) => {
-        window.location.href = `/settings/backup/${name}/download`;
-    };
-
-    const handleDelete = (name: string) => {
-        if (confirm('Apakah Anda yakin ingin menghapus backup ini?')) {
-            router.post(
-                destroy({ file_name: name }),
-                {},
-                {
-                    preserveScroll: true,
-                    onSuccess: () =>
-                        toast.success('File backup berhasil dihapus.'),
-                },
-            );
+    const handleDelete = () => {
+        if (!fileToDelete) {
+            return;
         }
+
+        router.delete(destroy.url({ file_name: fileToDelete }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('File backup berhasil dihapus.');
+                setFileToDelete(null);
+            },
+            onError: () => {
+                toast.error('Gagal menghapus file backup.');
+                setFileToDelete(null);
+            },
+        });
     };
 
     const formatBytes = (bytes: number, decimals = 2) => {
@@ -141,18 +157,21 @@ export default function Backup({ backups }: { backups: BackupFile[] }) {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() =>
-                                                    handleDownload(file.name)
-                                                }
+                                                asChild
                                             >
-                                                <Download className="mr-2 h-4 w-4" />
-                                                Unduh
+                                                <a
+                                                    href={`/settings/backup/${file.name}/download`}
+                                                    download
+                                                >
+                                                    <Download className="mr-2 h-4 w-4" />
+                                                    Unduh
+                                                </a>
                                             </Button>
                                             <Button
                                                 variant="destructive"
                                                 size="sm"
                                                 onClick={() =>
-                                                    handleDelete(file.name)
+                                                    setFileToDelete(file.name)
                                                 }
                                             >
                                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -166,6 +185,27 @@ export default function Backup({ backups }: { backups: BackupFile[] }) {
                     </Table>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={fileToDelete !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setFileToDelete(null);
+                    }
+                }}
+                tone="danger"
+                title="Hapus File Backup?"
+                description={
+                    <>
+                        Apakah Anda yakin ingin menghapus file backup{' '}
+                        <strong>{activeFile}</strong>? Tindakan ini tidak dapat
+                        dibatalkan.
+                    </>
+                }
+                confirmText="Hapus Permanen"
+                cancelText="Batal"
+                onConfirm={handleDelete}
+            />
         </>
     );
 }

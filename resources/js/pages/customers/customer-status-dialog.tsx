@@ -2,7 +2,7 @@ import {
     ArchiveBoxIcon,
     ArrowCounterClockwiseIcon,
 } from '@phosphor-icons/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import CustomerController from '@/actions/App/Http/Controllers/CustomerController';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { Customer } from '@/pages/customers/types';
@@ -13,15 +13,18 @@ type Props = {
 };
 
 export function CustomerStatusDialog({ customer, onOpenChange }: Props) {
+    const [prevCustomer, setPrevCustomer] = useState<Customer | null>(customer);
     const [cachedCustomer, setCachedCustomer] = useState<Customer | null>(
         customer,
     );
 
-    useEffect(() => {
+    if (customer !== prevCustomer) {
+        setPrevCustomer(customer);
+
         if (customer !== null) {
             setCachedCustomer(customer);
         }
-    }, [customer]);
+    }
 
     const activeCustomer = customer ?? cachedCustomer;
     const willRestore = activeCustomer?.deleted_at !== null;

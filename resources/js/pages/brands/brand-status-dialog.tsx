@@ -1,5 +1,5 @@
 import { CheckCircleIcon, PowerIcon } from '@phosphor-icons/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import BrandController from '@/actions/App/Http/Controllers/BrandController';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { Brand } from '@/pages/brands/types';
@@ -10,13 +10,16 @@ type Props = {
 };
 
 export function BrandStatusDialog({ brand, onOpenChange }: Props) {
+    const [prevBrand, setPrevBrand] = useState<Brand | null>(brand);
     const [cachedBrand, setCachedBrand] = useState<Brand | null>(brand);
 
-    useEffect(() => {
+    if (brand !== prevBrand) {
+        setPrevBrand(brand);
+
         if (brand !== null) {
             setCachedBrand(brand);
         }
-    }, [brand]);
+    }
 
     const activeBrand = brand ?? cachedBrand;
     const willActivate = activeBrand?.is_active === false;

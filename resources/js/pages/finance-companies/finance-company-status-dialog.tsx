@@ -1,5 +1,5 @@
 import { CheckCircleIcon, PowerIcon } from '@phosphor-icons/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import FinanceCompanyController from '@/actions/App/Http/Controllers/FinanceCompanyController';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { FinanceCompany } from '@/pages/finance-companies/types';
@@ -10,15 +10,20 @@ type Props = {
 };
 
 export function FinanceCompanyStatusDialog({ company, onOpenChange }: Props) {
+    const [prevCompany, setPrevCompany] = useState<FinanceCompany | null>(
+        company,
+    );
     const [cachedCompany, setCachedCompany] = useState<FinanceCompany | null>(
         company,
     );
 
-    useEffect(() => {
+    if (company !== prevCompany) {
+        setPrevCompany(company);
+
         if (company !== null) {
             setCachedCompany(company);
         }
-    }, [company]);
+    }
 
     const activeCompany = company ?? cachedCompany;
     const willActivate = activeCompany?.is_active === false;
