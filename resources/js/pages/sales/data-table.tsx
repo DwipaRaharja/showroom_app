@@ -1,6 +1,5 @@
 import { Link, router } from '@inertiajs/react';
 import {
-    CalendarBlankIcon,
     CoinsIcon,
     CreditCardIcon,
     HandCoinsIcon,
@@ -25,6 +24,7 @@ import { DataTablePagination } from '@/components/data-table/data-table-paginati
 import { DataTableSearch } from '@/components/data-table/data-table-search';
 import { DataTableShell } from '@/components/data-table/data-table-shell';
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
+import { DateRangeFilter } from '@/components/date-range-filter';
 import { StatCard } from '@/components/stat-card';
 import { StatCardGrid } from '@/components/stat-card-grid';
 import { Button } from '@/components/ui/button';
@@ -212,6 +212,27 @@ export function SaleDataTable({ data, summary }: Props) {
 
     return (
         <div className="space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <DateRangeFilter
+                    datePreset={datePreset}
+                    onDatePresetChange={(val) => {
+                        setDatePreset(val);
+                        table.setPageIndex(0);
+                    }}
+                    customStartDate={customStartDate}
+                    onCustomStartDateChange={(val) => {
+                        setCustomStartDate(val);
+                        table.setPageIndex(0);
+                    }}
+                    customEndDate={customEndDate}
+                    onCustomEndDateChange={(val) => {
+                        setCustomEndDate(val);
+                        table.setPageIndex(0);
+                    }}
+                    onReset={isDateFiltered ? resetFilters : undefined}
+                />
+            </div>
+
             <StatCardGrid>
                 <StatCard
                     title="Total Omzet Penjualan"
@@ -264,70 +285,6 @@ export function SaleDataTable({ data, summary }: Props) {
                             />
                         }
                     >
-                        {/* Filter Periode / Tanggal */}
-                        <Select
-                            value={datePreset}
-                            onValueChange={(value) => {
-                                setDatePreset(value as DatePreset);
-                                table.setPageIndex(0);
-                            }}
-                        >
-                            <SelectTrigger className="w-40">
-                                <CalendarBlankIcon className="mr-1.5 size-4 text-muted-foreground" />
-                                <SelectValue placeholder="Semua tanggal" />
-                            </SelectTrigger>
-                            <SelectContent align="end">
-                                <SelectItem value="all">
-                                    Semua tanggal
-                                </SelectItem>
-                                <SelectItem value="today">Hari Ini</SelectItem>
-                                <SelectItem value="this_week">
-                                    Minggu Ini
-                                </SelectItem>
-                                <SelectItem value="this_month">
-                                    Bulan Ini
-                                </SelectItem>
-                                <SelectItem value="last_month">
-                                    Bulan Lalu
-                                </SelectItem>
-                                <SelectItem value="this_year">
-                                    Tahun Ini
-                                </SelectItem>
-                                <SelectItem value="custom">
-                                    Rentang Kustom...
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        {/* Input Rentang Tanggal Kustom */}
-                        {datePreset === 'custom' && (
-                            <div className="flex items-center gap-1.5 rounded-lg border bg-background/80 px-2 py-1 text-xs shadow-xs">
-                                <Input
-                                    type="date"
-                                    value={customStartDate}
-                                    onChange={(e) => {
-                                        setCustomStartDate(e.target.value);
-                                        table.setPageIndex(0);
-                                    }}
-                                    className="h-7 w-32 border-0 bg-transparent px-1 py-0 text-xs shadow-none focus-visible:ring-0"
-                                    aria-label="Tanggal awal"
-                                />
-                                <span className="text-muted-foreground">
-                                    s/d
-                                </span>
-                                <Input
-                                    type="date"
-                                    value={customEndDate}
-                                    onChange={(e) => {
-                                        setCustomEndDate(e.target.value);
-                                        table.setPageIndex(0);
-                                    }}
-                                    className="h-7 w-32 border-0 bg-transparent px-1 py-0 text-xs shadow-none focus-visible:ring-0"
-                                    aria-label="Tanggal akhir"
-                                />
-                            </div>
-                        )}
-
                         {/* Filter Status */}
                         <Select
                             value={statusFilter ?? 'all'}
