@@ -8,22 +8,12 @@ import {
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { CardSectionHeader } from '@/components/card-section-header';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { DataTableEmptyState } from '@/components/data-table/data-table-empty-state';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { formatDateTime } from '@/lib/formatters';
 import { destroy, index as backupIndex, store } from '@/routes/backup';
 
@@ -112,133 +102,123 @@ export default function Backup({ backups }: { backups: BackupFile[] }) {
                 <Heading
                     variant="small"
                     title="Backup Data"
-                    description="Kelola dan buat cadangan database aplikasi showroom untuk keamanan data Anda"
+                    description="Buat dan unduh cadangan database showroom untuk keamanan dan pemulihan data Anda"
                 />
 
-                <Card>
-                    <CardSectionHeader
-                        icon={<DatabaseIcon className="size-4" weight="fill" />}
-                        title="Cadangan Database"
-                        description="Daftar file cadangan (.zip) yang tersimpan di server"
-                        badge={
-                            <Badge
-                                variant="outline"
-                                className="font-mono text-xs"
-                            >
-                                {backups.length} File
-                            </Badge>
-                        }
-                        action={
-                            <Button
-                                onClick={handleBackup}
-                                disabled={isProcessing}
-                                size="sm"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <Spinner className="mr-1.5 size-4" />
-                                        Memproses...
-                                    </>
-                                ) : (
-                                    <>
-                                        <PlusIcon className="mr-1.5 size-4" />
-                                        Buat Backup Baru
-                                    </>
-                                )}
-                            </Button>
-                        }
-                    />
-                    <CardContent className="p-0">
-                        <Table>
-                            <TableHeader className="bg-muted/40">
-                                <TableRow>
-                                    <TableHead className="w-12 text-center">
-                                        No.
-                                    </TableHead>
-                                    <TableHead>Nama File</TableHead>
-                                    <TableHead>Ukuran</TableHead>
-                                    <TableHead>Waktu Dibuat</TableHead>
-                                    <TableHead className="text-right">
-                                        Aksi
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {backups.length === 0 ? (
-                                    <DataTableEmptyState
-                                        colSpan={5}
-                                        title="Belum ada file backup"
-                                        description="Klik tombol 'Buat Backup Baru' di atas untuk membuat cadangan database."
-                                    />
-                                ) : (
-                                    backups.map((file, index) => (
-                                        <TableRow key={file.name}>
-                                            <TableCell className="text-center text-xs text-muted-foreground">
-                                                {index + 1}
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                                <div className="flex items-center gap-2">
-                                                    <FileArchiveIcon
-                                                        className="size-4 shrink-0 text-primary"
-                                                        weight="fill"
-                                                    />
-                                                    <span
-                                                        className="max-w-44 truncate font-mono text-xs sm:max-w-xs"
-                                                        title={file.name}
-                                                    >
-                                                        {file.name}
-                                                    </span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="font-mono text-[11px]"
-                                                >
+                <div className="flex items-center gap-3">
+                    <Button onClick={handleBackup} disabled={isProcessing}>
+                        {isProcessing ? (
+                            <>
+                                <Spinner className="mr-1.5 size-4" />
+                                Memproses Backup...
+                            </>
+                        ) : (
+                            <>
+                                <PlusIcon className="mr-1.5 size-4" />
+                                Buat Backup Sekarang
+                            </>
+                        )}
+                    </Button>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <DatabaseIcon
+                                className="size-4 text-primary"
+                                weight="fill"
+                            />
+                            <h3 className="text-sm font-semibold text-foreground">
+                                Riwayat Cadangan
+                            </h3>
+                        </div>
+                        <Badge variant="outline" className="font-mono text-xs">
+                            {backups.length} File
+                        </Badge>
+                    </div>
+
+                    {backups.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+                            <div className="mb-2.5 flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                <DatabaseIcon className="size-4.5" />
+                            </div>
+                            <p className="text-sm font-medium text-foreground">
+                                Belum ada file backup
+                            </p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                                Tekan tombol "Buat Backup Sekarang" di atas
+                                untuk mencadangkan database.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {backups.map((file) => (
+                                <div
+                                    key={file.name}
+                                    className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-muted/30"
+                                >
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                            <FileArchiveIcon
+                                                className="size-5"
+                                                weight="fill"
+                                            />
+                                        </div>
+                                        <div className="min-w-0 space-y-0.5">
+                                            <p
+                                                className="truncate font-mono text-xs font-semibold text-foreground"
+                                                title={file.name}
+                                            >
+                                                {file.name}
+                                            </p>
+                                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                                <span>
                                                     {formatBytes(file.size)}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
-                                                {formatDateTime(
-                                                    file.date * 1000,
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="space-x-1.5 text-right whitespace-nowrap">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 px-2.5 text-xs"
-                                                    asChild
-                                                >
-                                                    <a
-                                                        href={`/settings/backup/${file.name}/download`}
-                                                        download
-                                                    >
-                                                        <DownloadSimpleIcon className="mr-1 size-3.5" />
-                                                        Unduh
-                                                    </a>
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 px-2.5 text-xs text-red-500 hover:bg-red-500/10 hover:text-red-600 dark:text-red-400"
-                                                    onClick={() =>
-                                                        setFileToDelete(
-                                                            file.name,
-                                                        )
-                                                    }
-                                                >
-                                                    <TrashIcon className="mr-1 size-3.5" />
-                                                    Hapus
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                                                </span>
+                                                <span>•</span>
+                                                <span>
+                                                    {formatDateTime(
+                                                        file.date * 1000,
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex shrink-0 items-center gap-1">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 px-2.5 text-xs"
+                                            asChild
+                                        >
+                                            <a
+                                                href={`/settings/backup/${file.name}/download`}
+                                                download
+                                            >
+                                                <DownloadSimpleIcon className="mr-1 size-3.5" />
+                                                Unduh
+                                            </a>
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="size-8 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400"
+                                            onClick={() =>
+                                                setFileToDelete(file.name)
+                                            }
+                                            aria-label={`Hapus file ${file.name}`}
+                                        >
+                                            <TrashIcon className="size-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <ConfirmDialog
