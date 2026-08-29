@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\RecordDocumentProcessEvent;
 use App\Concerns\HandlesFileUploads;
 use App\Http\Requests\DocumentProcess\CancelDocumentProcessRequest;
 use App\Http\Requests\DocumentProcess\DeleteDocumentProcessRequest;
@@ -14,7 +15,6 @@ use App\Models\Car;
 use App\Models\DocumentProcess;
 use App\Models\DocumentProcessCost;
 use App\Models\DocumentProcessDeletionAudit;
-use App\Models\DocumentProcessEvent;
 use App\Models\DocumentProcessFile;
 use App\Models\Sale;
 use App\Models\User;
@@ -263,7 +263,7 @@ class DocumentProcessController extends Controller
     public function storeEvent(
         StoreDocumentProcessEventRequest $request,
         DocumentProcess $documentProcess,
-        \App\Actions\RecordDocumentProcessEvent $action,
+        RecordDocumentProcessEvent $action,
     ): RedirectResponse {
         $validated = $request->validated();
         /** @var array<int, UploadedFile> $files */

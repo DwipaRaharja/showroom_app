@@ -11,7 +11,7 @@ class ApplyDocumentProcessResult
     /**
      * Apply mutations to the car documents and license plate based on the process result.
      *
-     * @param array<string, mixed> $result
+     * @param  array<string, mixed>  $result
      */
     public function execute(DocumentProcess $process, array $result): void
     {

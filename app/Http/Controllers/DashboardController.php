@@ -111,8 +111,11 @@ class DashboardController extends Controller
         $paymentsInPeriod = $metrics->confirmedDealPayments($activeSales)
             ->filter(function ($payment) use ($periodStart, $periodEnd): bool {
                 $value = $payment->getRawOriginal('payment_date');
-                if (! is_string($value) || blank($value)) return false;
+                if (! is_string($value) || blank($value)) {
+                    return false;
+                }
                 $date = Carbon::parse($value, 'Asia/Makassar')->startOfDay();
+
                 return $date->between($periodStart, $periodEnd);
             });
 
@@ -129,12 +132,14 @@ class DashboardController extends Controller
             'trade_in_this_month_value' => (int) $tradeInSalesInPeriod->sum('trade_in_price'),
             'active_capital' => (int) $stockCars->sum(function (Car $car): int {
                 $capital = $car->getRelation('capital');
+
                 return $capital instanceof Purchase && $capital->status !== 'cancelled'
                     ? $capital->total_capital
                     : 0;
             }),
             'incomplete_capital' => $stockCars->filter(function (Car $car): bool {
                 $capital = $car->getRelation('capital');
+
                 return ! ($capital instanceof Purchase) || $capital->status !== 'completed';
             })->count(),
             'customer_receivables' => (int) $activeSales->sum('customer_payment_shortfall'),

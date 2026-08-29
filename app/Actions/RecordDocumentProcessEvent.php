@@ -22,8 +22,9 @@ class RecordDocumentProcessEvent
     ) {}
 
     /**
-     * @param array<string, mixed> $validated
-     * @param array<int, UploadedFile> $files
+     * @param  array<string, mixed>  $validated
+     * @param  array<int, UploadedFile>  $files
+     *
      * @throws ValidationException|Throwable
      */
     public function execute(DocumentProcess $documentProcess, array $validated, array $files, ?int $userId = null): void

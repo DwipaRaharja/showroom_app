@@ -4,24 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\RecordVehicleHandover;
 use App\Concerns\HandlesFileUploads;
 use App\Http\Requests\Handover\StoreHandoverRequest;
-use App\Models\Payment;
 use App\Models\Sale;
 use App\Models\VehicleHandover;
-use App\Models\VehicleHandoverEvent;
-use App\Models\VehicleHandoverItem;
 use App\Models\VehicleHandoverPhoto;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Throwable;
 
 class VehicleHandoverController extends Controller
 {
@@ -80,7 +74,7 @@ class VehicleHandoverController extends Controller
         ]);
     }
 
-    public function store(StoreHandoverRequest $request, \App\Actions\RecordVehicleHandover $action): RedirectResponse
+    public function store(StoreHandoverRequest $request, RecordVehicleHandover $action): RedirectResponse
     {
         $validated = $request->validated();
         /** @var array<int, UploadedFile> $photos */

@@ -21,9 +21,9 @@ class RecordVehicleHandover
     use HandlesFileUploads;
 
     /**
-     * @param array<string, mixed> $validated
-     * @param array<int, UploadedFile> $photos
-     * @return VehicleHandoverEvent
+     * @param  array<string, mixed>  $validated
+     * @param  array<int, UploadedFile>  $photos
+     *
      * @throws ValidationException|Throwable
      */
     public function execute(Sale $sale, array $validated, array $photos, ?int $userId = null): VehicleHandoverEvent
@@ -120,7 +120,7 @@ class RecordVehicleHandover
     }
 
     /**
-     * @param array<string, mixed> $validated
+     * @param  array<string, mixed>  $validated
      */
     private function guardCurrentBusinessState(Sale $sale, VehicleHandover $handover, array $validated): void
     {
@@ -167,7 +167,7 @@ class RecordVehicleHandover
      * Treat the remaining agreed leasing principal as received only when the
      * BPKB is actually handed to the leasing officer.
      *
-     * @param array<string, mixed> $validated
+     * @param  array<string, mixed>  $validated
      */
     private function confirmFinanceDisbursementFromBpkbHandover(Sale $sale, VehicleHandoverEvent $event, array $validated): void
     {
@@ -180,6 +180,7 @@ class RecordVehicleHandover
 
         if ($amount <= 0) {
             $sale->refreshSettlementStatus();
+
             return;
         }
 
@@ -203,7 +204,7 @@ class RecordVehicleHandover
     }
 
     /**
-     * @param array<int, string> $items
+     * @param  array<int, string>  $items
      */
     private function determineEventType(array $items): string
     {

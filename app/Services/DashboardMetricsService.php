@@ -396,6 +396,7 @@ class DashboardMetricsService
             }
             $firstDate = (string) ($first['date'] ?? $first['due_date'] ?? '9999-12-31');
             $secondDate = (string) ($second['date'] ?? $second['due_date'] ?? '9999-12-31');
+
             return $firstDate <=> $secondDate;
         })->values();
     }
@@ -408,12 +409,14 @@ class DashboardMetricsService
     private function saleCarName(Sale $sale): string
     {
         $car = $sale->car;
+
         return $car instanceof Car ? $this->carName($car) : 'Mobil diarsipkan';
     }
 
     private function processCarName(DocumentProcess $process): string
     {
         $car = $process->car;
+
         return $car instanceof Car ? $this->carName($car) : 'Mobil diarsipkan';
     }
 
@@ -428,6 +431,7 @@ class DashboardMetricsService
         if (! is_string($value) || blank($value)) {
             return null;
         }
+
         return Carbon::parse($value, 'Asia/Makassar')->startOfDay();
     }
 }
