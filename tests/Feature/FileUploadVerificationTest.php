@@ -58,9 +58,9 @@ describe('1. Car Image Upload and Preview/Download', function () {
 
         $car = Car::query()->where('license_plate', 'B 1234 TB')->firstOrFail();
 
-        // 1. Verify path pattern: cars/{id}/images/mobil-{id}-{brand}-{name}-{plate}-{timestamp}.ext
+        // 1. Verify path pattern: cars/{id}/mobil-{id}-{brand}-{name}-{plate}-{timestamp}.ext
         expect($car->image)->not->toBeNull();
-        $pattern = '#^cars/'.$car->id.'/images/mobil-'.$car->id.'-toyota-astra-veloz-15-q-b-1234-tb-\d+\.jpg$#';
+        $pattern = '#^cars/'.$car->id.'/mobil-'.$car->id.'-toyota-astra-veloz-15-q-b-1234-tb-\d+\.jpg$#';
         expect($car->image)->toMatch($pattern);
 
         // 2. Verify file exists in disk
@@ -111,7 +111,7 @@ describe('1. Car Image Upload and Preview/Download', function () {
             'status' => 'completed',
         ]);
 
-        $oldPath = "cars/{$car->id}/images/mobil-{$car->id}-honda-pro-hr-v-se-b-9988-xyz-1700000000.jpg";
+        $oldPath = "cars/{$car->id}/mobil-{$car->id}-honda-pro-hr-v-se-b-9988-xyz-1700000000.jpg";
         Storage::disk('local')->put($oldPath, 'old_image_bytes');
         $car->update(['image' => $oldPath]);
 
@@ -151,7 +151,7 @@ describe('1. Car Image Upload and Preview/Download', function () {
         Storage::disk('local')->assertMissing($oldPath);
         Storage::disk('local')->assertExists($newPath);
 
-        $newPattern = '#^cars/'.$car->id.'/images/mobil-'.$car->id.'-honda-pro-hr-v-se-updated-b-9988-xyz-\d+\.png$#';
+        $newPattern = '#^cars/'.$car->id.'/mobil-'.$car->id.'-honda-pro-hr-v-se-updated-b-9988-xyz-\d+\.png$#';
         expect($newPath)->toMatch($newPattern);
     });
 });

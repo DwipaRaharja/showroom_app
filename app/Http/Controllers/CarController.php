@@ -134,7 +134,7 @@ class CarController extends Controller
 
                     $storedImagePath = $this->storeUploadedFile(
                         $image,
-                        "cars/{$car->id}/images",
+                        "cars/{$car->id}",
                         $customName,
                         errorKey: 'image',
                         errorMessage: 'Gambar kendaraan gagal disimpan. Silakan coba lagi.',
@@ -255,7 +255,7 @@ class CarController extends Controller
 
                 $storedImagePath = $this->storeUploadedFile(
                     $image,
-                    "cars/{$car->id}/images",
+                    "cars/{$car->id}",
                     $customName,
                     errorKey: 'image',
                     errorMessage: 'Gambar kendaraan gagal disimpan. Silakan coba lagi.',

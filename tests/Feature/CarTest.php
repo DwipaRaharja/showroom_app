@@ -191,7 +191,7 @@ test('authenticated user can update a car from the dedicated form', function () 
         'other_cost' => 0,
         'status' => 'completed',
     ]);
-    $oldImagePath = "cars/{$car->id}/images/old-image.jpg";
+    $oldImagePath = "cars/{$car->id}/old-image.jpg";
     Storage::disk('local')->put($oldImagePath, 'old-image');
     $car->update(['image' => $oldImagePath]);
 
