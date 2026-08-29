@@ -47,6 +47,16 @@ class BackupController extends Controller
     public function store(): RedirectResponse
     {
         try {
+            if (PHP_OS_FAMILY === 'Windows') {
+                $systemRoot = (string) (getenv('SystemRoot') ?: getenv('WINDIR') ?: 'C:\Windows');
+                putenv("SystemRoot={$systemRoot}");
+                putenv("WINDIR={$systemRoot}");
+                $_ENV['SystemRoot'] = $systemRoot;
+                $_ENV['WINDIR'] = $systemRoot;
+                $_SERVER['SystemRoot'] = $systemRoot;
+                $_SERVER['WINDIR'] = $systemRoot;
+            }
+
             $exitCode = Artisan::call('backup:run', ['--only-db' => true]);
 
             if ($exitCode !== 0) {
