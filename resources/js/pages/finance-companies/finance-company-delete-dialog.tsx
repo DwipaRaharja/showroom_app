@@ -15,18 +15,17 @@ export function FinanceCompanyDeleteDialog({ company, onOpenChange }: Props) {
         <ConfirmDialog
             open={company !== null}
             onOpenChange={onOpenChange}
-            tone="danger"
-            title="Hapus Perusahaan Leasing?"
+            tone={hasSales ? 'warning' : 'danger'}
+            title={hasSales ? 'Tindakan Ditolak' : 'Hapus Perusahaan Leasing?'}
             description={
                 hasSales ? (
                     <>
                         Rekanan <strong>{company?.name}</strong> telah memiliki{' '}
                         <strong>
-                            {company?.sales_count} transaksi penjualan
-                        </strong>{' '}
-                        terkait. Perusahaan leasing ini tidak dapat dihapus
-                        permanen. Silakan gunakan opsi
-                        <strong> Nonaktifkan</strong> jika rekanan sudah tidak
+                            {company?.sales_count} riwayat transaksi penjualan
+                        </strong>
+                        . Data yang sudah memiliki relasi riwayat tidak dapat dihapus permanen. Silakan gunakan opsi
+                        <strong> Nonaktifkan</strong> jika rekanan ini sudah tidak
                         bekerja sama.
                     </>
                 ) : (
@@ -39,7 +38,7 @@ export function FinanceCompanyDeleteDialog({ company, onOpenChange }: Props) {
             }
             confirmText={hasSales ? undefined : 'Hapus Permanen'}
             confirmIcon={hasSales ? undefined : TrashIcon}
-            cancelText={hasSales ? 'Tutup' : 'Batal'}
+            cancelText={hasSales ? 'Mengerti' : 'Batal'}
             formProps={
                 company && !hasSales
                     ? FinanceCompanyController.destroy.form(company.id)
