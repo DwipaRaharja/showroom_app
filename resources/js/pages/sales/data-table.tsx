@@ -5,7 +5,7 @@ import {
     HandCoinsIcon,
     HourglassMediumIcon,
     PlusIcon,
-    TrashIcon,
+    XCircleIcon,
     XIcon,
 } from '@phosphor-icons/react';
 import { useTable } from '@tanstack/react-table';
@@ -28,6 +28,7 @@ import { DateRangeFilter } from '@/components/date-range-filter';
 import { StatCard } from '@/components/stat-card';
 import { StatCardGrid } from '@/components/stat-card-grid';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -43,6 +44,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import type { DatePreset } from '@/lib/formatters';
 import {
     formatCurrency,
@@ -81,6 +83,7 @@ export function SaleDataTable({ data, summary }: Props) {
     const [selectedSaleForPayment, setSelectedSaleForPayment] =
         useState<Sale | null>(null);
     const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
+    const [cancelReason, setCancelReason] = useState('');
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
@@ -416,12 +419,13 @@ export function SaleDataTable({ data, summary }: Props) {
                 }}
             />
 
-            {/* Cancel / Delete Sale Dialog */}
+            {/* Cancel Sale Dialog */}
             <ConfirmDialog
                 open={deletingSale !== null}
                 onOpenChange={(open) => {
                     if (!open) {
                         setDeletingSale(null);
+                        setCancelReason('');
                     }
                 }}
                 tone="danger"
@@ -431,24 +435,44 @@ export function SaleDataTable({ data, summary }: Props) {
                         Apakah Anda yakin ingin membatalkan transaksi invoice{' '}
                         <strong>{deletingSale?.invoice_number}</strong> (
                         {deletingSale?.car?.name})? Unit mobil akan otomatis
-                        dikembalikan menjadi <strong>Tersedia</strong>.
+                        dikembalikan menjadi <strong>Tersedia</strong> dan
+                        riwayat transaksi tetap tersimpan.
                     </>
                 }
                 confirmText="Ya, Batalkan Penjualan"
-                confirmIcon={TrashIcon}
+                confirmIcon={XCircleIcon}
                 formProps={
                     deletingSale
                         ? {
-                              action: SaleController.destroy.url(
-                                  deletingSale.id,
-                              ),
-                              method: 'delete',
+                              action: `/sales/${deletingSale.id}/cancel`,
+                              method: 'post',
                               options: { preserveScroll: true },
-                              onSuccess: () => setDeletingSale(null),
+                              onSuccess: () => {
+                                  setDeletingSale(null);
+                                  setCancelReason('');
+                              },
                           }
                         : undefined
                 }
-            />
+            >
+                <div className="grid gap-2 pt-2">
+                    <Label
+                        htmlFor="table-cancel-reason"
+                        className="text-xs font-medium"
+                    >
+                        Alasan Pembatalan (Opsional)
+                    </Label>
+                    <Textarea
+                        id="table-cancel-reason"
+                        name="reason"
+                        placeholder="Contoh: Pengajuan leasing ditolak, customer batal membeli, dsb."
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        rows={2}
+                        className="text-sm"
+                    />
+                </div>
+            </ConfirmDialog>
         </div>
     );
 }

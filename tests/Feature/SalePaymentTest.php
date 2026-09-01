@@ -214,3 +214,45 @@ test('cannot create a sale for a car that is already sold or booked', function (
         ])
         ->assertSessionHasErrors(['car_id']);
 });
+
+test('cancelling a sale updates status to cancelled, restores car to available, and preserves records in database', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    // Record down payment
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), paymentPayload([
+            'payment_category' => 'down_payment',
+            'amount' => 20_000_000,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($sale->fresh()->status)->toBe('partial')
+        ->and($sale->car->fresh()->status)->toBe('booked')
+        ->and($sale->payments()->count())->toBe(1);
+
+    // Cancel the sale with a reason
+    $this->actingAs($user)
+        ->post(route('sales.cancel', $sale), [
+            'reason' => 'Pengajuan kredit ditolak oleh leasing',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $freshSale = $sale->fresh(['car', 'payments']);
+
+    // Record is NOT deleted
+    expect($freshSale)->not->toBeNull()
+        ->and($freshSale->status)->toBe('cancelled')
+        ->and($freshSale->notes)->toContain('[Dibatalkan: Pengajuan kredit ditolak oleh leasing]')
+        ->and($freshSale->car->status)->toBe('available')
+        ->and($freshSale->payments->count())->toBe(1)
+        ->and($freshSale->can_accept_payment)->toBeFalse();
+
+    // Attempting to add a payment to a cancelled sale must be rejected
+    $this->actingAs($user)
+        ->post(route('payments.store', $freshSale), paymentPayload([
+            'payment_category' => 'installment',
+            'amount' => 10_000_000,
+        ]))
+        ->assertSessionHasErrors();
+});

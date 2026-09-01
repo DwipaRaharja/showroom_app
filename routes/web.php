@@ -70,6 +70,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'show',
         'destroy',
     ]);
+    Route::post('sales/{sale}/cancel', [SaleController::class, 'cancel'])
+        ->name('sales.cancel');
     Route::post('sales/{sale}/payments', [PaymentController::class, 'store'])
         ->name('payments.store');
     Route::delete('payments/{payment}', [PaymentController::class, 'destroy'])

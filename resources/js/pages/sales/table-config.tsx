@@ -382,13 +382,15 @@ export function createSaleColumns({
                                         Catat pembayaran
                                     </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem
-                                    className="text-red-500 focus:text-red-500"
-                                    onSelect={() => onDelete(row.original)}
-                                >
-                                    <TrashIcon className="text-red-500" />
-                                    Batalkan penjualan
-                                </DropdownMenuItem>
+                                {row.original.status !== 'cancelled' && (
+                                    <DropdownMenuItem
+                                        className="text-red-500 focus:text-red-500"
+                                        onSelect={() => onDelete(row.original)}
+                                    >
+                                        <TrashIcon className="text-red-500" />
+                                        Batalkan penjualan
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>

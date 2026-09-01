@@ -10,8 +10,8 @@ use App\Models\FinanceCompany;
 use App\Models\Payment;
 use App\Models\Sale;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -193,20 +193,32 @@ class SaleController extends Controller
     }
 
     /**
-     * Remove the specified sales transaction.
+     * Cancel the specified sales transaction without deleting it from database.
      */
-    public function destroy(Sale $sale): RedirectResponse
+    public function cancel(Request $request, Sale $sale): RedirectResponse
     {
-        DB::transaction(function () use ($sale) {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        DB::transaction(function () use ($sale, $validated) {
             $car = $sale->car;
             $handover = $sale->handover;
 
             if ($handover) {
-                Storage::disk('local')->deleteDirectory("vehicle-handovers/{$handover->id}");
-                $handover->delete();
+                $handover->update(['status' => 'cancelled']);
             }
 
-            $sale->delete();
+            $reason = trim($validated['reason'] ?? '');
+            $notes = $sale->notes;
+            if ($reason !== '') {
+                $notes = ($notes ? $notes."\n" : '').'[Dibatalkan: '.$reason.']';
+            }
+
+            $sale->update([
+                'status' => 'cancelled',
+                'notes' => $notes,
+            ]);
 
             if ($car && ! $car->trashed()) {
                 $car->update(['status' => 'available']);
@@ -215,9 +227,17 @@ class SaleController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Transaksi penjualan berhasil dibatalkan.',
+            'message' => 'Transaksi penjualan berhasil dibatalkan dan status unit mobil dikembalikan menjadi Tersedia.',
         ]);
 
-        return to_route('sales.index');
+        return back();
+    }
+
+    /**
+     * Remove or safely cancel the specified sales transaction.
+     */
+    public function destroy(Request $request, Sale $sale): RedirectResponse
+    {
+        return $this->cancel($request, $sale);
     }
 }

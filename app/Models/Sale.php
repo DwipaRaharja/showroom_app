@@ -330,6 +330,10 @@ class Sale extends Model
      */
     public function refreshSettlementStatus(): void
     {
+        if ($this->status === 'cancelled') {
+            return;
+        }
+
         $this->unsetRelation('payments');
         $remaining = $this->remaining_bill;
 

@@ -14,6 +14,7 @@ import {
     TrashIcon,
     UserIcon,
     WhatsappLogoIcon,
+    XCircleIcon,
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import PaymentController from '@/actions/App/Http/Controllers/PaymentController';
@@ -26,6 +27,7 @@ import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
 import { StatCardGrid } from '@/components/stat-card-grid';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -34,6 +36,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
 import {
     Table,
     TableBody,
@@ -42,6 +45,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { copyToClipboard } from '@/lib/clipboard';
 import {
     formatCurrency,
@@ -82,6 +86,8 @@ function getPaymentCategoryLabel(category: string) {
 
 export default function SalesShow({ sale }: Props) {
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+    const [isCancelSaleOpen, setIsCancelSaleOpen] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
     const [deletingPayment, setDeletingPayment] = useState<Payment | null>(
         null,
     );
@@ -206,9 +212,53 @@ export default function SalesShow({ sale }: Props) {
                                 <PrinterIcon className="size-4" />
                                 Cetak SPK / Invoice
                             </Button>
+
+                            {sale.status !== 'cancelled' && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setIsCancelSaleOpen(true)}
+                                    className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/30 print:hidden"
+                                >
+                                    <XCircleIcon className="size-4" />
+                                    Batalkan Penjualan
+                                </Button>
+                            )}
                         </>
                     }
                 />
+
+                {sale.status === 'cancelled' && (
+                    <Alert
+                        variant="destructive"
+                        className="border-red-500/30 bg-red-500/5 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
+                    >
+                        <XCircleIcon className="size-4" />
+                        <AlertTitle className="font-semibold">
+                            Transaksi Penjualan Dibatalkan
+                        </AlertTitle>
+                        <AlertDescription className="space-y-1 text-sm">
+                            <p>
+                                Transaksi SPK ini telah dibatalkan. Unit
+                                kendaraan{' '}
+                                <strong>
+                                    {car?.brand?.name} {car?.name}
+                                </strong>{' '}
+                                ({car?.license_plate ?? 'Tanpa plat'}) telah
+                                otomatis dikembalikan statusnya menjadi{' '}
+                                <strong>Tersedia</strong> dan siap dijual
+                                kembali.
+                            </p>
+                            {sale.notes && (
+                                <div className="mt-2 rounded-md border border-red-500/20 bg-background/50 p-2.5 text-xs text-foreground">
+                                    <span className="font-semibold">
+                                        Catatan / Alasan:{' '}
+                                    </span>
+                                    {sale.notes}
+                                </div>
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 <StatCardGrid>
                     <StatCard
@@ -1045,6 +1095,57 @@ export default function SalesShow({ sale }: Props) {
                         : undefined
                 }
             />
+
+            {/* Cancel Sale Dialog */}
+            <ConfirmDialog
+                open={isCancelSaleOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setIsCancelSaleOpen(false);
+                        setCancelReason('');
+                    }
+                }}
+                tone="danger"
+                title="Batalkan Transaksi Penjualan?"
+                description={
+                    <>
+                        Apakah Anda yakin ingin membatalkan transaksi invoice{' '}
+                        <strong>{sale.invoice_number}</strong> (
+                        {car?.brand?.name} {car?.name})? Unit mobil akan
+                        otomatis dikembalikan menjadi <strong>Tersedia</strong>{' '}
+                        dan riwayat transaksi tetap tersimpan.
+                    </>
+                }
+                confirmText="Ya, Batalkan Penjualan"
+                confirmIcon={XCircleIcon}
+                formProps={{
+                    action: `/sales/${sale.id}/cancel`,
+                    method: 'post',
+                    options: { preserveScroll: true },
+                    onSuccess: () => {
+                        setIsCancelSaleOpen(false);
+                        setCancelReason('');
+                    },
+                }}
+            >
+                <div className="grid gap-2 pt-2">
+                    <Label
+                        htmlFor="show-cancel-reason"
+                        className="text-xs font-medium"
+                    >
+                        Alasan Pembatalan (Opsional)
+                    </Label>
+                    <Textarea
+                        id="show-cancel-reason"
+                        name="reason"
+                        placeholder="Contoh: Pengajuan leasing ditolak, customer batal membeli, dsb."
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        rows={2}
+                        className="text-sm"
+                    />
+                </div>
+            </ConfirmDialog>
         </>
     );
 }
