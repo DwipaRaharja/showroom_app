@@ -83,6 +83,12 @@ class PaymentController extends Controller
                 ]);
             }
 
+            $isTransfer = ($validated['payment_method'] ?? '') === 'transfer';
+            $isCash = ($validated['payment_method'] ?? '') === 'cash';
+            $destinationAccount = $isTransfer
+                ? ($validated['destination_account'] ?? 'BCA Showroom (0123-456-789)')
+                : ($isCash ? 'Kas Tunai Showroom' : ($validated['destination_account'] ?? 'Kas Showroom'));
+
             Payment::query()->create([
                 'sale_id' => $lockedSale->id,
                 'payment_date' => $validated['payment_date'],
@@ -90,7 +96,7 @@ class PaymentController extends Controller
                 'payment_category' => $validated['payment_category'],
                 'amount' => $validated['amount'],
                 'payment_method' => $validated['payment_method'],
-                'destination_account' => $validated['destination_account'],
+                'destination_account' => $destinationAccount,
                 'reference_number' => $validated['reference_number'] ?? null,
                 'notes' => $validated['notes'] ?? null,
                 'status' => 'confirmed',

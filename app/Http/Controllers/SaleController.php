@@ -148,8 +148,10 @@ class SaleController extends Controller
                     'payer_type' => 'customer',
                     'payment_category' => $paymentType === 'cash_full' ? 'settlement' : 'down_payment',
                     'amount' => $downPayment,
-                    'payment_method' => $validated['payment_method'] ?? 'transfer',
-                    'destination_account' => $validated['destination_account'] ?? 'BCA Showroom (0123-456-789)',
+                    'payment_method' => $paymentMethod = $validated['payment_method'] ?? 'transfer',
+                    'destination_account' => $paymentMethod === 'transfer'
+                        ? ($validated['destination_account'] ?? 'BCA Showroom (0123-456-789)')
+                        : ($paymentMethod === 'cash' ? 'Kas Tunai Showroom' : ($validated['destination_account'] ?? 'Kas Showroom')),
                     'reference_number' => $validated['reference_number'] ?? null,
                     'status' => 'confirmed',
                     'notes' => $paymentType === 'cash_full' ? 'Pembayaran lunas langsung saat transaksi.' : 'Pembayaran uang muka (DP) awal.',

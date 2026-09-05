@@ -1103,7 +1103,9 @@ export function SaleForm({
                                                     />
                                                 </div>
 
-                                                <div className="grid gap-2">
+                                                <div
+                                                    className={`grid gap-2 ${paymentMethod !== 'transfer' ? 'sm:col-span-2' : ''}`}
+                                                >
                                                     <Label htmlFor="payment_method">
                                                         Metode Pembayaran
                                                     </Label>
@@ -1140,42 +1142,68 @@ export function SaleForm({
                                                     </Select>
                                                 </div>
 
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="destination_account">
-                                                        Rekening Tujuan Showroom
-                                                    </Label>
-                                                    <Input
-                                                        id="destination_account"
+                                                {paymentMethod ===
+                                                'transfer' ? (
+                                                    <>
+                                                        <div className="grid gap-2">
+                                                            <Label htmlFor="destination_account">
+                                                                Rekening Tujuan
+                                                                Showroom{' '}
+                                                                <span className="text-red-500">
+                                                                    *
+                                                                </span>
+                                                            </Label>
+                                                            <Input
+                                                                id="destination_account"
+                                                                name="destination_account"
+                                                                value={
+                                                                    destinationAccount
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setDestinationAccount(
+                                                                        e.target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                placeholder="Contoh: BCA Showroom (0123-456-789)"
+                                                                required
+                                                            />
+                                                        </div>
+
+                                                        <div className="grid gap-2 sm:col-span-2">
+                                                            <Label htmlFor="reference_number">
+                                                                No. Referensi /
+                                                                Berita Transfer
+                                                                (Opsional)
+                                                            </Label>
+                                                            <Input
+                                                                id="reference_number"
+                                                                name="reference_number"
+                                                                value={
+                                                                    referenceNumber
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setReferenceNumber(
+                                                                        e.target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                placeholder="Contoh: TRX-12345"
+                                                            />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <input
+                                                        type="hidden"
                                                         name="destination_account"
                                                         value={
-                                                            destinationAccount
+                                                            paymentMethod ===
+                                                            'cash'
+                                                                ? 'Kas Tunai Showroom'
+                                                                : 'Kas Showroom'
                                                         }
-                                                        onChange={(e) =>
-                                                            setDestinationAccount(
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        required
                                                     />
-                                                </div>
-
-                                                <div className="grid gap-2 sm:col-span-2">
-                                                    <Label htmlFor="reference_number">
-                                                        No. Referensi / Berita
-                                                        Transfer (Opsional)
-                                                    </Label>
-                                                    <Input
-                                                        id="reference_number"
-                                                        name="reference_number"
-                                                        value={referenceNumber}
-                                                        onChange={(e) =>
-                                                            setReferenceNumber(
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        placeholder="Contoh: TRX-12345"
-                                                    />
-                                                </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

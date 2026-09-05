@@ -46,7 +46,8 @@ class StorePaymentRequest extends FormRequest
                 Rule::in(['transfer', 'cash', 'qris', 'giro']),
             ],
             'destination_account' => [
-                'required',
+                Rule::requiredIf(fn () => $this->input('payment_method') === 'transfer'),
+                'nullable',
                 'string',
                 'max:100',
             ],

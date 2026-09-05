@@ -256,3 +256,39 @@ test('cancelling a sale updates status to cancelled, restores car to available, 
         ]))
         ->assertSessionHasErrors();
 });
+
+test('cash payment does not require destination account and defaults to Kas Tunai Showroom', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), [
+            'payment_date' => '2026-09-05',
+            'payer_type' => 'customer',
+            'payment_category' => 'down_payment',
+            'amount' => 20_000_000,
+            'payment_method' => 'cash',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $payment = $sale->payments()->first();
+    expect($payment)->not->toBeNull()
+        ->and($payment->payment_method)->toBe('cash')
+        ->and($payment->destination_account)->toBe('Kas Tunai Showroom');
+});
+
+test('transfer payment requires destination account', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), [
+            'payment_date' => '2026-09-05',
+            'payer_type' => 'customer',
+            'payment_category' => 'down_payment',
+            'amount' => 20_000_000,
+            'payment_method' => 'transfer',
+            'destination_account' => '',
+        ])
+        ->assertSessionHasErrors(['destination_account']);
+});
