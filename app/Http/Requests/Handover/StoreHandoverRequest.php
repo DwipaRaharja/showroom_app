@@ -209,16 +209,6 @@ class StoreHandoverRequest extends FormRequest
                 );
             }
 
-            $hasInvoice = in_array('invoice', $items, true)
-                || ($handover?->hasDeliveredItem('invoice') ?? false);
-
-            if (in_array('bpkb', $items, true) && ! $hasInvoice) {
-                $validator->errors()->add(
-                    'items',
-                    'Faktur kendaraan harus ikut diserahkan bersama BPKB.',
-                );
-            }
-
             if (in_array('bpkb', $items, true)) {
                 $unitEvent = $handover?->eventForItem('vehicle');
                 $occurredAt = Carbon::parse((string) $this->input('occurred_at'));

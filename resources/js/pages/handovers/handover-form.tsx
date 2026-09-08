@@ -1,8 +1,9 @@
 import { Form, Link } from '@inertiajs/react';
 import { CameraIcon, FloppyDiskIcon } from '@phosphor-icons/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import { CardSectionHeader } from '@/components/card-section-header';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -129,6 +130,13 @@ export function HandoverForm({ sale }: Props) {
     const [cleanliness, setCleanliness] = useState('Bersih & Salon Siap Pakai');
     const [notes, setNotes] = useState('');
     const [photoCount, setPhotoCount] = useState(0);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const submitButtonRef = useRef<HTMLButtonElement | null>(null);
+
+    const isDeliveringBpkbWithoutInvoice =
+        selectedItems.includes('bpkb') &&
+        !selectedItems.includes('invoice') &&
+        !deliveredItems.has('invoice');
 
     function isItemDisabled(item: HandoverItemCode): boolean {
         if (item !== 'other' && deliveredItems.has(item)) {
@@ -352,6 +360,15 @@ export function HandoverForm({ sale }: Props) {
                                                     item.value !== 'other' && (
                                                         <span className="block text-xs text-muted-foreground">
                                                             Sudah diserahkan
+                                                        </span>
+                                                    )}
+                                                {item.value === 'invoice' &&
+                                                    !deliveredItems.has(
+                                                        'invoice',
+                                                    ) && (
+                                                        <span className="block text-xs text-muted-foreground">
+                                                            Opsional jika unit
+                                                            tanpa faktur
                                                         </span>
                                                     )}
                                             </span>
@@ -785,7 +802,7 @@ export function HandoverForm({ sale }: Props) {
                             </Link>
                         </Button>
                         <Button
-                            type="submit"
+                            type="button"
                             disabled={
                                 processing ||
                                 selectedItems.length === 0 ||
@@ -795,6 +812,7 @@ export function HandoverForm({ sale }: Props) {
                                 officerName.trim().length === 0 ||
                                 handoverLocation.length === 0
                             }
+                            onClick={() => setConfirmOpen(true)}
                         >
                             {processing ? (
                                 <Spinner />
@@ -803,7 +821,68 @@ export function HandoverForm({ sale }: Props) {
                             )}
                             {processing ? 'Menyimpan...' : 'Simpan tracking'}
                         </Button>
+
+                        <button
+                            ref={submitButtonRef}
+                            type="submit"
+                            className="hidden"
+                            aria-hidden="true"
+                            tabIndex={-1}
+                        />
                     </div>
+
+                    <ConfirmDialog
+                        open={confirmOpen}
+                        onOpenChange={setConfirmOpen}
+                        tone={
+                            isDeliveringBpkbWithoutInvoice ? 'warning' : 'info'
+                        }
+                        title={
+                            isDeliveringBpkbWithoutInvoice
+                                ? 'Penyerahan BPKB Tanpa Faktur'
+                                : 'Simpan Tracking Penyerahan?'
+                        }
+                        description={
+                            isDeliveringBpkbWithoutInvoice ? (
+                                <>
+                                    <span>
+                                        Faktur kendaraan tidak dicentang (unit
+                                        diserahkan tanpa faktur). Apakah Anda
+                                        yakin ingin menyimpan penyerahan BPKB
+                                        tanpa faktur?
+                                    </span>
+                                    <span className="mt-2 block font-medium text-amber-600 dark:text-amber-400">
+                                        Perhatian: Tracking penyerahan yang
+                                        sudah disimpan bersifat permanen dan
+                                        tidak dapat diubah atau dihapus.
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>
+                                        Apakah Anda yakin data penyerahan unit
+                                        &amp; dokumen sudah lengkap dan benar?
+                                    </span>
+                                    <span className="mt-2 block font-medium text-muted-foreground">
+                                        Perhatian: Tracking penyerahan yang
+                                        sudah disimpan bersifat permanen dan
+                                        tidak dapat diubah atau dihapus.
+                                    </span>
+                                </>
+                            )
+                        }
+                        confirmText={
+                            isDeliveringBpkbWithoutInvoice
+                                ? 'Ya, Tetap Simpan'
+                                : 'Ya, Simpan Tracking'
+                        }
+                        cancelText="Periksa Kembali"
+                        processing={processing}
+                        onConfirm={() => {
+                            setConfirmOpen(false);
+                            submitButtonRef.current?.click();
+                        }}
+                    />
                 </>
             )}
         </Form>
