@@ -4,18 +4,17 @@ import {
     BankIcon,
     CalendarBlankIcon,
     CarProfileIcon,
-    CheckCircleIcon,
     CoinsIcon,
     CreditCardIcon,
     CurrencyCircleDollarIcon,
     FloppyDiskIcon,
-    MagnifyingGlassIcon,
     MoneyIcon,
-    XIcon,
 } from '@phosphor-icons/react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import SaleController from '@/actions/App/Http/Controllers/SaleController';
+import { CarPicker } from '@/components/car-picker';
 import { CardSectionHeader } from '@/components/card-section-header';
+import { CustomerPicker } from '@/components/customer-picker';
 import InputError from '@/components/input-error';
 import { PriceInput } from '@/components/price-input';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +33,6 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { useSaleCalculations } from '@/hooks/use-sale-calculations';
 import { formatCurrency } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
 import type { Brand } from '@/pages/brands/types';
 import type { Car } from '@/pages/cars/types';
 import type { Customer } from '@/pages/customers/types';
@@ -69,52 +67,6 @@ const defaultDueDate = new Date(
     .toISOString()
     .split('T')[0];
 
-function carLabel(car: Car): string {
-    return [
-        car.brand?.name,
-        car.name,
-        car.license_plate ? `(${car.license_plate})` : '(Tanpa plat)',
-        `• ${car.year}`,
-        `• ${formatCurrency(car.selling_price)}`,
-    ]
-        .filter(Boolean)
-        .join(' ');
-}
-
-function carSearchText(car: Car): string {
-    return [
-        car.brand?.name,
-        car.name,
-        car.license_plate,
-        car.color,
-        String(car.year),
-    ]
-        .filter(Boolean)
-        .join(' ')
-        .toLocaleLowerCase('id-ID');
-}
-
-function customerLabel(
-    customer: Pick<Customer, 'id' | 'name' | 'phone' | 'ktp_number'>,
-): string {
-    return [
-        customer.name,
-        customer.phone ? `(${customer.phone})` : '',
-        customer.ktp_number ? `• NIK: ${customer.ktp_number}` : '',
-    ]
-        .filter(Boolean)
-        .join(' ');
-}
-
-function customerSearchText(
-    customer: Pick<Customer, 'id' | 'name' | 'phone' | 'ktp_number'>,
-): string {
-    return [customer.name, customer.phone, customer.ktp_number]
-        .filter(Boolean)
-        .join(' ')
-        .toLocaleLowerCase('id-ID');
-}
-
 export function SaleForm({
     availableCars,
     customers,
@@ -127,55 +79,15 @@ export function SaleForm({
     const [selectedCarId, setSelectedCarId] = useState<string>(
         initialCar?.id ? String(initialCar.id) : '',
     );
-    const [carSearch, setCarSearch] = useState<string>(
-        initialCar ? carLabel(initialCar) : '',
-    );
-    const [isCarListOpen, setIsCarListOpen] = useState(false);
-
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
         initialCustomer?.id ? String(initialCustomer.id) : '',
     );
-    const [customerSearch, setCustomerSearch] = useState<string>(
-        initialCustomer ? customerLabel(initialCustomer) : '',
-    );
-    const [isCustomerListOpen, setIsCustomerListOpen] = useState(false);
 
     const [paymentType, setPaymentType] = useState<PaymentType>('cash_full');
 
     const selectedCar = availableCars.find(
         (c) => String(c.id) === selectedCarId,
     );
-    const selectedCustomer = customers.find(
-        (c) => String(c.id) === selectedCustomerId,
-    );
-
-    const normalizedCarSearch = carSearch.trim().toLocaleLowerCase('id-ID');
-    const matchingCars = useMemo(
-        () =>
-            normalizedCarSearch === ''
-                ? availableCars
-                : availableCars.filter((car) =>
-                      carSearchText(car).includes(normalizedCarSearch),
-                  ),
-        [availableCars, normalizedCarSearch],
-    );
-    const visibleCars = matchingCars.slice(0, 10);
-
-    const normalizedCustomerSearch = customerSearch
-        .trim()
-        .toLocaleLowerCase('id-ID');
-    const matchingCustomers = useMemo(
-        () =>
-            normalizedCustomerSearch === ''
-                ? customers
-                : customers.filter((customer) =>
-                      customerSearchText(customer).includes(
-                          normalizedCustomerSearch,
-                      ),
-                  ),
-        [customers, normalizedCustomerSearch],
-    );
-    const visibleCustomers = matchingCustomers.slice(0, 10);
 
     const [dealPrice, setDealPrice] = useState<string>(
         selectedCar?.selling_price ? String(selectedCar.selling_price) : '',
@@ -209,11 +121,14 @@ export function SaleForm({
     const [referenceNumber, setReferenceNumber] = useState<string>('');
     const [notes, setNotes] = useState<string>('');
 
-    function selectCar(car: Car) {
-        const strId = String(car.id);
-        setSelectedCarId(strId);
-        setCarSearch(carLabel(car));
-        setIsCarListOpen(false);
+    function handleSelectCar(car: Car | null) {
+        if (!car) {
+            setSelectedCarId('');
+
+            return;
+        }
+
+        setSelectedCarId(String(car.id));
 
         if (car.selling_price) {
             setDealPrice(String(car.selling_price));
@@ -227,24 +142,10 @@ export function SaleForm({
         }
     }
 
-    function clearCar() {
-        setSelectedCarId('');
-        setCarSearch('');
-        setIsCarListOpen(true);
-    }
-
-    function selectCustomer(
-        customer: Pick<Customer, 'id' | 'name' | 'phone' | 'ktp_number'>,
+    function handleSelectCustomer(
+        customer: Pick<Customer, 'id' | 'name' | 'phone' | 'ktp_number'> | null,
     ) {
-        setSelectedCustomerId(String(customer.id));
-        setCustomerSearch(customerLabel(customer));
-        setIsCustomerListOpen(false);
-    }
-
-    function clearCustomer() {
-        setSelectedCustomerId('');
-        setCustomerSearch('');
-        setIsCustomerListOpen(true);
+        setSelectedCustomerId(customer ? String(customer.id) : '');
     }
 
     function handlePaymentTypeChange(type: PaymentType) {
@@ -346,392 +247,30 @@ export function SaleForm({
                                 />
                                 <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     {/* Search & Select Car */}
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="sale-car-search">
-                                            Pilih Unit Mobil Tersedia{' '}
-                                            <span className="text-red-500">
-                                                *
-                                            </span>
-                                        </Label>
-                                        {availableCars.length > 0 ? (
-                                            <div
-                                                className="relative"
-                                                onBlur={(event) => {
-                                                    const nextTarget =
-                                                        event.relatedTarget as Node | null;
-
-                                                    if (
-                                                        !nextTarget ||
-                                                        !event.currentTarget.contains(
-                                                            nextTarget,
-                                                        )
-                                                    ) {
-                                                        setIsCarListOpen(false);
-                                                    }
-                                                }}
-                                            >
-                                                <div className="relative">
-                                                    <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                                                    <Input
-                                                        id="sale-car-search"
-                                                        type="search"
-                                                        value={carSearch}
-                                                        onFocus={() =>
-                                                            setIsCarListOpen(
-                                                                true,
-                                                            )
-                                                        }
-                                                        onChange={(event) => {
-                                                            const value =
-                                                                event.target
-                                                                    .value;
-
-                                                            setCarSearch(value);
-                                                            setIsCarListOpen(
-                                                                true,
-                                                            );
-
-                                                            if (
-                                                                selectedCar &&
-                                                                value !==
-                                                                    carLabel(
-                                                                        selectedCar,
-                                                                    )
-                                                            ) {
-                                                                setSelectedCarId(
-                                                                    '',
-                                                                );
-                                                            }
-                                                        }}
-                                                        placeholder="Cari nama mobil, merek, atau plat nomor..."
-                                                        autoComplete="off"
-                                                        aria-expanded={
-                                                            isCarListOpen
-                                                        }
-                                                        aria-controls="sale-car-search-results"
-                                                        aria-invalid={Boolean(
-                                                            errors.car_id,
-                                                        )}
-                                                        className={`pr-10 pl-9 ${validationColorClassName}`}
-                                                    />
-                                                    {carSearch !== '' && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={clearCar}
-                                                            aria-label="Hapus pilihan mobil"
-                                                            className="absolute top-1/2 right-1 size-8 -translate-y-1/2"
-                                                        >
-                                                            <XIcon />
-                                                        </Button>
-                                                    )}
-                                                </div>
-
-                                                {isCarListOpen && (
-                                                    <div
-                                                        id="sale-car-search-results"
-                                                        role="listbox"
-                                                        className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
-                                                    >
-                                                        {visibleCars.length ===
-                                                        0 ? (
-                                                            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                                                                Mobil tidak
-                                                                ditemukan.
-                                                            </p>
-                                                        ) : (
-                                                            visibleCars.map(
-                                                                (car) => {
-                                                                    const isSelected =
-                                                                        selectedCarId ===
-                                                                        String(
-                                                                            car.id,
-                                                                        );
-
-                                                                    return (
-                                                                        <button
-                                                                            key={
-                                                                                car.id
-                                                                            }
-                                                                            type="button"
-                                                                            role="option"
-                                                                            aria-selected={
-                                                                                isSelected
-                                                                            }
-                                                                            onClick={() =>
-                                                                                selectCar(
-                                                                                    car,
-                                                                                )
-                                                                            }
-                                                                            className={cn(
-                                                                                'flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none',
-                                                                                isSelected &&
-                                                                                    'bg-primary/10',
-                                                                            )}
-                                                                        >
-                                                                            <div className="min-w-0 flex-1">
-                                                                                <p className="font-semibold text-foreground">
-                                                                                    {
-                                                                                        car
-                                                                                            .brand
-                                                                                            ?.name
-                                                                                    }{' '}
-                                                                                    {
-                                                                                        car.name
-                                                                                    }
-                                                                                </p>
-                                                                                <p className="text-xs text-muted-foreground">
-                                                                                    {car.license_plate ??
-                                                                                        'Tanpa plat'}{' '}
-                                                                                    ·
-                                                                                    Tahun{' '}
-                                                                                    {
-                                                                                        car.year
-                                                                                    }{' '}
-                                                                                    {car.color
-                                                                                        ? `· ${car.color}`
-                                                                                        : ''}
-                                                                                </p>
-                                                                            </div>
-                                                                            <div className="text-right">
-                                                                                <span className="font-semibold text-emerald-600">
-                                                                                    {formatCurrency(
-                                                                                        car.selling_price,
-                                                                                    )}
-                                                                                </span>
-                                                                            </div>
-                                                                            {isSelected && (
-                                                                                <CheckCircleIcon
-                                                                                    weight="fill"
-                                                                                    className="size-5 shrink-0 text-primary"
-                                                                                />
-                                                                            )}
-                                                                        </button>
-                                                                    );
-                                                                },
-                                                            )
-                                                        )}
-
-                                                        {matchingCars.length >
-                                                            10 && (
-                                                            <p className="border-t px-3 py-2 text-xs text-muted-foreground">
-                                                                Menampilkan 10
-                                                                dari{' '}
-                                                                {
-                                                                    matchingCars.length
-                                                                }{' '}
-                                                                mobil yang
-                                                                cocok. Ketik
-                                                                lebih spesifik
-                                                                untuk
-                                                                mempersempit.
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-                                                Tidak ada mobil berstatus
-                                                tersedia. Silakan tambah unit
-                                                mobil baru terlebih dahulu.
-                                            </div>
-                                        )}
-                                        <InputError
-                                            message={errors.car_id}
-                                            className={errorTextClassName}
-                                        />
-                                    </div>
+                                    <CarPicker
+                                        cars={availableCars}
+                                        value={selectedCarId}
+                                        onSelect={handleSelectCar}
+                                        error={errors.car_id}
+                                        required
+                                        label="Pilih Unit Mobil Tersedia"
+                                        emptyText="Tidak ada mobil berstatus tersedia. Silakan tambah unit mobil baru terlebih dahulu."
+                                        showSelectedHelper
+                                        className="sm:col-span-2"
+                                    />
 
                                     {/* Search & Select Customer */}
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="sale-customer-search">
-                                            Pilih Customer Pembeli{' '}
-                                            <span className="text-red-500">
-                                                *
-                                            </span>
-                                        </Label>
-                                        {customers.length > 0 ? (
-                                            <div
-                                                className="relative"
-                                                onBlur={(event) => {
-                                                    const nextTarget =
-                                                        event.relatedTarget as Node | null;
-
-                                                    if (
-                                                        !nextTarget ||
-                                                        !event.currentTarget.contains(
-                                                            nextTarget,
-                                                        )
-                                                    ) {
-                                                        setIsCustomerListOpen(
-                                                            false,
-                                                        );
-                                                    }
-                                                }}
-                                            >
-                                                <div className="relative">
-                                                    <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                                                    <Input
-                                                        id="sale-customer-search"
-                                                        type="search"
-                                                        value={customerSearch}
-                                                        onFocus={() =>
-                                                            setIsCustomerListOpen(
-                                                                true,
-                                                            )
-                                                        }
-                                                        onChange={(event) => {
-                                                            const value =
-                                                                event.target
-                                                                    .value;
-
-                                                            setCustomerSearch(
-                                                                value,
-                                                            );
-                                                            setIsCustomerListOpen(
-                                                                true,
-                                                            );
-
-                                                            if (
-                                                                selectedCustomer &&
-                                                                value !==
-                                                                    customerLabel(
-                                                                        selectedCustomer,
-                                                                    )
-                                                            ) {
-                                                                setSelectedCustomerId(
-                                                                    '',
-                                                                );
-                                                            }
-                                                        }}
-                                                        placeholder="Cari nama pembeli, nomor telepon, atau NIK KTP..."
-                                                        autoComplete="off"
-                                                        aria-expanded={
-                                                            isCustomerListOpen
-                                                        }
-                                                        aria-controls="sale-customer-search-results"
-                                                        aria-invalid={Boolean(
-                                                            errors.customer_id,
-                                                        )}
-                                                        className={`pr-10 pl-9 ${validationColorClassName}`}
-                                                    />
-                                                    {customerSearch !== '' && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={
-                                                                clearCustomer
-                                                            }
-                                                            aria-label="Hapus pilihan customer"
-                                                            className="absolute top-1/2 right-1 size-8 -translate-y-1/2"
-                                                        >
-                                                            <XIcon />
-                                                        </Button>
-                                                    )}
-                                                </div>
-
-                                                {isCustomerListOpen && (
-                                                    <div
-                                                        id="sale-customer-search-results"
-                                                        role="listbox"
-                                                        className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
-                                                    >
-                                                        {visibleCustomers.length ===
-                                                        0 ? (
-                                                            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                                                                Customer tidak
-                                                                ditemukan.
-                                                            </p>
-                                                        ) : (
-                                                            visibleCustomers.map(
-                                                                (customer) => {
-                                                                    const isSelected =
-                                                                        selectedCustomerId ===
-                                                                        String(
-                                                                            customer.id,
-                                                                        );
-
-                                                                    return (
-                                                                        <button
-                                                                            key={
-                                                                                customer.id
-                                                                            }
-                                                                            type="button"
-                                                                            role="option"
-                                                                            aria-selected={
-                                                                                isSelected
-                                                                            }
-                                                                            onClick={() =>
-                                                                                selectCustomer(
-                                                                                    customer,
-                                                                                )
-                                                                            }
-                                                                            className={cn(
-                                                                                'flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none',
-                                                                                isSelected &&
-                                                                                    'bg-primary/10',
-                                                                            )}
-                                                                        >
-                                                                            <div className="min-w-0 flex-1">
-                                                                                <p className="font-semibold text-foreground">
-                                                                                    {
-                                                                                        customer.name
-                                                                                    }
-                                                                                </p>
-                                                                                <p className="text-xs text-muted-foreground">
-                                                                                    {customer.phone
-                                                                                        ? customer.phone
-                                                                                        : 'Tanpa nomor telepon'}{' '}
-                                                                                    {customer.ktp_number
-                                                                                        ? `· NIK: ${customer.ktp_number}`
-                                                                                        : ''}
-                                                                                </p>
-                                                                            </div>
-                                                                            {isSelected && (
-                                                                                <CheckCircleIcon
-                                                                                    weight="fill"
-                                                                                    className="size-5 shrink-0 text-primary"
-                                                                                />
-                                                                            )}
-                                                                        </button>
-                                                                    );
-                                                                },
-                                                            )
-                                                        )}
-
-                                                        {matchingCustomers.length >
-                                                            10 && (
-                                                            <p className="border-t px-3 py-2 text-xs text-muted-foreground">
-                                                                Menampilkan 10
-                                                                dari{' '}
-                                                                {
-                                                                    matchingCustomers.length
-                                                                }{' '}
-                                                                customer yang
-                                                                cocok. Ketik
-                                                                lebih spesifik
-                                                                untuk
-                                                                mempersempit.
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-                                                Tidak ada data customer. Silakan
-                                                tambah customer baru terlebih
-                                                dahulu.
-                                            </div>
-                                        )}
-                                        <InputError
-                                            message={errors.customer_id}
-                                            className={errorTextClassName}
-                                        />
-                                    </div>
+                                    <CustomerPicker
+                                        customers={customers}
+                                        value={selectedCustomerId}
+                                        onSelect={handleSelectCustomer}
+                                        error={errors.customer_id}
+                                        required
+                                        label="Pilih Customer Pembeli"
+                                        emptyText="Tidak ada data customer. Silakan tambah customer baru terlebih dahulu."
+                                        showSelectedHelper
+                                        className="sm:col-span-2"
+                                    />
 
                                     {/* Deal Price */}
                                     <div className="grid gap-2 sm:col-span-2">

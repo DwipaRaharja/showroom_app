@@ -1,12 +1,8 @@
 import { Form, Link } from '@inertiajs/react';
-import {
-    CheckCircleIcon,
-    FloppyDiskIcon,
-    MagnifyingGlassIcon,
-    XIcon,
-} from '@phosphor-icons/react';
-import { useMemo, useState } from 'react';
+import { FloppyDiskIcon } from '@phosphor-icons/react';
+import { useState } from 'react';
 import DocumentProcessController from '@/actions/App/Http/Controllers/DocumentProcessController';
+import { CarPicker } from '@/components/car-picker';
 import InputError from '@/components/input-error';
 import { PriceInput } from '@/components/price-input';
 import { Button } from '@/components/ui/button';
@@ -28,7 +24,6 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
 import type {
     DocumentProcessType,
     LabelOptions,
@@ -54,62 +49,20 @@ function today(): string {
     return local.toISOString().slice(0, 10);
 }
 
-function carLabel(car: ProcessCar): string {
-    return [car.brand?.name, car.name, car.license_plate ?? 'Tanpa plat']
-        .filter(Boolean)
-        .join(' · ');
-}
-
-function carSearchText(car: ProcessCar): string {
-    return [car.brand?.name, car.name, car.license_plate]
-        .filter(Boolean)
-        .join(' ')
-        .toLocaleLowerCase('id-ID');
-}
-
 export function ProcessForm({
     cars,
     users,
     typeOptions,
     initialCarId = null,
 }: Props) {
-    const initialCar = cars.find((car) => car.id === initialCarId) ?? null;
     const [carId, setCarId] = useState(
         initialCarId === null ? '' : String(initialCarId),
     );
-    const [carSearch, setCarSearch] = useState(
-        initialCar === null ? '' : carLabel(initialCar),
-    );
-    const [isCarListOpen, setIsCarListOpen] = useState(false);
     const [processType, setProcessType] =
         useState<DocumentProcessType>('annual_tax');
     const [assignedTo, setAssignedTo] = useState('none');
     const [initialCost, setInitialCost] = useState('');
     const [paidBy, setPaidBy] = useState('showroom');
-    const selectedCar = cars.find((car) => String(car.id) === carId) ?? null;
-    const normalizedCarSearch = carSearch.trim().toLocaleLowerCase('id-ID');
-    const matchingCars = useMemo(
-        () =>
-            normalizedCarSearch === ''
-                ? cars
-                : cars.filter((car) =>
-                      carSearchText(car).includes(normalizedCarSearch),
-                  ),
-        [cars, normalizedCarSearch],
-    );
-    const visibleCars = matchingCars.slice(0, 10);
-
-    function selectCar(car: ProcessCar) {
-        setCarId(String(car.id));
-        setCarSearch(carLabel(car));
-        setIsCarListOpen(false);
-    }
-
-    function clearCar() {
-        setCarId('');
-        setCarSearch('');
-        setIsCarListOpen(true);
-    }
 
     return (
         <Form
@@ -147,174 +100,21 @@ export function ProcessForm({
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="grid gap-5 sm:grid-cols-2">
-                            <div className="grid gap-2 sm:col-span-2">
-                                <Label htmlFor="car-search">
-                                    Kendaraan{' '}
-                                    <span className="text-red-500">*</span>
-                                </Label>
-                                <div
-                                    className="relative"
-                                    onBlur={(event) => {
-                                        const nextTarget =
-                                            event.relatedTarget as Node | null;
-
-                                        if (
-                                            !nextTarget ||
-                                            !event.currentTarget.contains(
-                                                nextTarget,
-                                            )
-                                        ) {
-                                            setIsCarListOpen(false);
-                                        }
-                                    }}
-                                >
-                                    <div className="relative">
-                                        <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                                        <Input
-                                            id="car-search"
-                                            type="search"
-                                            value={carSearch}
-                                            onFocus={() =>
-                                                setIsCarListOpen(true)
-                                            }
-                                            onChange={(event) => {
-                                                const value =
-                                                    event.target.value;
-
-                                                setCarSearch(value);
-                                                setIsCarListOpen(true);
-
-                                                if (
-                                                    selectedCar &&
-                                                    value !==
-                                                        carLabel(selectedCar)
-                                                ) {
-                                                    setCarId('');
-                                                }
-                                            }}
-                                            placeholder="Cari nama mobil, merek, atau nomor polisi..."
-                                            autoComplete="off"
-                                            aria-expanded={isCarListOpen}
-                                            aria-controls="car-search-results"
-                                            aria-invalid={Boolean(
-                                                errors.car_id,
-                                            )}
-                                            className={`pr-10 pl-9 ${validationColorClassName}`}
-                                        />
-                                        {carSearch !== '' && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={clearCar}
-                                                aria-label="Hapus pilihan kendaraan"
-                                                className="absolute top-1/2 right-1 size-8 -translate-y-1/2"
-                                            >
-                                                <XIcon />
-                                            </Button>
-                                        )}
-                                    </div>
-
-                                    {isCarListOpen && (
-                                        <div
-                                            id="car-search-results"
-                                            role="listbox"
-                                            className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
-                                        >
-                                            {visibleCars.length === 0 ? (
-                                                <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-                                                    Mobil tidak ditemukan.
-                                                </p>
-                                            ) : (
-                                                visibleCars.map((car) => {
-                                                    const isSelected =
-                                                        carId ===
-                                                        String(car.id);
-
-                                                    return (
-                                                        <button
-                                                            key={car.id}
-                                                            type="button"
-                                                            role="option"
-                                                            aria-selected={
-                                                                isSelected
-                                                            }
-                                                            onClick={() =>
-                                                                selectCar(car)
-                                                            }
-                                                            className={cn(
-                                                                'flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none',
-                                                                isSelected &&
-                                                                    'bg-primary/10',
-                                                            )}
-                                                        >
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="font-medium">
-                                                                    {
-                                                                        car
-                                                                            .brand
-                                                                            ?.name
-                                                                    }{' '}
-                                                                    {car.name}
-                                                                </p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    {car.license_plate ??
-                                                                        'Tanpa plat'}{' '}
-                                                                    ·{' '}
-                                                                    {car.status}
-                                                                </p>
-                                                            </div>
-                                                            {isSelected && (
-                                                                <CheckCircleIcon
-                                                                    weight="fill"
-                                                                    className="size-5 shrink-0 text-primary"
-                                                                />
-                                                            )}
-                                                        </button>
-                                                    );
-                                                })
-                                            )}
-
-                                            {matchingCars.length > 10 && (
-                                                <p className="border-t px-3 py-2 text-xs text-muted-foreground">
-                                                    Menampilkan 10 dari{' '}
-                                                    {matchingCars.length} mobil.
-                                                    Ketik pencarian lebih
-                                                    spesifik.
-                                                </p>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                {selectedCar && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Mobil terpilih: {carLabel(selectedCar)}
-                                    </p>
-                                )}
-                                <InputError
-                                    message={errors.car_id}
-                                    className={errorTextClassName}
-                                />
-                                {errors.car_id_active_process_id && (
-                                    <Button
-                                        type="button"
-                                        variant="link"
-                                        size="sm"
-                                        className="h-auto w-fit p-0 text-red-500 dark:text-red-500"
-                                        asChild
-                                    >
-                                        <Link
-                                            href={DocumentProcessController.show.url(
-                                                Number(
-                                                    errors.car_id_active_process_id,
-                                                ),
-                                            )}
-                                        >
-                                            Lihat proses berkas aktif →
-                                        </Link>
-                                    </Button>
-                                )}
-                            </div>
+                            <CarPicker
+                                cars={cars}
+                                value={carId}
+                                onSelect={(car) =>
+                                    setCarId(car ? String(car.id) : '')
+                                }
+                                error={errors.car_id}
+                                activeProcessId={
+                                    errors.car_id_active_process_id
+                                }
+                                required
+                                label="Kendaraan"
+                                showSelectedHelper
+                                className="sm:col-span-2"
+                            />
 
                             <div className="grid gap-2 sm:col-span-2">
                                 <Label>
