@@ -46,7 +46,8 @@ export default function HandoverShow({ sale }: Props) {
     const unitDelivered = sale.handover?.vehicle_delivered_at != null;
     const bpkbDelivered = sale.handover?.bpkb_delivered_at != null;
     const canAddTracking =
-        sale.status !== 'cancelled' && (canDeliverVehicle || unitDelivered);
+        sale.status !== 'cancelled' &&
+        (canDeliverVehicle || unitDelivered || canDeliverBpkb);
 
     const unitStatusLabel = unitDelivered
         ? 'Sudah Diserahkan'
@@ -61,20 +62,18 @@ export default function HandoverShow({ sale }: Props) {
 
     const bpkbStatusLabel = bpkbDelivered
         ? 'Sudah Diserahkan'
-        : !unitDelivered
-          ? 'Menunggu Unit'
-          : canDeliverBpkb
-            ? sale.payment_type === 'credit'
-                ? 'Siap ke Leasing'
-                : 'Siap (Lunas)'
+        : canDeliverBpkb
+          ? sale.payment_type === 'credit'
+              ? 'Siap ke Leasing'
+              : 'Siap (Lunas)'
+          : !unitDelivered
+            ? 'Menunggu Unit'
             : 'Ditahan';
     const bpkbStatusVariant = bpkbDelivered
         ? 'success'
-        : !unitDelivered
-          ? 'warning'
-          : canDeliverBpkb
-            ? 'info'
-            : 'warning';
+        : canDeliverBpkb
+          ? 'info'
+          : 'warning';
 
     return (
         <>

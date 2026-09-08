@@ -228,10 +228,11 @@ test('datetime-local is interpreted as Makassar time before UTC validation', fun
         ->toBe('2026-08-24 14:30:00');
 });
 
-test('BPKB requires settlement a vehicle event and the invoice', function () {
+test('BPKB requires settlement and the invoice', function () {
     $sale = createSaleForHandover(100_000_000);
     paySaleForHandover($sale, 92_000_000);
 
+    // Unsettled: BPKB cannot be handed over
     $this->post(
         route('handovers.store'),
         validHandoverTrackingPayload($sale, ['bpkb', 'invoice']),
@@ -239,12 +240,47 @@ test('BPKB requires settlement a vehicle event and the invoice', function () {
 
     paySaleForHandover($sale, 8_000_000);
 
+    // Settled but missing invoice: rejected
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale, ['bpkb']),
+    )->assertSessionHasErrors('items');
+
+    // Settled with invoice: accepted directly without requiring separate prior vehicle event
     $this->post(
         route('handovers.store'),
         validHandoverTrackingPayload($sale, ['bpkb', 'invoice']),
-    )->assertSessionHasErrors('items');
+    )->assertSessionHasNoErrors();
 
-    expect(VehicleHandover::query()->whereBelongsTo($sale)->exists())->toBeFalse();
+    expect(VehicleHandover::query()->whereBelongsTo($sale)->exists())->toBeTrue();
+});
+
+test('a settled sale can deliver vehicle and BPKB together in a single tracking event', function () {
+    $sale = createSaleForHandover(100_000_000);
+    paySaleForHandover($sale, 100_000_000);
+
+    $this->post(
+        route('handovers.store'),
+        validHandoverTrackingPayload($sale, [
+            'vehicle',
+            'stnk',
+            'keys',
+            'bpkb',
+            'invoice',
+        ]),
+    )->assertSessionHasNoErrors()
+        ->assertRedirect(route('handovers.show', $sale));
+
+    $handover = VehicleHandover::query()
+        ->with(['events.items', 'events.photos'])
+        ->whereBelongsTo($sale)
+        ->firstOrFail();
+
+    expect($handover->status)->toBe('completed')
+        ->and($handover->events)->toHaveCount(1)
+        ->and($handover->hasDeliveredItem('vehicle'))->toBeTrue()
+        ->and($handover->hasDeliveredItem('bpkb'))->toBeTrue()
+        ->and($handover->hasDeliveredItem('invoice'))->toBeTrue();
 });
 
 test('a settled sale can record separate vehicle and document timeline events', function () {

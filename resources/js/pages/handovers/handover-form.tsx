@@ -94,6 +94,9 @@ export function HandoverForm({ sale }: Props) {
                   'manual_book',
                   'toolkit',
                   'spare_tire',
+                  ...(!isCredit && canDeliverBpkb && !bpkbAlreadyDelivered
+                      ? (['bpkb', 'invoice'] as HandoverItemCode[])
+                      : []),
               ]
             : unitAlreadyDelivered && !bpkbAlreadyDelivered && canDeliverBpkb
               ? [
@@ -137,7 +140,7 @@ export function HandoverForm({ sale }: Props) {
         }
 
         if (item === 'bpkb') {
-            return !canDeliverBpkb || !unitAlreadyDelivered;
+            return !canDeliverBpkb;
         }
 
         if (item === 'invoice') {
@@ -268,13 +271,11 @@ export function HandoverForm({ sale }: Props) {
                             <p className="text-base font-semibold">
                                 {bpkbAlreadyDelivered
                                     ? 'Sudah diserahkan'
-                                    : !unitAlreadyDelivered
-                                      ? 'Menunggu penyerahan unit'
-                                      : canDeliverBpkb
-                                        ? 'Dapat diserahkan'
-                                        : isCredit
-                                          ? 'Menunggu kekurangan customer'
-                                          : 'Menunggu pelunasan'}
+                                    : canDeliverBpkb
+                                      ? 'Dapat diserahkan'
+                                      : isCredit
+                                        ? 'Menunggu kekurangan customer'
+                                        : 'Menunggu pelunasan'}
                             </p>
                         </div>
                     </div>

@@ -195,9 +195,14 @@ class StoreHandoverRequest extends FormRequest
                 );
             }
 
-            $hasVehicleDelivery = $handover?->hasDeliveredItem('vehicle') ?? false;
+            $hasVehicleDelivery = ($handover?->hasDeliveredItem('vehicle') ?? false)
+                || in_array('vehicle', $items, true);
 
-            if (in_array('bpkb', $items, true) && ! $hasVehicleDelivery) {
+            if (
+                in_array('bpkb', $items, true)
+                && ! $hasVehicleDelivery
+                && ! $sale->can_deliver_bpkb
+            ) {
                 $validator->errors()->add(
                     'items',
                     'Catat penyerahan unit terlebih dahulu sebelum menyerahkan BPKB.',

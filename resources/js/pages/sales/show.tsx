@@ -137,7 +137,9 @@ export default function SalesShow({ sale }: Props) {
     const canDeliverBpkb = sale.can_deliver_bpkb ?? remainingBill <= 0;
     const canAddTracking =
         sale.status !== 'cancelled' &&
-        (canDeliverVehicle || sale.handover?.vehicle_delivered_at != null);
+        (canDeliverVehicle ||
+            sale.handover?.vehicle_delivered_at != null ||
+            canDeliverBpkb);
     const canAcceptPayment =
         sale.can_accept_payment ??
         ((sale.payment_type === 'credit'

@@ -447,7 +447,9 @@ export function createHandoverColumns() {
                 const canAddTracking =
                     sale.status !== 'cancelled' &&
                     (canDeliverVehicle ||
-                        handover?.vehicle_delivered_at != null);
+                        handover?.vehicle_delivered_at != null ||
+                        (sale.can_deliver_bpkb ??
+                            (sale.remaining_bill ?? 0) <= 0));
 
                 return (
                     <div className="flex justify-end">
