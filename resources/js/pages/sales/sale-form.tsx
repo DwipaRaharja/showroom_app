@@ -73,15 +73,8 @@ export function SaleForm({
     financeCompanies,
     brands = [],
 }: Props) {
-    const initialCar = availableCars[0] ?? null;
-    const initialCustomer = customers[0] ?? null;
-
-    const [selectedCarId, setSelectedCarId] = useState<string>(
-        initialCar?.id ? String(initialCar.id) : '',
-    );
-    const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
-        initialCustomer?.id ? String(initialCustomer.id) : '',
-    );
+    const [selectedCarId, setSelectedCarId] = useState<string>('');
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
 
     const [paymentType, setPaymentType] = useState<PaymentType>('cash_full');
 
@@ -89,9 +82,7 @@ export function SaleForm({
         (c) => String(c.id) === selectedCarId,
     );
 
-    const [dealPrice, setDealPrice] = useState<string>(
-        selectedCar?.selling_price ? String(selectedCar.selling_price) : '',
-    );
+    const [dealPrice, setDealPrice] = useState<string>('');
     const [downPayment, setDownPayment] = useState<string>('');
     const [financeCompanyId, setFinanceCompanyId] = useState<string>(
         financeCompanies[0]?.id ? String(financeCompanies[0].id) : '',
@@ -124,6 +115,8 @@ export function SaleForm({
     function handleSelectCar(car: Car | null) {
         if (!car) {
             setSelectedCarId('');
+            setDealPrice('');
+            setDownPayment('');
 
             return;
         }
