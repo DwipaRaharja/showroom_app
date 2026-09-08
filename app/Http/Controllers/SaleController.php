@@ -236,10 +236,35 @@ class SaleController extends Controller
     }
 
     /**
-     * Remove or safely cancel the specified sales transaction.
+     * Permanently remove the specified cancelled sales transaction.
      */
-    public function destroy(Request $request, Sale $sale): RedirectResponse
+    public function destroy(Sale $sale): RedirectResponse
     {
-        return $this->cancel($request, $sale);
+        if ($sale->status !== 'cancelled') {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Hanya transaksi penjualan yang telah dibatalkan yang dapat dihapus dari sistem.',
+            ]);
+
+            return back();
+        }
+
+        DB::transaction(function () use ($sale): void {
+            $car = $sale->car;
+            $sale->handover?->delete();
+            $sale->payments()->delete();
+            $sale->delete();
+
+            if ($car && ! $car->trashed() && $car->status !== 'available') {
+                $car->update(['status' => 'available']);
+            }
+        });
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Data transaksi penjualan berhasil dihapus secara permanen.',
+        ]);
+
+        return to_route('sales.index');
     }
 }

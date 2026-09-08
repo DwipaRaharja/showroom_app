@@ -5,6 +5,7 @@ import {
     HandCoinsIcon,
     HourglassMediumIcon,
     PlusIcon,
+    TrashIcon,
     XCircleIcon,
     XIcon,
 } from '@phosphor-icons/react';
@@ -82,6 +83,7 @@ const initialColumnVisibility: ColumnVisibilityState = {
 export function SaleDataTable({ data, summary }: Props) {
     const [selectedSaleForPayment, setSelectedSaleForPayment] =
         useState<Sale | null>(null);
+    const [cancellingSale, setCancellingSale] = useState<Sale | null>(null);
     const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
     const [cancelReason, setCancelReason] = useState('');
     const [globalFilter, setGlobalFilter] = useState('');
@@ -101,6 +103,7 @@ export function SaleDataTable({ data, summary }: Props) {
                 onShow: (sale) =>
                     router.visit(SaleController.show.url(sale.id)),
                 onRecordPayment: (sale) => setSelectedSaleForPayment(sale),
+                onCancel: (sale) => setCancellingSale(sale),
                 onDelete: (sale) => setDeletingSale(sale),
             }),
         [],
@@ -421,10 +424,10 @@ export function SaleDataTable({ data, summary }: Props) {
 
             {/* Cancel Sale Dialog */}
             <ConfirmDialog
-                open={deletingSale !== null}
+                open={cancellingSale !== null}
                 onOpenChange={(open) => {
                     if (!open) {
-                        setDeletingSale(null);
+                        setCancellingSale(null);
                         setCancelReason('');
                     }
                 }}
@@ -433,8 +436,8 @@ export function SaleDataTable({ data, summary }: Props) {
                 description={
                     <>
                         Apakah Anda yakin ingin membatalkan transaksi invoice{' '}
-                        <strong>{deletingSale?.invoice_number}</strong> (
-                        {deletingSale?.car?.name})? Unit mobil akan otomatis
+                        <strong>{cancellingSale?.invoice_number}</strong> (
+                        {cancellingSale?.car?.name})? Unit mobil akan otomatis
                         dikembalikan menjadi <strong>Tersedia</strong> dan
                         riwayat transaksi tetap tersimpan.
                     </>
@@ -442,13 +445,13 @@ export function SaleDataTable({ data, summary }: Props) {
                 confirmText="Ya, Batalkan Penjualan"
                 confirmIcon={XCircleIcon}
                 formProps={
-                    deletingSale
+                    cancellingSale
                         ? {
-                              action: `/sales/${deletingSale.id}/cancel`,
+                              action: `/sales/${cancellingSale.id}/cancel`,
                               method: 'post',
                               options: { preserveScroll: true },
                               onSuccess: () => {
-                                  setDeletingSale(null);
+                                  setCancellingSale(null);
                                   setCancelReason('');
                               },
                           }
@@ -473,6 +476,43 @@ export function SaleDataTable({ data, summary }: Props) {
                     />
                 </div>
             </ConfirmDialog>
+
+            {/* Delete Cancelled Sale Dialog */}
+            <ConfirmDialog
+                open={deletingSale !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeletingSale(null);
+                    }
+                }}
+                tone="danger"
+                title="Hapus Transaksi Penjualan?"
+                description={
+                    <>
+                        Apakah Anda yakin ingin menghapus data transaksi invoice{' '}
+                        <strong>{deletingSale?.invoice_number}</strong>
+                        {deletingSale?.car?.name &&
+                            ` (${deletingSale.car.name})`}{' '}
+                        secara permanen?
+                        <br />
+                        <br />
+                        <span className="text-muted-foreground">
+                            <strong>Peringatan:</strong> Tindakan ini bersifat
+                            permanen dan tidak dapat dibatalkan. Seluruh data
+                            pembayaran dan riwayat transaksi penjualan ini akan
+                            dihapus selamanya dari sistem.
+                        </span>
+                    </>
+                }
+                confirmText="Hapus Permanen"
+                confirmIcon={TrashIcon}
+                cancelText="Batal"
+                formProps={
+                    deletingSale
+                        ? SaleController.destroy.form(deletingSale.id)
+                        : undefined
+                }
+            />
         </div>
     );
 }

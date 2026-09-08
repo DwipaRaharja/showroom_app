@@ -292,3 +292,46 @@ test('transfer payment requires destination account', function () {
         ])
         ->assertSessionHasErrors(['destination_account']);
 });
+
+test('deleting a non-cancelled sale is rejected', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    expect($sale->status)->not->toBe('cancelled');
+
+    $this->actingAs($user)
+        ->delete(route('sales.destroy', $sale))
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('sales', ['id' => $sale->id]);
+});
+
+test('deleting a cancelled sale permanently removes it and related payments', function () {
+    $user = User::factory()->create();
+    $sale = createTempoSale();
+
+    $this->actingAs($user)
+        ->post(route('payments.store', $sale), paymentPayload([
+            'payment_category' => 'down_payment',
+            'amount' => 10_000_000,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $paymentId = $sale->payments()->first()->id;
+
+    $this->actingAs($user)
+        ->post(route('sales.cancel', $sale), [
+            'reason' => 'Customer batal beli',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($sale->fresh()->status)->toBe('cancelled');
+
+    $this->actingAs($user)
+        ->delete(route('sales.destroy', $sale))
+        ->assertRedirect(route('sales.index'));
+
+    $this->assertDatabaseMissing('sales', ['id' => $sale->id]);
+    $this->assertDatabaseMissing('payments', ['id' => $paymentId]);
+    expect($sale->car->fresh()->status)->toBe('available');
+});

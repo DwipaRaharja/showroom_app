@@ -5,6 +5,7 @@ import {
     EyeIcon,
     MoneyIcon,
     TrashIcon,
+    XCircleIcon,
 } from '@phosphor-icons/react';
 import {
     columnFilteringFeature,
@@ -94,12 +95,14 @@ export function getPaymentTypeBadge(
 type SaleColumnActions = {
     onShow: (sale: Sale) => void;
     onRecordPayment: (sale: Sale) => void;
+    onCancel: (sale: Sale) => void;
     onDelete: (sale: Sale) => void;
 };
 
 export function createSaleColumns({
     onShow,
     onRecordPayment,
+    onCancel,
     onDelete,
 }: SaleColumnActions) {
     return columnHelper.columns([
@@ -382,12 +385,20 @@ export function createSaleColumns({
                                         Catat pembayaran
                                     </DropdownMenuItem>
                                 )}
-                                {row.original.status !== 'cancelled' && (
+                                {row.original.status === 'cancelled' ? (
                                     <DropdownMenuItem
                                         className="text-red-500 focus:text-red-500"
                                         onSelect={() => onDelete(row.original)}
                                     >
                                         <TrashIcon className="text-red-500" />
+                                        Hapus penjualan
+                                    </DropdownMenuItem>
+                                ) : (
+                                    <DropdownMenuItem
+                                        className="text-red-500 focus:text-red-500"
+                                        onSelect={() => onCancel(row.original)}
+                                    >
+                                        <XCircleIcon className="text-red-500" />
                                         Batalkan penjualan
                                     </DropdownMenuItem>
                                 )}

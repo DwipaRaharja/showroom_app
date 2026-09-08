@@ -18,6 +18,7 @@ import {
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import PaymentController from '@/actions/App/Http/Controllers/PaymentController';
+import SaleController from '@/actions/App/Http/Controllers/SaleController';
 import VehicleHandoverController from '@/actions/App/Http/Controllers/VehicleHandoverController';
 import { CardSectionHeader } from '@/components/card-section-header';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -87,6 +88,7 @@ function getPaymentCategoryLabel(category: string) {
 export default function SalesShow({ sale }: Props) {
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
     const [isCancelSaleOpen, setIsCancelSaleOpen] = useState(false);
+    const [isDeleteSaleOpen, setIsDeleteSaleOpen] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
     const [deletingPayment, setDeletingPayment] = useState<Payment | null>(
         null,
@@ -213,7 +215,16 @@ export default function SalesShow({ sale }: Props) {
                                 Cetak SPK / Invoice
                             </Button>
 
-                            {sale.status !== 'cancelled' && (
+                            {sale.status === 'cancelled' ? (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setIsDeleteSaleOpen(true)}
+                                    className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/30 print:hidden"
+                                >
+                                    <TrashIcon className="size-4" />
+                                    Hapus Penjualan
+                                </Button>
+                            ) : (
                                 <Button
                                     variant="outline"
                                     onClick={() => setIsCancelSaleOpen(true)}
@@ -236,7 +247,7 @@ export default function SalesShow({ sale }: Props) {
                         <AlertTitle className="font-semibold">
                             Transaksi Penjualan Dibatalkan
                         </AlertTitle>
-                        <AlertDescription className="space-y-1 text-sm">
+                        <AlertDescription className="space-y-2 text-sm">
                             <p>
                                 Transaksi SPK ini telah dibatalkan. Unit
                                 kendaraan{' '}
@@ -249,13 +260,24 @@ export default function SalesShow({ sale }: Props) {
                                 kembali.
                             </p>
                             {sale.notes && (
-                                <div className="mt-2 rounded-md border border-red-500/20 bg-background/50 p-2.5 text-xs text-foreground">
+                                <div className="rounded-md border border-red-500/20 bg-background/50 p-2.5 text-xs text-foreground">
                                     <span className="font-semibold">
                                         Catatan / Alasan:{' '}
                                     </span>
                                     {sale.notes}
                                 </div>
                             )}
+                            <div className="pt-1">
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => setIsDeleteSaleOpen(true)}
+                                    className="print:hidden"
+                                >
+                                    <TrashIcon className="size-4" />
+                                    Hapus Transaksi Penjualan Ini
+                                </Button>
+                            </div>
                         </AlertDescription>
                     </Alert>
                 )}
@@ -1146,6 +1168,33 @@ export default function SalesShow({ sale }: Props) {
                     />
                 </div>
             </ConfirmDialog>
+
+            {/* Delete Cancelled Sale Dialog */}
+            <ConfirmDialog
+                open={isDeleteSaleOpen}
+                onOpenChange={setIsDeleteSaleOpen}
+                tone="danger"
+                title="Hapus Transaksi Penjualan?"
+                description={
+                    <>
+                        Apakah Anda yakin ingin menghapus data transaksi invoice{' '}
+                        <strong>{sale.invoice_number}</strong> (
+                        {car?.brand?.name} {car?.name}) secara permanen?
+                        <br />
+                        <br />
+                        <span className="text-muted-foreground">
+                            <strong>Peringatan:</strong> Tindakan ini bersifat
+                            permanen dan tidak dapat dibatalkan. Seluruh data
+                            pembayaran dan riwayat transaksi penjualan ini akan
+                            dihapus selamanya dari sistem.
+                        </span>
+                    </>
+                }
+                confirmText="Hapus Permanen"
+                confirmIcon={TrashIcon}
+                cancelText="Batal"
+                formProps={SaleController.destroy.form(sale.id)}
+            />
         </>
     );
 }
