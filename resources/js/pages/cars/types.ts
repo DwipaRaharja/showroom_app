@@ -89,4 +89,6 @@ export type Car = {
     capital?: CarCapital | null;
     documents?: VehicleDocument[];
     document_attachment?: VehicleDocumentAttachment | null;
+    sales_count?: number;
+    document_processes_count?: number;
 };

@@ -32,8 +32,7 @@ class CarController extends Controller
         $cars = Car::query()
             ->withTrashed()
             ->withInventoryDetails()
-            ->latest('id')
-            ->get([
+            ->select([
                 'id',
                 'brand_id',
                 'name',
@@ -52,7 +51,13 @@ class CarController extends Controller
                 'created_at',
                 'updated_at',
                 'deleted_at',
-            ]);
+            ])
+            ->withCount([
+                'sale as sales_count',
+                'documentProcesses as document_processes_count',
+            ])
+            ->latest('id')
+            ->get();
 
         $nonArchivedCars = $cars->whereNull('deleted_at');
         $activeCars = $nonArchivedCars->whereIn('status', ['available', 'booked', 'maintenance']);
@@ -373,6 +378,39 @@ class CarController extends Controller
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => 'Data mobil berhasil dipulihkan ke daftar aktif.',
+        ]);
+
+        return to_route('cars.index');
+    }
+
+    /**
+     * Permanently remove the specified car from archive.
+     */
+    public function forceDelete(int $car): RedirectResponse
+    {
+        $car = Car::query()
+            ->withTrashed()
+            ->findOrFail($car);
+
+        if ($car->sale()->exists() || $car->documentProcesses()->exists()) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Data mobil memiliki riwayat transaksi penjualan atau pengurusan berkas sehingga tidak dapat dihapus permanen.',
+            ]);
+
+            return to_route('cars.index');
+        }
+
+        DB::transaction(function () use ($car): void {
+            $carId = $car->id;
+            $car->capital()->delete();
+            $car->forceDelete();
+            Storage::disk('local')->deleteDirectory("cars/{$carId}");
+        });
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Data mobil berhasil dihapus secara permanen.',
         ]);
 
         return to_route('cars.index');

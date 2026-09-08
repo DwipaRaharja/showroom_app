@@ -46,6 +46,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     ]);
     Route::patch('cars/{car}/restore', [CarController::class, 'restore'])
         ->name('cars.restore');
+    Route::delete('cars/{car}/force-delete', [CarController::class, 'forceDelete'])
+        ->name('cars.force-delete');
     Route::patch('cars/{car}/status', [CarController::class, 'updateStatus'])
         ->name('cars.status.update');
     Route::get('cars/{car}/image', [CarController::class, 'image'])

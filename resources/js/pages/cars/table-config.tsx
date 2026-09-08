@@ -10,6 +10,7 @@ import {
     GasPumpIcon,
     PencilSimpleIcon,
     TagIcon,
+    TrashIcon,
 } from '@phosphor-icons/react';
 import {
     columnFilteringFeature,
@@ -469,13 +470,26 @@ export function createCarColumns({
                                     </>
                                 )}
                                 {isArchived ? (
-                                    <DropdownMenuItem
-                                        className="text-emerald-600 focus:text-emerald-600 dark:text-emerald-500 dark:focus:text-emerald-500"
-                                        onSelect={() => onRestore(row.original)}
-                                    >
-                                        <ArrowCounterClockwiseIcon className="text-emerald-600 dark:text-emerald-500" />
-                                        Pulihkan mobil
-                                    </DropdownMenuItem>
+                                    <>
+                                        <DropdownMenuItem
+                                            className="text-emerald-600 focus:text-emerald-600 dark:text-emerald-500 dark:focus:text-emerald-500"
+                                            onSelect={() =>
+                                                onRestore(row.original)
+                                            }
+                                        >
+                                            <ArrowCounterClockwiseIcon className="text-emerald-600 dark:text-emerald-500" />
+                                            Pulihkan mobil
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            className="text-red-500 focus:text-red-500"
+                                            onSelect={() =>
+                                                onDelete(row.original)
+                                            }
+                                        >
+                                            <TrashIcon className="text-red-500" />
+                                            Hapus permanen
+                                        </DropdownMenuItem>
+                                    </>
                                 ) : (
                                     <DropdownMenuItem
                                         className="text-red-500 focus:text-red-500"
